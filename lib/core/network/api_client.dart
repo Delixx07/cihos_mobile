@@ -1,0 +1,135 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../config/app_config.dart';
+import 'api_exception.dart';
+import 'token_store.dart';
+
+/// Talks to the Laravel API.
+///
+/// Every request carries the shared `X-Api-Key`; requests that need a signed-in
+/// patient also carry their bearer token. Failures are normalised into
+/// [ApiException] so screens never have to reason about Dio types or HTTP
+/// status codes directly.
+class ApiClient {
+  ApiClient({required TokenStore tokenStore, Dio? dio})
+    : _tokenStore = tokenStore,
+      _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: '${AppConfig.baseUrl}/api',
+              connectTimeout: AppConfig.connectTimeout,
+              receiveTimeout: AppConfig.receiveTimeout,
+              headers: {
+                'Accept': 'application/json',
+                'X-Api-Key': AppConfig.apiKey,
+              },
+              // Let every status through; _unwrap decides what is an error, so
+              // a 401 body can be read rather than thrown away by Dio.
+              validateStatus: (_) => true,
+            ),
+          );
+
+  final Dio _dio;
+  final TokenStore _tokenStore;
+
+  Future<Response<dynamic>> _send(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    bool authenticated = false,
+  }) async {
+    final headers = <String, String>{};
+    if (authenticated) {
+      final token = await _tokenStore.read();
+      if (token == null) {
+        throw const ApiException(
+          message: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+          code: 'unauthenticated',
+          statusCode: 401,
+        );
+      }
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      return await _dio.request<dynamic>(
+        path,
+        data: body,
+        queryParameters: query,
+        options: Options(method: method, headers: headers),
+      );
+    } on DioException catch (e) {
+      throw ApiException(
+        message: switch (e.type) {
+          DioExceptionType.connectionTimeout ||
+          DioExceptionType.sendTimeout ||
+          DioExceptionType.receiveTimeout =>
+            'Sambungan ke server terlalu lama. Periksa jaringan Anda.',
+          _ =>
+            'Tidak dapat terhubung ke server. Pastikan Anda berada di '
+                'jaringan rumah sakit.',
+        },
+        code: 'network',
+      );
+    }
+  }
+
+  /// Turns a response into its payload, or throws [ApiException].
+  Map<String, dynamic> _unwrap(Response<dynamic> response) {
+    final data = response.data;
+    if (data is! Map) {
+      throw ApiException(
+        message: 'Respons server tidak dikenali.',
+        code: 'bad_response',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final map = data.cast<String, dynamic>();
+    if (map['ok'] == true) return map;
+
+    throw ApiException(
+      message: (map['message'] as String?) ?? 'Terjadi kesalahan pada server.',
+      code: map['error'] as String?,
+      statusCode: response.statusCode,
+      fieldErrors: _fieldErrors(map['errors']),
+    );
+  }
+
+  static Map<String, List<String>> _fieldErrors(Object? raw) {
+    if (raw is! Map) return const {};
+    return {
+      for (final entry in raw.entries)
+        entry.key.toString(): switch (entry.value) {
+          final List<dynamic> list => list.map((e) => e.toString()).toList(),
+          final Object value => [value.toString()],
+          null => const <String>[],
+        },
+    };
+  }
+
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? query,
+    bool authenticated = false,
+  }) async => _unwrap(
+    await _send('GET', path, query: query, authenticated: authenticated),
+  );
+
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Object? body,
+    bool authenticated = false,
+  }) async => _unwrap(
+    await _send('POST', path, body: body, authenticated: authenticated),
+  );
+}
+
+final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
+
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => ApiClient(tokenStore: ref.watch(tokenStoreProvider)),
+);

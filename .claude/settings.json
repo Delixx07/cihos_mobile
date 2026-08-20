@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($base = \"c:\\\\Kuliah\\\\SEM 7\\\\intern_cihos\\\\cihos_mobile\\\\lib\\\\features\\\\auth\\\\presentation\"; Remove-Item \"$base\\\\registration_screen.dart\", \"$base\\\\register_new_patient_screen.dart\" -Force; Get-ChildItem $base | Select-Object Name)",
+      "PowerShell($f = \"c:\\\\Kuliah\\\\SEM 7\\\\intern_cihos\\\\cihos_mobile\\\\test\\\\widget_test.dart\"; \\(Get-Content $f -Raw\\) -replace \"find\\\\.textContaining\\\\\\('Daftar di sini'\\\\\\)\", \"find.byKey\\(const Key\\('goToRegister'\\)\\)\" | Set-Content $f -Encoding utf8 -NoNewline; Select-String -Path $f -Pattern \"goToRegister\")",
+      "PowerShell(dart format \"c:\\\\Kuliah\\\\SEM 7\\\\intern_cihos\\\\cihos_mobile\\\\lib\" 2>&1)"
+    ]
+  }
+}

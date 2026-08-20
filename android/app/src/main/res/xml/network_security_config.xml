@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android blocks cleartext HTTP by default since API 28. The hospital's
+  appointment server is reachable only over plain HTTP on the internal
+  network, so it is allowed here by exact host — everything else stays
+  encrypted-only.
+
+  This is acceptable because traffic never leaves the hospital LAN. If the
+  app is ever used outside that network, the server needs TLS instead:
+  passwords over plain HTTP can be read by anyone on the path.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">172.20.0.39</domain>
+        <!-- Android emulator's alias for the host machine. -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
