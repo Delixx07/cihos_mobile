@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../domain/booking.dart';
+import '../../../core/widgets/async_view.dart';
+import '../../doctors/data/catalog_repository.dart';
 
 /// The searchable specialty list, opened from the booking search panel.
 ///
 /// Pops the chosen specialty, or null when the sheet is dismissed.
-class SpecialtyPickerSheet extends StatefulWidget {
+class SpecialtyPickerSheet extends ConsumerStatefulWidget {
   const SpecialtyPickerSheet({
     super.key,
     this.selected,
@@ -24,10 +26,11 @@ class SpecialtyPickerSheet extends StatefulWidget {
   final String searchHint;
 
   @override
-  State<SpecialtyPickerSheet> createState() => _SpecialtyPickerSheetState();
+  ConsumerState<SpecialtyPickerSheet> createState() =>
+      _SpecialtyPickerSheetState();
 }
 
-class _SpecialtyPickerSheetState extends State<SpecialtyPickerSheet> {
+class _SpecialtyPickerSheetState extends ConsumerState<SpecialtyPickerSheet> {
   final _searchController = TextEditingController();
 
   late String? _selected = widget.selected;
@@ -41,9 +44,16 @@ class _SpecialtyPickerSheetState extends State<SpecialtyPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final matches = BookingOptions.specialties
-        .where((s) => s.toLowerCase().contains(_query.toLowerCase()))
-        .toList();
+    final clinicsAsync = ref.watch(clinicsProvider);
+    final matches = clinicsAsync.maybeWhen(
+      data: (clinics) => clinics
+          .where(
+            (c) => c.displayName.toLowerCase().contains(_query.toLowerCase()),
+          )
+          .map((c) => c.displayName)
+          .toList(),
+      orElse: () => const <String>[],
+    );
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -108,52 +118,51 @@ class _SpecialtyPickerSheetState extends State<SpecialtyPickerSheet> {
             ),
             const SizedBox(height: AppSpacing.md),
             Expanded(
-              child: matches.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Spesialisasi tidak ditemukan',
-                        style: AppTypography.bodyMd,
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                      ),
-                      itemCount: matches.length,
-                      itemBuilder: (context, index) {
-                        final specialty = matches[index];
-                        return InkWell(
-                          onTap: () => setState(() => _selected = specialty),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.sm,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    specialty,
-                                    style: AppTypography.bodySm.copyWith(
-                                      fontSize: 15,
-                                      fontWeight: specialty == _selected
-                                          ? FontWeight.w700
-                                          : FontWeight.w400,
-                                    ),
-                                  ),
+              child: AsyncView(
+                value: clinicsAsync,
+                onRetry: () => ref.invalidate(clinicsProvider),
+                isEmpty: (_) => matches.isEmpty,
+                emptyTitle: 'Spesialisasi tidak ditemukan',
+                builder: (_) => ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                  ),
+                  itemCount: matches.length,
+                  itemBuilder: (context, index) {
+                    final specialty = matches[index];
+                    return InkWell(
+                      onTap: () => setState(() => _selected = specialty),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                specialty,
+                                style: AppTypography.bodySm.copyWith(
+                                  fontSize: 15,
+                                  fontWeight: specialty == _selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
                                 ),
-                                if (specialty == _selected)
-                                  const Icon(
-                                    Icons.check,
-                                    size: 18,
-                                    color: AppColors.accentSoft,
-                                  ),
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            if (specialty == _selected)
+                              const Icon(
+                                Icons.check,
+                                size: 18,
+                                color: AppColors.accentSoft,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),

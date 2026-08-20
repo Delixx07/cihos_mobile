@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:cihos_mobile/features/auth/data/auth_repository.dart';
 import 'fakes/fake_auth_repository.dart';
+import 'fakes/fake_catalog_repository.dart';
+import 'package:cihos_mobile/features/doctors/data/catalog_repository.dart';
 
 /// Screenshot regression tests.
 ///
@@ -53,6 +55,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        catalogRepositoryProvider.overrideWithValue(FakeCatalogRepository()),
         ],
         child: const CihosApp(),
       ),

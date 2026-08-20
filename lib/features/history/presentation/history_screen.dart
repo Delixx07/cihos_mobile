@@ -226,18 +226,29 @@ class _OutcomeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Status carries meaning, so it carries colour: a cancelled visit should
+    // not look identical to a completed one at a glance.
+    final (background, foreground) = switch (outcome) {
+      VisitOutcome.completed => (
+        AppColors.successSurface,
+        AppColors.success,
+      ),
+      VisitOutcome.cancelled => (AppColors.dangerSurface, AppColors.danger),
+      VisitOutcome.missed => (AppColors.warningSurface, AppColors.warning),
+    };
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.lavender,
+        color: background,
         borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
       child: Text(
         outcome.label,
         style: AppTypography.bodySm.copyWith(
           fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: AppColors.accentSoft,
+          fontWeight: FontWeight.w700,
+          color: foreground,
         ),
       ),
     );

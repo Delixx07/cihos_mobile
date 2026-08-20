@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for colors, read off the Ciputra Hospital Surabaya mockups.
+/// Design tokens for colors, based on the Ciputra Hospital Surabaya mockups.
 ///
-/// Hex values were sampled from PNG screenshots — replace with the exact codes
-/// from the Figma style guide when available.
+/// The slate family ([accent], [accentSoft]) carries most surfaces, exactly as
+/// the designs specify. What the mockups lacked was tonal depth: every panel
+/// sat within a few percent of the same lightness, so nothing looked nearer or
+/// further than anything else. The extra steps below fill that range without
+/// changing the hues the hospital approved.
+///
+/// Semantic colours are tuned for contrast on white: the original green and
+/// amber were too light to read at 12sp, which matters on a screen that tells
+/// patients whether an appointment is confirmed or cancelled.
 abstract final class AppColors {
   // Brand — the navy of the Ciputra Hospital wordmark.
   static const primary = Color(0xFF1B3A6B);
@@ -18,6 +25,13 @@ abstract final class AppColors {
 
   /// A slightly softer slate the later frames use for panels and field fills.
   static const accentSoft = Color(0xFF464960);
+
+  /// One step lighter again, for nested surfaces inside a slate panel — a
+  /// selected row, or a card sitting on another card.
+  static const accentMuted = Color(0xFF5A5D75);
+
+  /// A pale slate wash for resting states and disabled fills on white.
+  static const accentWash = Color(0xFFEEEFF4);
 
   /// Notification rows.
   static const mint = Color(0xFFC7E8E8);
@@ -51,13 +65,13 @@ abstract final class AppColors {
   /// Input field fill inside the dark card, and the light button face.
   static const surface = Color(0xFFF6F7F9);
 
-  // Semantic
-  static const success = Color(0xFF17A55B);
-  static const successSurface = Color(0xFFE6F7EE);
-  static const warning = Color(0xFFF5A623);
-  static const warningSurface = Color(0xFFFEF4E3);
-  static const danger = Color(0xFFC0392B);
-  static const dangerSurface = Color(0xFFFBEAE8);
+  // Semantic — darkened from the mockups so 12sp label text stays legible.
+  static const success = Color(0xFF11833F);
+  static const successSurface = Color(0xFFE4F5EA);
+  static const warning = Color(0xFFB26B00);
+  static const warningSurface = Color(0xFFFDF1DD);
+  static const danger = Color(0xFFB02A1E);
+  static const dangerSurface = Color(0xFFFAE7E5);
   static const info = Color(0xFF1B3A6B);
   static const infoSurface = Color(0xFFE9EEF6);
 }

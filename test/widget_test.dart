@@ -34,8 +34,11 @@ import 'package:cihos_mobile/core/router/app_routes.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:cihos_mobile/core/network/api_exception.dart';
 import 'package:cihos_mobile/features/auth/data/auth_repository.dart';
 import 'fakes/fake_auth_repository.dart';
+import 'fakes/fake_catalog_repository.dart';
+import 'package:cihos_mobile/features/doctors/data/catalog_repository.dart';
 
 /// Gives the test a phone-shaped viewport; the default 800x600 is landscape
 /// and nothing in this app is laid out for it.
@@ -60,6 +63,7 @@ Future<void> _startAtOnboarding(WidgetTester tester) async {
       // network, so a real call would make these fail for the wrong reason.
       overrides: [
         authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        catalogRepositoryProvider.overrideWithValue(FakeCatalogRepository()),
       ],
       child: const CihosApp(),
     ),
@@ -939,14 +943,14 @@ void main() {
     // The list is long enough to scroll; the tail is reachable. The search
     // screen behind the sheet is scrollable too, so target the sheet's list.
     await tester.scrollUntilVisible(
-      find.text('Bedah Urologi'),
+      find.text('Urologi'),
       200,
       scrollable: find.descendant(
         of: find.byType(ListView),
         matching: find.byType(Scrollable),
       ).last,
     );
-    expect(find.text('Bedah Urologi'), findsOneWidget);
+    expect(find.text('Urologi'), findsOneWidget);
   });
 
   testWidgets('searching narrows the specialty list', (tester) async {
@@ -1000,6 +1004,39 @@ void main() {
     expect(find.text('dr. Fidela Olivia Wijono, Sp.M'), findsNothing);
   });
 
+  testWidgets('a failed catalogue load offers a retry', (tester) async {
+    _usePhoneViewport(tester);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository(startSignedIn: true),
+          ),
+          catalogRepositoryProvider.overrideWithValue(
+            FakeCatalogRepository(
+              failWith: const ApiException(
+                message: 'Tidak dapat terhubung ke server.',
+                code: 'network',
+              ),
+            ),
+          ),
+        ],
+        child: const CihosApp(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Janji Temu Dokter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('specialtyRow')));
+    await tester.pumpAndSettle();
+
+    // The failure is shown in the patient's language, with a way out.
+    expect(find.text('Tidak dapat terhubung ke server.'), findsOneWidget);
+    expect(find.byKey(const Key('retry')), findsOneWidget);
+  });
+
   testWidgets('the specialty list carries no duplicates', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
@@ -1008,7 +1045,7 @@ void main() {
     await tester.tap(find.byKey(const Key('specialtyRow')));
     await tester.pumpAndSettle();
 
-    // The Figma list repeats these two; the picker must show each once.
+    // Units come from the hospital catalogue, so each appears exactly once.
     expect(find.text('Penyakit Dalam'), findsOneWidget);
     expect(find.text('Radiologi'), findsOneWidget);
   });

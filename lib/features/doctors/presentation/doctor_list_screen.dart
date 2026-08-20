@@ -8,11 +8,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/screen_header.dart';
 import '../../../core/widgets/textured_background.dart';
-import '../data/doctor_repository.dart';
 import '../domain/doctor.dart';
 import 'widgets/doctor_card.dart';
 import 'widgets/doctor_profile_sheet.dart';
 import '../../../core/theme/app_elevation.dart';
+import '../../../core/widgets/async_view.dart';
+import '../data/catalog_repository.dart';
 
 /// Search across every doctor, with live name suggestions.
 class DoctorListScreen extends ConsumerStatefulWidget {
@@ -59,10 +60,13 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final doctors = ref.watch(doctorsProvider);
-    final matches = doctors
-        .where((d) => d.name.toLowerCase().contains(_query.toLowerCase()))
-        .toList();
+    final doctorsAsync = ref.watch(liveDoctorsProvider(null));
+    final matches = doctorsAsync.maybeWhen(
+      data: (doctors) => doctors
+          .where((d) => d.name.toLowerCase().contains(_query.toLowerCase()))
+          .toList(),
+      orElse: () => const <Doctor>[],
+    );
 
     // Suggestions appear over the list while the patient is still typing.
     final showSuggestions = _searchFocus.hasFocus && matches.isNotEmpty;
@@ -75,9 +79,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
             children: [
               const ScreenHeader(title: 'Cari Dokter'),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxl,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                 child: _SearchBar(
                   controller: _searchController,
                   focusNode: _searchFocus,
@@ -88,10 +90,29 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    _Results(
-                      matches: matches,
-                      onProfileTap: _openProfile,
-                      onBookTap: _book,
+                    RefreshIndicator(
+                      color: AppColors.accentSoft,
+                      onRefresh: () async {
+                        ref.invalidate(liveDoctorsProvider(null));
+                        await ref.read(liveDoctorsProvider(null).future);
+                      },
+                      child: AsyncView(
+                        value: doctorsAsync,
+                        onRetry: () =>
+                            ref.invalidate(liveDoctorsProvider(null)),
+                        isEmpty: (_) => matches.isEmpty,
+                        emptyTitle: _query.isEmpty
+                            ? 'Belum ada dokter'
+                            : 'Dokter tidak ditemukan',
+                        emptyMessage: _query.isEmpty
+                            ? null
+                            : 'Coba kata kunci lain.',
+                        builder: (_) => _Results(
+                          matches: matches,
+                          onProfileTap: _openProfile,
+                          onBookTap: _book,
+                        ),
+                      ),
                     ),
                     if (showSuggestions)
                       Padding(
@@ -238,13 +259,9 @@ class _Results extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (matches.isEmpty) {
-      return Center(
-        child: Text('Dokter tidak ditemukan', style: AppTypography.bodyMd),
-      );
-    }
-
     return ListView.separated(
+      // Always scrollable so pull-to-refresh works even on a short list.
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
         0,
