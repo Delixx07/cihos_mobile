@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_back_button.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/illustrations.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
@@ -164,45 +163,50 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        0,
+        AppSpacing.xxxl,
         AppSpacing.xxl,
-        AppSpacing.lg,
+        AppSpacing.xxl,
       ),
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(23),
-        boxShadow: const [
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(10),
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x33000000),
-            offset: Offset(0, 8),
+            color: Color(0x40000000),
+            offset: Offset(0, -6),
             blurRadius: 24,
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Jadwal Dokter',
-            style: AppTypography.headingLg.copyWith(
-              fontSize: 24,
-              color: AppColors.white,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Jadwal Dokter',
+              style: AppTypography.headingLg.copyWith(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: AppColors.white,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Cari Jadwal dokter sesuai\ndengan kebutuhanmu',
-            textAlign: TextAlign.center,
-            style: AppTypography.inputText.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.white,
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Cari Jadwal dokter sesuai\ndengan kebutuhanmu',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 13.5,
+                height: 1.4,
+                color: AppColors.white.withValues(alpha: 0.9),
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.xxl),
           _CriteriaRow(
             key: const Key('finderClinic'),
             label: clinic ?? 'Pilih Klinik',
@@ -226,8 +230,41 @@ class _Panel extends StatelessWidget {
             onTap: onDateTap,
           ),
           const SizedBox(height: AppSpacing.xl),
-          AppButton.light(label: 'Cari', onPressed: onSearch),
+          Container(
+            height: 52,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x24000000),
+                  offset: Offset(0, 4),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: onSearch,
+                borderRadius: BorderRadius.circular(16),
+                child: Center(
+                  child: Text(
+                    'Cari',
+                    style: AppTypography.bodySm.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
+      ),
       ),
     );
   }
