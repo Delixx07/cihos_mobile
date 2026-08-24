@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 
 /// A labelled input as it appears inside the dark auth card: a white label
@@ -46,10 +45,15 @@ class SheetTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: AppSpacing.xs),
-          child: Text(label, style: AppTypography.fieldLabel),
+          padding: const EdgeInsets.only(left: 4.0, bottom: 6.0),
+          child: Text(
+            label,
+            style: AppTypography.fieldLabel.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
         ),
-        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -57,14 +61,80 @@ class SheetTextField extends StatelessWidget {
           obscureText: obscureText,
           textCapitalization: textCapitalization,
           textInputAction: textInputAction,
-          style: AppTypography.inputText,
-          cursorColor: AppColors.accent,
+          style: AppTypography.inputText.copyWith(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+          ),
+          cursorColor: AppColors.primary,
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: AppTypography.inputText.copyWith(
+              color: AppColors.textTertiary,
+              fontSize: 14,
+            ),
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: AppColors.primaryLight,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: AppColors.danger,
+                width: 1.0,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(28),
+              borderSide: const BorderSide(
+                color: AppColors.danger,
+                width: 1.5,
+              ),
+            ),
+            errorStyle: AppTypography.bodySm.copyWith(
+              color: AppColors.white,
+              fontSize: 12,
+            ),
             prefixIcon: prefixIcon == null
                 ? null
-                : Icon(prefixIcon, size: 20, color: AppColors.textTertiary),
-            suffixIcon: suffixIcon,
+                : Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 10),
+                    child: Icon(
+                      prefixIcon,
+                      size: 20,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 46,
+              minHeight: 46,
+            ),
+            suffixIcon: suffixIcon != null
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: suffixIcon,
+                  )
+                : null,
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 46,
+              minHeight: 46,
+            ),
           ),
           validator: validator,
           onFieldSubmitted: onFieldSubmitted,

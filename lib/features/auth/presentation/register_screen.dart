@@ -68,7 +68,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           birthDate: _birthDate!,
         );
 
-    if (registered && mounted) context.go(AppRoutes.home);
+    if (registered && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pendaftaran berhasil! Silakan masuk ke akun Anda.'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      await ref.read(authControllerProvider.notifier).signOut();
+      if (mounted) context.go(AppRoutes.login);
+    }
   }
 
   @override
@@ -97,8 +107,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         subtitle: 'Lengkapi data untuk membuat akun.',
                         children: [
                           SheetTextField(
-                            label: 'Masukkan nomor NIK KK/KTP',
-                            hint: '468972645897649586',
+                            label: 'Nomor NIK',
+                            hint: 'Masukkan 16 digit nomor NIK',
                             controller: _nikController,
                             prefixIcon: Icons.badge_outlined,
                             keyboardType: TextInputType.number,
@@ -116,41 +126,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SheetTextField(
-                            label: 'Masukkan Password',
-                            hint: '••••••••••••',
-                            controller: _passwordController,
-                            prefixIcon: Icons.lock_outline,
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.next,
-                            suffixIcon: IconButton(
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                size: 20,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                            validator: (value) {
-                              final password = value ?? '';
-                              if (password.isEmpty) {
-                                return 'Password wajib diisi';
-                              }
-                              if (password.length < 8) {
-                                return 'Password minimal 8 karakter';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          SheetTextField(
-                            label: 'Masukkan Nama Lengkap',
-                            hint: 'Admin',
+                            label: 'Nama Lengkap',
+                            hint: 'Masukkan nama lengkap',
                             controller: _nameController,
-                            prefixIcon: Icons.person_outline,
+                            prefixIcon: Icons.person_outline_rounded,
                             textCapitalization: TextCapitalization.words,
                             textInputAction: TextInputAction.next,
                             validator: (value) =>
@@ -160,10 +139,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SheetTextField(
-                            label: 'Masukkan Email',
+                            label: 'Email',
                             hint: 'nama@email.com',
                             controller: _emailController,
-                            prefixIcon: Icons.mail_outline,
+                            prefixIcon: Icons.mail_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             validator: (value) {
@@ -178,13 +157,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SheetTextField(
-                            label: 'Masukkan Nomor HP',
-                            hint: '081234567890',
+                            label: 'Nomor Handphone',
+                            hint: 'Contoh: 081234567890',
                             controller: _phoneController,
                             prefixIcon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
-                            textInputAction: TextInputAction.done,
-                            onFieldSubmitted: (_) => _submit(),
+                            textInputAction: TextInputAction.next,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(15),
@@ -209,14 +187,84 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               _birthDateError = null;
                             }),
                           ),
+                          const SizedBox(height: AppSpacing.lg),
+                          SheetTextField(
+                            label: 'Password',
+                            hint: 'Minimal 8 karakter',
+                            controller: _passwordController,
+                            prefixIcon: Icons.lock_outline_rounded,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                size: 20,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                            validator: (value) {
+                              final password = value ?? '';
+                              if (password.isEmpty) {
+                                return 'Password wajib diisi';
+                              }
+                              if (password.length < 8) {
+                                return 'Password minimal 8 karakter';
+                              }
+                              return null;
+                            },
+                          ),
+                          if (auth.error != null) ...[
+                            const SizedBox(height: AppSpacing.lg),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.danger.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.danger,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: AppColors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      auth.error!,
+                                      style: AppTypography.bodySm.copyWith(
+                                        color: AppColors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: AppSpacing.xxl),
                           AppButton.light(
                             label: 'Daftar',
                             expand: true,
+                            height: 50,
+                            borderRadius: 28,
                             isLoading: auth.isLoading,
                             onPressed: _submit,
                           ),
-                          const SizedBox(height: AppSpacing.sm),
+                          const SizedBox(height: AppSpacing.md),
                           TextButton(
                             key: const Key('goToLogin'),
                             onPressed: () => context.pop(),
@@ -224,6 +272,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               text: TextSpan(
                                 style: AppTypography.bodySm.copyWith(
                                   color: AppColors.onAccentMuted,
+                                  fontSize: 13,
                                 ),
                                 children: [
                                   const TextSpan(text: 'Sudah punya akun? '),
@@ -232,6 +281,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     style: AppTypography.bodySm.copyWith(
                                       color: AppColors.white,
                                       fontWeight: FontWeight.w700,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ],
@@ -272,18 +322,28 @@ class _BirthDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = value == null
-        ? 'Pilih Tanggal Lahir'
+        ? 'Pilih tanggal lahir'
         : DateFormat('d MMMM yyyy', 'id_ID').format(value!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 6.0),
+          child: Text(
+            'Tanggal Lahir',
+            style: AppTypography.fieldLabel.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
         Material(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(28),
           child: InkWell(
             key: const Key('birthDateField'),
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderRadius: BorderRadius.circular(28),
             onTap: () async {
               final now = DateTime.now();
               final picked = await showDatePicker(
@@ -296,17 +356,26 @@ class _BirthDateField extends StatelessWidget {
               if (picked != null) onChanged(picked);
             },
             child: Container(
-              height: AppSizes.fieldHeight,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: errorText != null
+                      ? AppColors.danger
+                      : Colors.transparent,
+                  width: errorText != null ? 1.0 : 0.0,
+                ),
+              ),
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
                   const Icon(
-                    Icons.cake_outlined,
+                    Icons.calendar_today_outlined,
                     size: 20,
                     color: AppColors.textTertiary,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       label,
@@ -314,8 +383,14 @@ class _BirthDateField extends StatelessWidget {
                         color: value == null
                             ? AppColors.textTertiary
                             : AppColors.textPrimary,
+                        fontSize: 14,
                       ),
                     ),
+                  ),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 22,
+                    color: AppColors.textTertiary,
                   ),
                 ],
               ),
@@ -324,12 +399,12 @@ class _BirthDateField extends StatelessWidget {
         ),
         if (errorText != null)
           Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xs, left: 12),
+            padding: const EdgeInsets.only(top: 6.0, left: 16.0),
             child: Text(
               errorText!,
               style: AppTypography.bodySm.copyWith(
                 fontSize: 12,
-                color: AppColors.danger,
+                color: AppColors.white,
               ),
             ),
           ),

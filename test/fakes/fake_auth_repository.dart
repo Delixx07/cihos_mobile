@@ -89,5 +89,8 @@ class FakeAuthRepository implements AuthRepository {
       startSignedIn && !_signedOut ? user : null;
 
   @override
+  Future<AppUser> updateProfile(AppUser user) async => user;
+
+  @override
   Future<void> signOut() async => _signedOut = true;
 }

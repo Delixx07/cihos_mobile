@@ -76,18 +76,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         subtitle: 'Gunakan NIK yang terdaftar di Cihos.',
                         children: [
                           SheetTextField(
-                            label: 'Masukkan email',
+                            label: 'Email',
                             hint: 'nama@email.com',
                             controller: _emailController,
-                            prefixIcon: Icons.mail_outline,
+                            prefixIcon: Icons.mail_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             validator: (value) {
                               final email = value?.trim() ?? '';
                               if (email.isEmpty) return 'Email wajib diisi';
-                              // Deliberately loose: the server is the authority
-                              // on whether an address exists. This only catches
-                              // obvious typos before a round trip.
                               if (!email.contains('@') ||
                                   !email.contains('.')) {
                                 return 'Format email tidak valid';
@@ -97,10 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           SheetTextField(
-                            label: 'Masukkan Password',
-                            hint: '••••••••••••',
+                            label: 'Password',
+                            hint: 'Masukkan password',
                             controller: _passwordController,
-                            prefixIcon: Icons.lock_outline,
+                            prefixIcon: Icons.lock_outline_rounded,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(),
@@ -141,10 +138,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           AppButton.light(
                             label: 'Masuk',
                             expand: true,
+                            height: 50,
+                            borderRadius: 28,
                             isLoading: auth.isLoading,
                             onPressed: _submit,
                           ),
-                          const SizedBox(height: AppSpacing.sm),
+                          const SizedBox(height: AppSpacing.md),
                           TextButton(
                             key: const Key('goToRegister'),
                             onPressed: () => context.push(AppRoutes.register),
@@ -152,6 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               text: TextSpan(
                                 style: AppTypography.bodySm.copyWith(
                                   color: AppColors.onAccentMuted,
+                                  fontSize: 13,
                                 ),
                                 children: [
                                   const TextSpan(text: 'Pasien baru? '),
@@ -160,6 +160,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     style: AppTypography.bodySm.copyWith(
                                       color: AppColors.white,
                                       fontWeight: FontWeight.w700,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ],

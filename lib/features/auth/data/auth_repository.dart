@@ -107,11 +107,23 @@ class AuthRepository {
   }
 
   Future<AppUser> _persist(Map<String, dynamic> response) async {
-    final token = response['token'] as String?;
+    final token =
+        response['token'] as String? ??
+        (response['data'] is Map ? response['data']['token'] as String? : null);
     if (token != null) await _tokens.write(token);
-    final user = AppUser.fromJson(
-      (response['patient'] as Map).cast<String, dynamic>(),
-    );
+
+    Map<String, dynamic>? rawUser;
+    if (response['patient'] is Map) {
+      rawUser = (response['patient'] as Map).cast<String, dynamic>();
+    } else if (response['user'] is Map) {
+      rawUser = (response['user'] as Map).cast<String, dynamic>();
+    } else if (response['data'] is Map) {
+      rawUser = (response['data'] as Map).cast<String, dynamic>();
+    } else {
+      rawUser = response;
+    }
+
+    final user = AppUser.fromJson(rawUser);
     await _tokens.writeUser(user);
     return user;
   }

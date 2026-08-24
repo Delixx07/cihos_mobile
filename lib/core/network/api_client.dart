@@ -62,17 +62,18 @@ class ApiClient {
         options: Options(method: method, headers: headers),
       );
     } on DioException catch (e) {
+      final msg = switch (e.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout =>
+          'Sambungan ke server terlalu lama. Periksa jaringan Anda.',
+        _ =>
+          'Tidak dapat terhubung ke server (${AppConfig.baseUrl}$path). Pastikan backend Anda aktif.',
+      };
       throw ApiException(
-        message: switch (e.type) {
-          DioExceptionType.connectionTimeout ||
-          DioExceptionType.sendTimeout ||
-          DioExceptionType.receiveTimeout =>
-            'Sambungan ke server terlalu lama. Periksa jaringan Anda.',
-          _ =>
-            'Tidak dapat terhubung ke server. Pastikan Anda berada di '
-                'jaringan rumah sakit.',
-        },
+        message: msg,
         code: 'network',
+        statusCode: e.response?.statusCode,
       );
     }
   }
@@ -81,21 +82,43 @@ class ApiClient {
   Map<String, dynamic> _unwrap(Response<dynamic> response) {
     final data = response.data;
     if (data is! Map) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        return {'ok': true, 'data': data};
+      }
       throw ApiException(
-        message: 'Respons server tidak dikenali.',
+        message: 'Respons server tidak dikenali (${response.statusCode}): ${response.data}',
         code: 'bad_response',
         statusCode: response.statusCode,
       );
     }
 
     final map = data.cast<String, dynamic>();
-    if (map['ok'] == true) return map;
+    final isSuccess = map['ok'] == true ||
+        map['success'] == true ||
+        map['status'] == true ||
+        map['status'] == 'success' ||
+        map['status'] == 200 ||
+        map['status'] == 201 ||
+        (response.statusCode != null &&
+            response.statusCode! >= 200 &&
+            response.statusCode! < 300 &&
+            map['error'] == null &&
+            map['errors'] == null);
+
+    if (isSuccess) return map;
+
+    final errorMessage = (map['message'] as String?) ??
+        (map['error'] as String?) ??
+        (map['msg'] as String?) ??
+        'Terjadi kesalahan pada server (${response.statusCode}).';
 
     throw ApiException(
-      message: (map['message'] as String?) ?? 'Terjadi kesalahan pada server.',
-      code: map['error'] as String?,
+      message: errorMessage,
+      code: map['error']?.toString(),
       statusCode: response.statusCode,
-      fieldErrors: _fieldErrors(map['errors']),
+      fieldErrors: _fieldErrors(map['errors'] ?? map['error']),
     );
   }
 

@@ -132,6 +132,12 @@ class AuthController extends StateNotifier<AuthState> {
         fieldErrors: e.fieldErrors,
       );
       return false;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Terjadi kesalahan: $e',
+      );
+      return false;
     }
   }
 }

@@ -18,6 +18,8 @@ class AppButton extends StatefulWidget {
     this.isLoading = false,
     this.background = AppColors.accent,
     this.foreground = AppColors.surface,
+    this.borderRadius,
+    this.height,
   });
 
   /// Light face — used for actions inside the dark auth card.
@@ -27,6 +29,8 @@ class AppButton extends StatefulWidget {
     required this.onPressed,
     this.expand = false,
     this.isLoading = false,
+    this.borderRadius,
+    this.height,
   }) : background = AppColors.surface,
        foreground = AppColors.accent;
 
@@ -36,6 +40,8 @@ class AppButton extends StatefulWidget {
   final bool isLoading;
   final Color background;
   final Color foreground;
+  final double? borderRadius;
+  final double? height;
 
   @override
   State<AppButton> createState() => _AppButtonState();
@@ -63,6 +69,9 @@ class _AppButtonState extends State<AppButton> {
   }
 
   Widget _buildButton(bool isEnabled) {
+    final radius = widget.borderRadius ?? AppRadius.button;
+    final height = widget.height ?? AppSizes.buttonHeight;
+
     return AnimatedScale(
       scale: _isPressed && isEnabled ? 0.96 : 1,
       duration: AppMotion.instant,
@@ -72,7 +81,7 @@ class _AppButtonState extends State<AppButton> {
         opacity: isEnabled ? 1 : 0.7,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.button),
+            borderRadius: BorderRadius.circular(radius),
             boxShadow: isEnabled && !_isPressed
                 ? const [
                     BoxShadow(
@@ -85,12 +94,15 @@ class _AppButtonState extends State<AppButton> {
           ),
           child: SizedBox(
             width: widget.expand ? double.infinity : AppSizes.buttonWidth,
-            height: AppSizes.buttonHeight,
+            height: height,
             child: FilledButton(
               onPressed: isEnabled ? widget.onPressed : null,
               style: FilledButton.styleFrom(
                 backgroundColor: widget.background,
                 foregroundColor: widget.foreground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radius),
+                ),
               ),
               child: _ButtonContent(
                 label: widget.label,

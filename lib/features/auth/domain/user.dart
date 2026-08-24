@@ -30,26 +30,26 @@ class AppUser {
   final String? address;
   final String? photoUrl;
 
-  /// Builds a user from the `patient` object the API returns.
+  /// Builds a user from the `patient` or `user` object the API returns.
   factory AppUser.fromJson(Map<String, dynamic> json) {
-    final rawDob = json['dob'] as String?;
-    final rawGender = (json['gender'] as String?)?.toLowerCase();
+    final rawDob = (json['dob'] ?? json['tanggal_lahir'] ?? json['birth_date'])?.toString();
+    final rawGender = (json['gender'] ?? json['jenis_kelamin'])?.toString().toLowerCase();
 
     return AppUser(
-      id: json['id'].toString(),
-      fullName: (json['name'] as String?) ?? '',
-      email: (json['email'] as String?) ?? '',
-      phone: (json['phone'] as String?) ?? '',
-      medicalNo: json['medical_no'] as String?,
-      nik: json['nik'] as String?,
+      id: (json['id'] ?? json['user_id'] ?? '0').toString(),
+      fullName: (json['name'] ?? json['nama_lengkap'] ?? json['nama'] ?? json['fullName'])?.toString() ?? '',
+      email: (json['email'] ?? '')?.toString() ?? '',
+      phone: (json['phone'] ?? json['nomor_handphone'] ?? json['no_hp'])?.toString() ?? '',
+      medicalNo: (json['medical_no'] ?? json['no_rm'] ?? json['nomor_rekam_medis'])?.toString(),
+      nik: (json['nik'] ?? json['no_nik'])?.toString(),
       birthDate: rawDob == null ? null : DateTime.tryParse(rawDob),
       gender: switch (rawGender) {
-        'laki-laki' || 'laki laki' || 'male' => Gender.male,
-        'perempuan' || 'female' => Gender.female,
+        'laki-laki' || 'laki laki' || 'male' || 'l' => Gender.male,
+        'perempuan' || 'female' || 'p' => Gender.female,
         _ => null,
       },
-      address: json['address'] as String?,
-      photoUrl: json['photo_url'] as String?,
+      address: (json['address'] ?? json['alamat'])?.toString(),
+      photoUrl: (json['photo_url'] ?? json['foto'] ?? json['avatar'])?.toString(),
     );
   }
 
