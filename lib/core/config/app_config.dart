@@ -24,6 +24,12 @@ abstract final class AppConfig {
   /// Shared secret sent as `X-Api-Key` on every request.
   static const apiKey = String.fromEnvironment('MOBILE_API_KEY');
 
+  // Direct MySQL Connection Credentials for Catalog (Clinics, Doctors)
+  static const dbCatalogHost = String.fromEnvironment('DB_CATALOG_HOST', defaultValue: '172.20.0.39');
+  static const dbCatalogUser = String.fromEnvironment('DB_CATALOG_USER', defaultValue: 'antrian');
+  static const dbCatalogPass = String.fromEnvironment('DB_CATALOG_PASS', defaultValue: 'ICTchs@2026.');
+  static const dbCatalogName = String.fromEnvironment('DB_CATALOG_NAME', defaultValue: 'appointment_pasien_cihos');
+
   /// Whether the app was built with the configuration it needs.
   static bool get isConfigured => apiKey.isNotEmpty;
 
