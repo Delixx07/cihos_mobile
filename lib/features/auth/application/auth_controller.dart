@@ -126,6 +126,14 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(user: await action());
       return true;
     } on ApiException catch (e) {
+      if (e.fieldErrors.isNotEmpty) {
+        print('====== API VALIDATION ERRORS ======');
+        e.fieldErrors.forEach((field, errors) {
+          print('$field: ${errors.join(', ')}');
+        });
+        print('===================================');
+      }
+
       state = state.copyWith(
         isLoading: false,
         error: e.message,

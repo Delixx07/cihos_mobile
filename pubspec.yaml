@@ -45,6 +45,8 @@ dependencies:
   dio: ^5.11.0
   flutter_secure_storage: ^11.0.0
   image_picker: ^1.1.2
+  mysql_client: ^0.0.27
+  bcrypt: ^1.2.0
 
 dev_dependencies:
   flutter_test:

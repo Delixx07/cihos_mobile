@@ -24,6 +24,7 @@ class SheetTextField extends StatelessWidget {
     this.suffixIcon,
     this.validator,
     this.onFieldSubmitted,
+    this.errorText,
   });
 
   final String label;
@@ -38,6 +39,7 @@ class SheetTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final void Function(String)? onFieldSubmitted;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +70,7 @@ class SheetTextField extends StatelessWidget {
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
             hintText: hint,
+            errorText: errorText,
             hintStyle: AppTypography.inputText.copyWith(
               color: AppColors.textTertiary,
               fontSize: 14,

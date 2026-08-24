@@ -53,7 +53,7 @@ class AuthRepository {
         'phone': phone.trim(),
         'dob': _dateFormat.format(birthDate),
         if (gender != null)
-          'gender': gender == Gender.male ? 'Laki-laki' : 'Perempuan',
+          'gender': gender == Gender.male ? 'Laki-Laki' : 'Perempuan',
       },
     );
     return _persist(response);

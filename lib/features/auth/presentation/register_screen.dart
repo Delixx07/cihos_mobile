@@ -13,6 +13,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/hospital_logo.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../application/auth_controller.dart';
+import '../domain/user.dart';
 import '../widgets/auth_card.dart';
 import '../widgets/sheet_text_field.dart';
 
@@ -37,6 +38,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   DateTime? _birthDate;
   String? _birthDateError;
 
+  Gender? _gender;
+  String? _genderError;
+
   bool _obscurePassword = true;
 
   @override
@@ -50,11 +54,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    bool hasError = false;
+    if (!_formKey.currentState!.validate()) hasError = true;
     if (_birthDate == null) {
       setState(() => _birthDateError = 'Tanggal lahir wajib diisi');
-      return;
+      hasError = true;
     }
+    if (_gender == null) {
+      setState(() => _genderError = 'Jenis kelamin wajib diisi');
+      hasError = true;
+    }
+    if (hasError) return;
+
     FocusScope.of(context).unfocus();
 
     final registered = await ref
@@ -66,6 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           nik: _nikController.text.trim(),
           phone: _phoneController.text.trim(),
           birthDate: _birthDate!,
+          gender: _gender,
         );
 
     if (registered && mounted) {
@@ -110,6 +122,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             label: 'Nomor NIK',
                             hint: 'Masukkan 16 digit nomor NIK',
                             controller: _nikController,
+                            errorText: auth.errorFor('nik'),
                             prefixIcon: Icons.badge_outlined,
                             keyboardType: TextInputType.number,
                             textInputAction: TextInputAction.next,
@@ -129,6 +142,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             label: 'Nama Lengkap',
                             hint: 'Masukkan nama lengkap',
                             controller: _nameController,
+                            errorText: auth.errorFor('name'),
                             prefixIcon: Icons.person_outline_rounded,
                             textCapitalization: TextCapitalization.words,
                             textInputAction: TextInputAction.next,
@@ -142,6 +156,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             label: 'Email',
                             hint: 'nama@email.com',
                             controller: _emailController,
+                            errorText: auth.errorFor('email'),
                             prefixIcon: Icons.mail_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
@@ -160,6 +175,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             label: 'Nomor Handphone',
                             hint: 'Contoh: 081234567890',
                             controller: _phoneController,
+                            errorText: auth.errorFor('phone'),
                             prefixIcon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.next,
@@ -181,10 +197,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           const SizedBox(height: AppSpacing.lg),
                           _BirthDateField(
                             value: _birthDate,
-                            errorText: _birthDateError,
+                            errorText: _birthDateError ?? auth.errorFor('dob'),
                             onChanged: (date) => setState(() {
                               _birthDate = date;
                               _birthDateError = null;
+                            }),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _GenderField(
+                            value: _gender,
+                            errorText: _genderError ?? auth.errorFor('gender'),
+                            onChanged: (gender) => setState(() {
+                              _gender = gender;
+                              _genderError = null;
                             }),
                           ),
                           const SizedBox(height: AppSpacing.lg),
@@ -192,6 +217,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             label: 'Password',
                             hint: 'Minimal 8 karakter',
                             controller: _passwordController,
+                            errorText: auth.errorFor('password'),
                             prefixIcon: Icons.lock_outline_rounded,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.done,
@@ -303,6 +329,82 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _GenderField extends StatelessWidget {
+  const _GenderField({
+    required this.value,
+    this.errorText,
+    required this.onChanged,
+  });
+
+  final Gender? value;
+  final String? errorText;
+  final ValueChanged<Gender?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Jenis Kelamin',
+          style: AppTypography.bodySm.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(
+              color: errorText != null
+                  ? AppColors.danger
+                  : AppColors.border,
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<Gender>(
+              value: value,
+              hint: Text(
+                'Pilih Jenis Kelamin',
+                style: AppTypography.bodyMd.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+              dropdownColor: AppColors.surface,
+              style: AppTypography.bodyMd.copyWith(color: AppColors.textPrimary),
+              onChanged: onChanged,
+              items: const [
+                DropdownMenuItem(
+                  value: Gender.male,
+                  child: Text('Laki-Laki'),
+                ),
+                DropdownMenuItem(
+                  value: Gender.female,
+                  child: Text('Perempuan'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 16),
+            child: Text(
+              errorText!,
+              style: AppTypography.bodySm.copyWith(color: AppColors.danger),
+            ),
+          ),
+      ],
     );
   }
 }

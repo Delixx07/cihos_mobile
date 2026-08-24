@@ -288,6 +288,8 @@ flutter test test/widget_test.dart                  # pengujian widget
 flutter test test/golden_test.dart                  # regresi visual
 flutter test --update-goldens test/golden_test.dart # perbarui acuan visual
 ```
+** Cara pengujian
+flutter run --dart-define-from-file=.env.json
 
 **89 pengujian**, terdiri atas:
 
