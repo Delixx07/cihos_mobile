@@ -13,9 +13,8 @@ import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
 import '../../booking/widgets/practice_calendar.dart';
 import '../../booking/widgets/specialty_picker_sheet.dart';
-import '../data/catalog_repository.dart';
-import '../data/doctor_repository.dart';
 import '../domain/clinic.dart';
+import '../domain/doctor.dart';
 import 'widgets/doctor_picker_sheet.dart';
 import '../../../core/theme/app_elevation.dart';
 
@@ -29,52 +28,53 @@ class DoctorFinderScreen extends ConsumerStatefulWidget {
 }
 
 class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
-  String? _clinic;
+  Clinic? _selectedClinic;
   String? _doctorId;
   String? _doctorName;
   DateTime? _date;
 
   Future<void> _pickClinic() async {
-    final clinics = ref.read(clinicsProvider).valueOrNull ?? [];
-    final selectedClinic = clinics.where((c) => c.displayName == _clinic).firstOrNull;
-    
     final picked = await showModalBottomSheet<Clinic>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SpecialtyPickerSheet(
-        selected: selectedClinic,
+        selected: _selectedClinic,
         title: 'Pilih Klinik',
         searchHint: 'Cari Klinik',
       ),
     );
 
-    if (picked != null) setState(() => _clinic = picked.displayName);
+    if (picked != null) {
+      setState(() {
+        _selectedClinic = picked;
+        // Opsional: jika klinik ganti, reset dokter agar relevan
+        _doctorId = null;
+        _doctorName = null;
+      });
+    }
   }
 
   Future<void> _pickDoctor() async {
-    final doctors = ref.read(doctorsProvider);
-    final matching = _clinic == null
-        ? doctors
-        : doctors.where((d) => d.specialty == _clinic).toList();
-
-    final picked = await showModalBottomSheet<String>(
+    final picked = await showModalBottomSheet<Doctor>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => DoctorPickerSheet(
-        doctors: matching.isEmpty ? doctors : matching,
+        unitCode: _selectedClinic?.code,
         selectedId: _doctorId,
       ),
     );
 
     if (picked == null) return;
-    final doctor = doctors.firstWhere((d) => d.id == picked);
+    
     setState(() {
-      _doctorId = doctor.id;
-      _doctorName = doctor.name;
-      // The clinic follows from the doctor when it was not chosen first.
-      _clinic ??= doctor.specialty;
+      _doctorId = picked.id;
+      _doctorName = picked.name;
+      // Jika _selectedClinic masih kosong, kita isi berdasarkan dokter yang dipilih
+      if (_selectedClinic == null && picked.unitCode != null) {
+        _selectedClinic = Clinic(code: picked.unitCode!, name: picked.specialty);
+      }
     });
   }
 
@@ -119,7 +119,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
               Align(
                 alignment: Alignment.bottomCenter,
                 child: _Panel(
-                  clinic: _clinic,
+                  clinic: _selectedClinic?.displayName,
                   doctorName: _doctorName,
                   date: _date,
                   onClinicTap: _pickClinic,

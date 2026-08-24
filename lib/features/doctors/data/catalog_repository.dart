@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mysql_client/mysql_client.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/network/api_exception.dart';
 import '../domain/clinic.dart';
 import '../domain/doctor.dart';
 import '../domain/practice_schedule.dart';
@@ -17,78 +14,38 @@ class CatalogRepository {
 
   final ApiClient _client;
 
-  /// Helper to get a direct MySQL connection for the Catalog.
-  Future<MySQLConnection> _getDbConnection() async {
-    try {
-      final conn = await MySQLConnection.createConnection(
-        host: AppConfig.dbCatalogHost,
-        port: 3306,
-        userName: AppConfig.dbCatalogUser,
-        password: AppConfig.dbCatalogPass,
-        databaseName: AppConfig.dbCatalogName,
-        secure: false, // Wajib ditambahkan untuk server XAMPP/MySQL lokal
-      );
-      await conn.connect();
-      return conn;
-    } catch (e) {
-      throw ApiException(
-        message: 'Koneksi MySQL gagal: $e',
-        code: 'db_connection_error',
-      );
-    }
-  }
-
-  /// Every service unit the hospital books into. Fetched from DB.
+  /// Every service unit the hospital books into. Fetched from API.
   Future<List<Clinic>> clinics({String? query}) async {
-    final conn = await _getDbConnection();
-    try {
-      final result = await conn.execute(
-        "SELECT * FROM clinics WHERE service_unit_code = 'SU'"
-      );
+    final response = await _client.get(
+      '/app/clinics',
+      query: {if (query != null && query.isNotEmpty) 'q': query},
+      authenticated: true,
+    );
 
-      final List<Clinic> clinicsList = [];
-      for (final row in result.rows) {
-        // We guess that the clinic code is service_unit_code or id, and name is clinic_name or name.
-        // The user didn't specify the exact column for name, we will try `clinic_name` then fallback to `name`.
-        final code = row.colByName('service_unit_code') ?? row.colByName('id') ?? '';
-        final name = row.colByName('clinic_name') ?? row.colByName('name') ?? '';
-        clinicsList.add(Clinic(code: code, name: name));
-      }
+    // Endpoint baru biasanya mengembalikan array di dalam 'data' atau 'clinics'.
+    final rawList = response['clinics'] ?? response['data'];
+    final allClinics = _listOf(rawList, Clinic.fromJson);
 
-      // If there's a search query, filter them
-      if (query != null && query.isNotEmpty) {
-        return clinicsList
-            .where((c) => c.displayName.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
-      
-      return clinicsList;
-    } catch (e) {
-      throw ApiException(
-        message: 'Query klinik gagal: $e',
-        code: 'db_query_error',
-      );
-    } finally {
-      await conn.close();
-    }
+    // Filter lokal di Flutter: hanya ambil yang berawalan 'SU' (Poli)
+    return allClinics.where((c) => c.code.toUpperCase().startsWith('SU')).toList();
   }
 
   /// Doctors, optionally filtered by name or restricted to one unit.
   Future<List<Doctor>> doctors({String? query, String? unitCode}) async {
     final response = await _client.get(
-      '/taptalk/doctors',
+      '/app/doctors',
       query: {
         if (query != null && query.isNotEmpty) 'q': query,
         if (unitCode != null && unitCode.isNotEmpty) 'unit': unitCode,
       },
+      authenticated: true,
     );
 
-    final doctors = _listOf(response['doctors'], Doctor.fromJson);
-    // Carry the filter's unit through, since slot lookups need a unit code and
-    // the doctors payload does not repeat it.
+    final rawList = response['doctors'] ?? response['data'];
+    final doctorsList = _listOf(rawList, Doctor.fromJson);
     return unitCode == null
-        ? doctors
-        : doctors.map((d) => d.copyWith(unitCode: unitCode)).toList();
+        ? doctorsList
+        : doctorsList.map((d) => d.copyWith(unitCode: unitCode)).toList();
   }
 
   /// A doctor's weekly practice sessions.

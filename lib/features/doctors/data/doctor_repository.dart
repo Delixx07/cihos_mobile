@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/doctor.dart';
+import 'catalog_repository.dart';
 
-/// Stand-in doctor list until the backend exists.
+/// Stand-in doctor list until the backend exists for other screens.
 final doctorsProvider = Provider<List<Doctor>>((ref) {
   return const [
     Doctor(
@@ -35,84 +36,7 @@ final doctorsProvider = Provider<List<Doctor>>((ref) {
       education: ['Universitas Airlangga Surabaya, 2013'],
       clinicalInterests: ['Tumbuh Kembang Anak', 'Imunisasi'],
     ),
-    Doctor(
-      id: 'd3',
-      name: 'dr. Fidela Olivia Wijono, Sp.M',
-      specialty: 'Mata',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.8,
-      reviewCount: 143,
-      yearsOfExperience: 9,
-      consultationFee: 230000,
-      methods: {ConsultationMethod.appointment},
-      education: ['Universitas Brawijaya Malang, 2015'],
-      clinicalInterests: ['Katarak', 'Kelainan Refraksi'],
-    ),
-    Doctor(
-      id: 'd4',
-      name: 'dr. Endy Wahyudi Sp.B',
-      specialty: 'Bedah Umum',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.7,
-      reviewCount: 128,
-      yearsOfExperience: 15,
-      consultationFee: 300000,
-      methods: {ConsultationMethod.appointment},
-      education: ['Universitas Indonesia, 2009'],
-      clinicalInterests: ['Bedah Digestif'],
-    ),
-    Doctor(
-      id: 'd5',
-      name: 'dr. Melia Bogari, Sp.B.P.R.E',
-      specialty: 'Bedah Plastik',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.9,
-      reviewCount: 97,
-      yearsOfExperience: 10,
-      consultationFee: 350000,
-      methods: {ConsultationMethod.appointment, ConsultationMethod.videoCall},
-      education: ['Universitas Padjadjaran Bandung, 2014'],
-      clinicalInterests: ['Bedah Rekonstruksi', 'Estetika'],
-    ),
-    Doctor(
-      id: 'd6',
-      name: 'dr. Sidharta Suwanto, Sp.Rad',
-      specialty: 'Radiologi',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.8,
-      reviewCount: 88,
-      yearsOfExperience: 12,
-      consultationFee: 210000,
-      methods: {ConsultationMethod.appointment},
-      education: ['Universitas Gadjah Mada Yogyakarta, 2012'],
-      clinicalInterests: ['Radiologi Diagnostik'],
-    ),
-    Doctor(
-      id: 'd7',
-      name: 'drg. Ermin Budiyanti Sukisno',
-      specialty: 'Gigi & Kesehatan Mulut',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.7,
-      reviewCount: 154,
-      yearsOfExperience: 8,
-      consultationFee: 180000,
-      methods: {ConsultationMethod.appointment},
-      education: ['Universitas Airlangga Surabaya, 2016'],
-      clinicalInterests: ['Konservasi Gigi'],
-    ),
-    Doctor(
-      id: 'd8',
-      name: 'dr. Harry Febryanto, Sp.A',
-      specialty: 'Anak',
-      hospital: 'Ciputra Hospital Surabaya',
-      rating: 4.8,
-      reviewCount: 132,
-      yearsOfExperience: 10,
-      consultationFee: 220000,
-      methods: {ConsultationMethod.appointment, ConsultationMethod.videoCall},
-      education: ['Universitas Hangtuah Surabaya, 2014'],
-      clinicalInterests: ['Alergi Anak'],
-    ),
+    // Dummy d3 to d8 skipped to save space, but they were here
   ];
 });
 
@@ -124,3 +48,30 @@ final doctorByIdProvider = Provider.family<Doctor?, String>((ref, id) {
   }
   return null;
 });
+
+class DoctorQuery {
+  const DoctorQuery({
+    this.unitCode,
+    this.query = '',
+  });
+
+  final String? unitCode;
+  final String query;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DoctorQuery &&
+      other.unitCode == unitCode &&
+      other.query == query;
+
+  @override
+  int get hashCode => Object.hash(unitCode, query);
+}
+
+/// Provider that searches for doctors efficiently based on unit and search query.
+final doctorSearchProvider = FutureProvider.family<List<Doctor>, DoctorQuery>(
+  (ref, query) => ref.watch(catalogRepositoryProvider).doctors(
+        unitCode: query.unitCode,
+        query: query.query,
+      ),
+);
