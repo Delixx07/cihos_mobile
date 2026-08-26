@@ -9,7 +9,6 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_back_button.dart';
 import '../../../core/widgets/async_view.dart';
-import '../../../core/widgets/illustrations.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
 import '../../booking/widgets/practice_calendar.dart';
@@ -187,32 +186,67 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     return Scaffold(
       body: TexturedBackground(
         child: SafeArea(
+          bottom: false,
           child: Stack(
             children: [
-              Column(
-                children: [
-                  const SizedBox(height: 60),
-                  Illustrations.doctorAtDesk(width: 300),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          const SizedBox(height: 10),
+                          Stack(
+                            alignment: Alignment.topCenter,
+                            clipBehavior: Clip.none,
+                            children: [
+                              // Dark Panel at bottom
+                              Padding(
+                                padding: const EdgeInsets.only(top: 200),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: (constraints.maxHeight - 210)
+                                        .clamp(420.0, 1200.0),
+                                  ),
+                                  child: _Panel(
+                                    clinic: _selectedClinic?.displayName,
+                                    doctorName: _doctorName,
+                                    date: _date,
+                                    onClinicTap: _pickClinic,
+                                    onDoctorTap: _pickDoctor,
+                                    onDateTap: _pickDate,
+                                    onClearClinic: _clearClinic,
+                                    onClearDoctor: _clearDoctor,
+                                    onClearDate: _clearDate,
+                                    onReset: _reset,
+                                    onSearch: _search,
+                                  ),
+                                ),
+                              ),
+                              // Doctor Image overlapping on top of the panel curve
+                              Positioned(
+                                top: 0,
+                                child: Image.asset(
+                                  'assets/images/cari dokter.png',
+                                  width: 320,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: _Panel(
-                  clinic: _selectedClinic?.displayName,
-                  doctorName: _doctorName,
-                  date: _date,
-                  onClinicTap: _pickClinic,
-                  onDoctorTap: _pickDoctor,
-                  onDateTap: _pickDate,
-                  onClearClinic: _clearClinic,
-                  onClearDoctor: _clearDoctor,
-                  onClearDate: _clearDate,
-                  onReset: _reset,
-                  onSearch: _search,
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(AppSpacing.sm),
+              const Positioned(
+                top: AppSpacing.sm,
+                left: AppSpacing.sm,
                 child: AppBackButton(),
               ),
             ],
@@ -257,14 +291,14 @@ class _Panel extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        AppSpacing.xxxl,
+        36,
         AppSpacing.xxl,
         AppSpacing.xxl,
       ),
       decoration: const BoxDecoration(
         color: AppColors.accentSoft,
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(10),
+          top: Radius.circular(32),
         ),
         boxShadow: [
           BoxShadow(
@@ -515,7 +549,7 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
     final query = UpcomingScheduleQuery(
       doctorId: widget.doctorId,
       unitCode: widget.unitCode,
-      days: 21,
+      days: 64,
       withSlots: 0,
     );
     final upcomingAsync = ref.watch(upcomingSchedulesProvider(query));
@@ -578,10 +612,6 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
               child: AsyncView(
                 value: upcomingAsync,
                 onRetry: () => ref.invalidate(upcomingSchedulesProvider(query)),
-                isEmpty: (schedules) => schedules.isEmpty,
-                emptyTitle: 'Tidak ada jadwal praktek',
-                emptyMessage:
-                    'Dokter ini belum memiliki jadwal praktek dalam 21 hari ke depan.',
                 builder: (schedules) {
                   final practisingDates = schedules
                       .map((s) => DateTime(s.date.year, s.date.month, s.date.day))
@@ -616,7 +646,38 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                         },
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      if (_date != null)
+                      if (schedules.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.danger.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.danger.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                size: 20,
+                                color: AppColors.danger,
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Dokter tidak memiliki jadwal praktek dalam 64 hari ke depan.',
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (_date != null)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(AppSpacing.md),

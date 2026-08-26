@@ -153,19 +153,42 @@ class UpcomingScheduleDate {
 
   factory UpcomingScheduleDate.fromJson(Map<String, dynamic> json) {
     DateTime? parsedDate;
-    final rawDate = json['date'] ?? json['practice_date'] ?? json['schedule_date'];
+    final rawDate = json['date'] ??
+        json['practice_date'] ??
+        json['schedule_date'] ??
+        json['booking_date'] ??
+        json['tanggal'];
+
     if (rawDate != null) {
-      parsedDate = DateTime.tryParse(rawDate.toString());
+      final str = rawDate.toString().trim();
+      parsedDate = DateTime.tryParse(str);
+      if (parsedDate == null) {
+        final parts = str.split(RegExp(r'[-/]'));
+        if (parts.length == 3) {
+          if (parts[0].length == 4) {
+            // YYYY-MM-DD
+            parsedDate = DateTime.tryParse(
+              '${parts[0]}-${parts[1].padLeft(2, '0')}-${parts[2].padLeft(2, '0')}',
+            );
+          } else if (parts[2].length == 4) {
+            // DD-MM-YYYY
+            parsedDate = DateTime.tryParse(
+              '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}',
+            );
+          }
+        }
+      }
     }
 
     final time = json['operational_time_name'] as String? ??
         json['time_label'] as String? ??
         json['operational_time'] as String? ??
         json['time'] as String? ??
+        json['jam_praktek'] as String? ??
         '';
 
     return UpcomingScheduleDate(
-      date: parsedDate ?? DateTime.now(),
+      date: parsedDate ?? DateTime.fromMillisecondsSinceEpoch(0),
       unitCode: json['service_unit_code'] as String? ??
           json['unit_code'] as String? ??
           json['unit'] as String? ??
@@ -179,4 +202,6 @@ class UpcomingScheduleDate {
       raw: json,
     );
   }
+
+  bool get isValidDate => date.year > 2000;
 }

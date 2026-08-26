@@ -71,12 +71,12 @@ class CatalogRepository {
     return _listOf(response['schedules'], PracticeSchedule.fromJson);
   }
 
-  /// Upcoming schedules for a doctor within [days] (default 21).
-  /// GET /app/schedule-upcoming?paramedic_id=...&unit=...&days=21&with_slots=0
+  /// Upcoming schedules for a doctor within [days] (default 64).
+  /// GET /app/schedule-upcoming?paramedic_id=...&unit=...&days=64&with_slots=0
   Future<List<UpcomingScheduleDate>> upcomingSchedules({
     required String doctorId,
     String? unitCode,
-    int days = 21,
+    int days = 64,
     int withSlots = 0,
   }) async {
     final response = await _client.get(
@@ -90,15 +90,30 @@ class CatalogRepository {
       authenticated: true,
     );
 
-    final rawList = response['schedules'] ??
+    Object? rawList = response['schedules'] ??
         response['data'] ??
         response['dates'] ??
         response['upcoming'];
 
+    if (rawList is Map) {
+      rawList = rawList['schedules'] ??
+          rawList['data'] ??
+          rawList['dates'] ??
+          rawList['upcoming'] ??
+          rawList['list'];
+    }
+
     if (rawList is List) {
-      return rawList.whereType<Map>().map((item) {
-        return UpcomingScheduleDate.fromJson(item.cast<String, dynamic>());
-      }).toList();
+      final list = <UpcomingScheduleDate>[];
+      for (final item in rawList.whereType<Map>()) {
+        final dateObj = UpcomingScheduleDate.fromJson(
+          item.cast<String, dynamic>(),
+        );
+        if (dateObj.isValidDate) {
+          list.add(dateObj);
+        }
+      }
+      return list;
     }
 
     return const [];
@@ -216,12 +231,12 @@ final slotsProvider = FutureProvider.family<DaySlots, SlotQuery>(
       ),
 );
 
-/// Query for upcoming schedules within a number of days (default 21).
+/// Query for upcoming schedules within a number of days (default 64).
 class UpcomingScheduleQuery {
   const UpcomingScheduleQuery({
     required this.doctorId,
     this.unitCode,
-    this.days = 21,
+    this.days = 64,
     this.withSlots = 0,
   });
 

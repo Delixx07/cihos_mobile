@@ -106,7 +106,7 @@ class FakeCatalogRepository implements CatalogRepository {
   Future<List<UpcomingScheduleDate>> upcomingSchedules({
     required String doctorId,
     String? unitCode,
-    int days = 21,
+    int days = 64,
     int withSlots = 0,
   }) async {
     _guard();
