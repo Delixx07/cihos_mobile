@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/async_view.dart';
 import '../../doctors/data/catalog_repository.dart';
-
 import '../../doctors/domain/clinic.dart';
 
 /// The searchable specialty list, opened from the booking search panel.
@@ -35,7 +33,7 @@ class SpecialtyPickerSheet extends ConsumerStatefulWidget {
 class _SpecialtyPickerSheetState extends ConsumerState<SpecialtyPickerSheet> {
   final _searchController = TextEditingController();
 
-  late Clinic? _selected = widget.selected;
+  late final Clinic? _selected = widget.selected;
   String _query = '';
 
   @override
@@ -126,14 +124,17 @@ class _SpecialtyPickerSheetState extends ConsumerState<SpecialtyPickerSheet> {
                 emptyTitle: 'Spesialisasi tidak ditemukan',
                 builder: (_) => ListView.builder(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    0,
+                    AppSpacing.xl,
+                    AppSpacing.xl,
                   ),
                   itemCount: matches.length,
                   itemBuilder: (context, index) {
                     final clinic = matches[index];
                     return InkWell(
-                      onTap: () => setState(() => _selected = clinic),
+                      onTap: () => Navigator.of(context).pop(clinic),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm,
@@ -163,15 +164,6 @@ class _SpecialtyPickerSheetState extends ConsumerState<SpecialtyPickerSheet> {
                     );
                   },
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: AppButton(
-                label: 'Tampilkan Hasil Pencarian',
-                expand: true,
-                background: AppColors.accentSoft,
-                onPressed: () => Navigator.of(context).pop(_selected),
               ),
             ),
           ],

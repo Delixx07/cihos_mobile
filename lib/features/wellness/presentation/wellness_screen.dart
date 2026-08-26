@@ -12,12 +12,14 @@ class WellnessTool {
   const WellnessTool({
     required this.title,
     required this.subtitle,
-    required this.icon,
+    required this.imageAsset,
+    this.icon = Icons.health_and_safety_outlined,
     required this.tint,
   });
 
   final String title;
   final String subtitle;
+  final String imageAsset;
   final IconData icon;
 
   /// Backs the icon chip so the tools stay distinguishable at a glance.
@@ -32,42 +34,49 @@ class WellnessScreen extends StatelessWidget {
     WellnessTool(
       title: 'Asuransi',
       subtitle: 'Gunakan asuransimu di CiHos Mobile',
+      imageAsset: 'assets/images/sehat-mu/asuransi.png',
       icon: Icons.shield_outlined,
       tint: AppColors.link,
     ),
     WellnessTool(
       title: 'Kalender Haid',
       subtitle: 'Pantau siklus haid setiap bulannya',
+      imageAsset: 'assets/images/sehat-mu/kalender haid.png',
       icon: Icons.calendar_month_outlined,
       tint: AppColors.danger,
     ),
     WellnessTool(
       title: 'Kalkulator BMI',
       subtitle: 'Ketahui skor BMI yang ideal untukmu',
+      imageAsset: 'assets/images/sehat-mu/kalender bmi.png',
       icon: Icons.monitor_weight_outlined,
       tint: AppColors.success,
     ),
     WellnessTool(
       title: 'Pengingat Olahraga',
       subtitle: 'Pengingat untuk rutin olahraga setiap hari',
+      imageAsset: 'assets/images/sehat-mu/yoga.png',
       icon: Icons.self_improvement_outlined,
       tint: AppColors.primary,
     ),
     WellnessTool(
       title: 'Pengingat Obat',
       subtitle: 'Pengingat untuk minum obat tepat waktu',
+      imageAsset: 'assets/images/sehat-mu/pengingat obat.png',
       icon: Icons.alarm_outlined,
       tint: AppColors.warning,
     ),
     WellnessTool(
       title: 'Hitung Kalori Makan',
       subtitle: 'Kendalikan asupan harian anda',
+      imageAsset: 'assets/images/sehat-mu/hitung kalori.png',
       icon: Icons.restaurant_outlined,
       tint: AppColors.success,
     ),
     WellnessTool(
       title: 'Tracker Berhenti Merokok',
       subtitle: 'Berhenti merokok dimulai dari hari ini',
+      imageAsset: 'assets/images/sehat-mu/berhenti merokok.png',
       icon: Icons.smoke_free_outlined,
       tint: AppColors.danger,
     ),
@@ -240,15 +249,24 @@ class _ToolCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Icon Badge with distinct tint color
+              // Icon Badge with image asset and distinct tint background
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: tool.tint.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: tool.tint.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(tool.icon, size: 22, color: tool.tint),
+                child: Image.asset(
+                  tool.imageAsset,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    tool.icon,
+                    size: 24,
+                    color: tool.tint,
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

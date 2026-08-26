@@ -30,6 +30,18 @@ class CatalogRepository {
     return allClinics.where((c) => c.code.toUpperCase().startsWith('SU')).toList();
   }
 
+  static const _excludedDoctorKeywords = [
+    'dummy test',
+    'dokter mcu',
+    'dokter radiologi',
+    'dokter ugd',
+  ];
+
+  static bool isExcludedDoctor(String name) {
+    final normalized = name.trim().toLowerCase();
+    return _excludedDoctorKeywords.any((keyword) => normalized.contains(keyword));
+  }
+
   /// Doctors, optionally filtered by name or restricted to one unit.
   Future<List<Doctor>> doctors({String? query, String? unitCode}) async {
     final response = await _client.get(
@@ -42,7 +54,9 @@ class CatalogRepository {
     );
 
     final rawList = response['doctors'] ?? response['data'];
-    final doctorsList = _listOf(rawList, Doctor.fromJson);
+    final doctorsList = _listOf(rawList, Doctor.fromJson)
+        .where((d) => !isExcludedDoctor(d.name))
+        .toList();
     return unitCode == null
         ? doctorsList
         : doctorsList.map((d) => d.copyWith(unitCode: unitCode)).toList();

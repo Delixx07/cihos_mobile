@@ -6,11 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_view.dart';
 import '../../../../core/widgets/illustrations.dart';
 import '../../data/doctor_repository.dart';
-import '../../domain/doctor.dart';
 
 /// The searchable doctor list. Pops the chosen doctor, or null when
 /// dismissed.
@@ -32,9 +30,8 @@ class _DoctorPickerSheetState extends ConsumerState<DoctorPickerSheet> {
   final _searchController = TextEditingController();
   Timer? _debounce;
 
-  late String? _selectedId = widget.selectedId;
+  late final String? _selectedId = widget.selectedId;
   String _query = '';
-  Doctor? _selectedDoctor;
 
   @override
   void dispose() {
@@ -138,17 +135,17 @@ class _DoctorPickerSheetState extends ConsumerState<DoctorPickerSheet> {
                 emptyTitle: 'Dokter tidak ditemukan',
                 builder: (matches) => ListView.builder(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    0,
+                    AppSpacing.xl,
+                    AppSpacing.xl,
                   ),
                   itemCount: matches.length,
                   itemBuilder: (context, index) {
                     final doctor = matches[index];
                     return InkWell(
-                      onTap: () => setState(() {
-                        _selectedId = doctor.id;
-                        _selectedDoctor = doctor;
-                      }),
+                      onTap: () => Navigator.of(context).pop(doctor),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm,
@@ -191,15 +188,6 @@ class _DoctorPickerSheetState extends ConsumerState<DoctorPickerSheet> {
                     );
                   },
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: AppButton(
-                label: 'Tampilkan Hasil Pencarian',
-                expand: true,
-                background: AppColors.accentSoft,
-                onPressed: () => Navigator.of(context).pop(_selectedDoctor),
               ),
             ),
           ],
