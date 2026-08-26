@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../booking/domain/booking.dart';
 import '../../domain/doctor.dart';
 
 /// Modern doctor card for search and catalog screens.
@@ -12,14 +13,31 @@ class DoctorCard extends StatelessWidget {
     required this.doctor,
     required this.onProfileTap,
     required this.onBookTap,
+    this.kind,
   });
 
   final Doctor doctor;
   final VoidCallback onProfileTap;
   final VoidCallback onBookTap;
+  final BookingKind? kind;
 
   @override
   Widget build(BuildContext context) {
+    final (actionIcon, actionLabel) = switch (kind) {
+      BookingKind.appointment => (
+        Icons.medical_services_outlined,
+        'Janji Temu',
+      ),
+      BookingKind.videoCall => (
+        Icons.videocam_rounded,
+        'Video Call',
+      ),
+      null => (
+        Icons.calendar_month_outlined,
+        'Jadwal',
+      ),
+    };
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -72,12 +90,12 @@ class DoctorCard extends StatelessWidget {
                     Text(
                       doctor.name,
                       style: AppTypography.inputText.copyWith(
-                        fontSize: 15.5,
                         fontWeight: FontWeight.w800,
+                        fontSize: 15.5,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     // Specialty Chip
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -85,22 +103,20 @@ class DoctorCard extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.accentSoft.withValues(alpha: 0.1),
+                        color: AppColors.accentSoft.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        doctor.specialty.isNotEmpty
-                            ? doctor.specialty
-                            : 'Dokter Spesialis',
+                        doctor.specialty,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.accentSoft,
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 11.5,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    // Hospital
+                    const SizedBox(height: 6),
+                    // Hospital line
                     Row(
                       children: [
                         const Icon(
@@ -169,7 +185,7 @@ class DoctorCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // Pilih Jadwal Button
+              // Dynamic Action Button (Janji Temu / Video Call / Jadwal)
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
@@ -186,14 +202,14 @@ class DoctorCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.calendar_month_outlined,
+                      Icon(
+                        actionIcon,
                         size: 15,
                         color: AppColors.white,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Jadwal',
+                        actionLabel,
                         style: AppTypography.bodySm.copyWith(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
@@ -222,7 +238,7 @@ class _PhotoPlaceholder extends StatelessWidget {
       child: Center(
         child: Icon(
           Icons.person_rounded,
-          size: 36,
+          size: 32,
           color: AppColors.textTertiary,
         ),
       ),

@@ -10,7 +10,6 @@ import '../../features/booking/domain/booking.dart';
 import '../../features/booking/presentation/booking_patient_screen.dart';
 import '../../features/booking/presentation/booking_results_screen.dart';
 import '../../features/booking/presentation/booking_schedule_screen.dart';
-import '../../features/booking/presentation/booking_search_screen.dart';
 import '../../features/booking/presentation/booking_summary_screen.dart';
 import '../../features/doctors/domain/doctor.dart';
 import '../../features/doctors/presentation/doctor_finder_screen.dart';
@@ -179,13 +178,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // next attempt.
       GoRoute(
         path: AppRoutes.appointmentSearch,
-        builder: (context, state) =>
-            const BookingSearchScreen(kind: BookingKind.appointment),
+        pageBuilder: (context, state) => _sharedAxis(
+          state,
+          const DoctorListScreen(kind: BookingKind.appointment),
+        ),
       ),
       GoRoute(
         path: AppRoutes.videoCallSearch,
-        builder: (context, state) =>
-            const BookingSearchScreen(kind: BookingKind.videoCall),
+        pageBuilder: (context, state) => _sharedAxis(
+          state,
+          const DoctorListScreen(kind: BookingKind.videoCall),
+        ),
       ),
       GoRoute(
         path: AppRoutes.bookingResults,

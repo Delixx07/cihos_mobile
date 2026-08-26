@@ -89,7 +89,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: Border.all(color: AppColors.border, width: 1),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: _buildAvatar(photoUrl),
+                      child: ClipOval(
+                        child: _buildAvatar(photoUrl),
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -133,45 +135,75 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xl),
 
-              // Settings Options List
-              _SettingsTile(
-                icon: Icons.person_outline_rounded,
-                title: 'Profil Pengguna',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const EditProfileScreen(),
+              // Section Label "General"
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: AppSpacing.sm),
+                child: Text(
+                  'General',
+                  style: AppTypography.caption.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textTertiary,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+
+              // Unified Grouped Settings Container
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.border, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
                     ),
-                  );
-                },
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    _SettingsItem(
+                      icon: Icons.person_rounded,
+                      title: 'Profil & Akun',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfileScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const _SettingsDivider(),
+                    _SettingsItem(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Ubah Kata Sandi',
+                      onTap: () => ChangePasswordSheet.show(context),
+                    ),
+                    const _SettingsDivider(),
+                    _SettingsItem(
+                      icon: Icons.help_outline_rounded,
+                      title: 'Tanya Jawab (FAQ)',
+                      onTap: () => FaqSheet.show(context),
+                    ),
+                    const _SettingsDivider(),
+                    _SettingsSwitchItem(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Notifikasi Aplikasi',
+                      value: _pushNotificationsEnabled,
+                      onChanged: (val) {
+                        setState(() => _pushNotificationsEnabled = val);
+                      },
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: AppSpacing.md),
-
-              _SettingsTile(
-                icon: Icons.lock_outline_rounded,
-                title: 'Ubah Kata Sandi',
-                onTap: () => ChangePasswordSheet.show(context),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              _SettingsTile(
-                icon: Icons.help_outline_rounded,
-                title: 'Tanya Jawab (FAQ)',
-                onTap: () => FaqSheet.show(context),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              _SettingsSwitchTile(
-                icon: Icons.notifications_none_rounded,
-                title: 'Notifikasi Aplikasi',
-                value: _pushNotificationsEnabled,
-                onChanged: (val) {
-                  setState(() => _pushNotificationsEnabled = val);
-                },
-              ),
-              const SizedBox(height: AppSpacing.xxxl),
+              const SizedBox(height: AppSpacing.xxl),
 
               // WhatsApp / Query Card at the bottom
               Container(
@@ -236,11 +268,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (photoUrl != null && photoUrl.isNotEmpty) {
       final file = File(photoUrl);
       if (file.existsSync()) {
-        return Image.file(file, fit: BoxFit.cover);
+        return Image.file(file, fit: BoxFit.cover, alignment: Alignment.topCenter);
       } else if (photoUrl.startsWith('http')) {
         return Image.network(
           photoUrl,
           fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
           errorBuilder: (_, _, _) =>
               const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
         );
@@ -249,14 +282,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Image.asset(
       'assets/images/avatar.jpg',
       fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
       errorBuilder: (_, _, _) =>
           const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
     );
   }
 }
 
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
+class _SettingsItem extends StatelessWidget {
+  const _SettingsItem({
     required this.icon,
     required this.title,
     required this.onTap,
@@ -269,24 +303,17 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 0,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: 18,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border, width: 1),
+            vertical: 16,
           ),
           child: Row(
             children: [
-              Icon(icon, color: AppColors.textPrimary, size: 22),
+              Icon(icon, color: const Color(0xFF64748B), size: 22),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
@@ -300,7 +327,7 @@ class _SettingsTile extends StatelessWidget {
               ),
               const Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textTertiary,
+                color: Color(0xFF94A3B8),
                 size: 22,
               ),
             ],
@@ -311,8 +338,8 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-class _SettingsSwitchTile extends StatelessWidget {
-  const _SettingsSwitchTile({
+class _SettingsSwitchItem extends StatelessWidget {
+  const _SettingsSwitchItem({
     required this.icon,
     required this.title,
     required this.value,
@@ -326,19 +353,14 @@ class _SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: 8,
       ),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textPrimary, size: 22),
+          Icon(icon, color: const Color(0xFF64748B), size: 22),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
@@ -358,6 +380,21 @@ class _SettingsSwitchTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      indent: 56,
+      endIndent: 16,
+      color: Color(0xFFF1F5F9),
     );
   }
 }
