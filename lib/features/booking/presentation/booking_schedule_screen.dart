@@ -8,26 +8,24 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
 import '../domain/booking.dart';
 import '../widgets/practice_calendar.dart';
-import '../../../core/theme/app_elevation.dart';
 import '../../doctors/data/catalog_repository.dart';
+import '../../doctors/data/doctor_repository.dart';
+import '../../doctors/domain/practice_schedule.dart';
 
-/// Pick the day and time slot, for either booking kind.
-class BookingScheduleScreen extends StatefulWidget {
+/// Pick the day for the chosen consultation kind, then continue to patient selection.
+class BookingScheduleScreen extends ConsumerStatefulWidget {
   const BookingScheduleScreen({super.key, required this.booking});
 
   final Booking booking;
 
   @override
-  State<BookingScheduleScreen> createState() => _BookingScheduleScreenState();
+  ConsumerState<BookingScheduleScreen> createState() => _BookingScheduleScreenState();
 }
 
-class _BookingScheduleScreenState extends State<BookingScheduleScreen> {
+class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
   late DateTime? _date = widget.booking.date;
-  late BookingSlot? _slot = widget.booking.slot;
 
   void _confirm() {
     if (_date == null) {
@@ -36,371 +34,394 @@ class _BookingScheduleScreenState extends State<BookingScheduleScreen> {
       );
       return;
     }
-    if (_slot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih jam telekonsultasi.')),
-      );
-      return;
-    }
 
     context.push(
       AppRoutes.bookingPatient,
       extra: widget.booking.copyWith(
         date: _date,
-        slot: _slot,
-        session: _slot?.session,
-        slotNumber: _slot?.slotNumber,
-        operationalTimeCode: _slot?.operationalTimeCode,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final doctor = widget.booking.doctorId != null 
+        ? ref.watch(doctorByIdProvider(widget.booking.doctorId!)) 
+        : null;
+
+    final isAppointment = widget.booking.kind == BookingKind.appointment;
+    final methodIcon = isAppointment 
+        ? Icons.medical_services_outlined 
+        : Icons.videocam_outlined;
+    final methodIconBg = isAppointment 
+        ? const Color(0xFFE0F2FE) 
+        : const Color(0xFFEDE9FE);
+    final methodIconColor = isAppointment 
+        ? const Color(0xFF0284C7) 
+        : const Color(0xFF7C3AED);
+    final methodTitle = isAppointment 
+        ? 'Janji Temu dengan Dokter' 
+        : 'Video Call dengan Dokter';
+
+    final effectiveUnitCode = widget.booking.unitCode ?? doctor?.unitCode;
+    final upcomingQuery = widget.booking.doctorId != null
+        ? UpcomingScheduleQuery(
+            doctorId: widget.booking.doctorId!,
+            unitCode: effectiveUnitCode,
+            days: 30,
+            withSlots: 0,
+          )
+        : null;
+
+    final upcomingAsync = upcomingQuery != null
+        ? ref.watch(upcomingSchedulesProvider(upcomingQuery))
+        : null;
+
+    final practisingDates = upcomingAsync?.valueOrNull
+        ?.map((s) => DateTime(s.date.year, s.date.month, s.date.day))
+        .toSet();
+
+    final selectedSchedule = _date == null
+        ? null
+        : upcomingAsync?.valueOrNull?.cast<UpcomingScheduleDate?>().firstWhere(
+            (s) =>
+                s != null &&
+                s.date.year == _date!.year &&
+                s.date.month == _date!.month &&
+                s.date.day == _date!.day,
+            orElse: () => null,
+          );
+
+    final availableDates = upcomingAsync?.valueOrNull != null
+        ? (practisingDates ?? const <DateTime>{})
+        : const <DateTime>{};
+
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              ScreenHeader(title: widget.booking.kind.scheduleTitle),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl,
-                    AppSpacing.md,
-                    AppSpacing.xxl,
-                    AppSpacing.xxl,
+      backgroundColor: AppColors.accentSoft,
+      body: Column(
+        children: [
+          // Doctor Info Header (using App's native colors)
+          Container(
+            color: AppColors.accentSoft,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.sm,
+              AppSpacing.xxl,
+              AppSpacing.xl,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    onPressed: () => context.pop(),
                   ),
-                  children: [
-                    Text(
-                      'Metode Konsultasi',
-                      textAlign: TextAlign.justify,
-                      style: AppTypography.inputText.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.accentSoft,
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.booking.doctorName ?? 'Dokter',
+                              style: AppTypography.headingMd.copyWith(
+                                color: AppColors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              widget.booking.specialty ?? '',
+                              style: AppTypography.bodySm.copyWith(
+                                color: AppColors.lavender,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _MethodChip(kind: widget.booking.kind),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      'Pilih Tanggal',
-                      style: AppTypography.inputText.copyWith(
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(width: AppSpacing.md),
+                      // Avatar placeholder
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            width: 1.5,
+                          ),
+                          image: doctor?.photoAsset != null
+                              ? DecorationImage(
+                                  image: AssetImage(doctor!.photoAsset!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: doctor?.photoAsset == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 42,
+                                color: AppColors.lavender,
+                              )
+                            : null,
                       ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // White Content Panel
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xxl,
+                  AppSpacing.xl,
+                  AppSpacing.xxl,
+                  AppSpacing.xxl,
+                ),
+                children: [
+                  // Consultation Method Card (Above Calendar)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
                     ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: methodIconBg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            methodIcon,
+                            size: 22,
+                            color: methodIconColor,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Metode Konsultasi',
+                                style: AppTypography.caption.copyWith(
+                                  fontSize: 11,
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                methodTitle,
+                                style: AppTypography.inputText.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Pilih Tanggal',
+                        style: AppTypography.inputText.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (upcomingAsync?.isLoading == true)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accentSoft,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  PracticeCalendar(
+                    kind: widget.booking.kind,
+                    selected: _date,
+                    practisingDates: availableDates,
+                    onSelected: (value) => setState(() => _date = value),
+                  ),
+                  if (upcomingAsync != null &&
+                      upcomingAsync.hasValue &&
+                      practisingDates != null &&
+                      practisingDates.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: AppSpacing.md),
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 20,
+                            color: AppColors.danger,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              'Dokter tidak memiliki jadwal praktek dalam 30 hari ke depan.',
+                              style: AppTypography.bodySm.copyWith(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_date != null) ...[
                     const SizedBox(height: AppSpacing.md),
-                    PracticeCalendar(
-                      kind: widget.booking.kind,
-                      selected: _date,
-                      onSelected: (value) => setState(() {
-                        _date = value;
-                        // Slots belong to a day, so a new day clears the pick.
-                        _slot = null;
-                      }),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    _SlotPanel(
-                      booking: widget.booking,
-                      date: _date,
-                      selected: _slot,
-                      onSelected: (value) => setState(() => _slot = value),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      widget.booking.kind.leadTimeNote,
-                      style: AppTypography.bodySm.copyWith(
-                        fontSize: 15,
-                        height: 1.25,
-                        color: AppColors.accentSoft,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.mint.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.accentSoft,
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentSoft.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.calendar_today_rounded,
+                              color: AppColors.accentSoft,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tanggal Dipilih:',
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat(
+                                    'EEEE, d MMMM yyyy',
+                                    'id_ID',
+                                  ).format(_date!),
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                if (selectedSchedule != null &&
+                                    selectedSchedule.timeLabel.isNotEmpty)
+                                  Text(
+                                    'Jam Praktek: ${selectedSchedule.timeLabel}',
+                                    style: AppTypography.bodySm.copyWith(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.link,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xxl,
-                  0,
-                  AppSpacing.xxl,
-                  AppSpacing.xl,
-                ),
-                child: AppButton(
-                  label: 'Lanjut',
-                  expand: true,
-                  background: AppColors.accentSoft,
-                  onPressed: _confirm,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The read-only reminder of which consultation method this booking uses.
-class _MethodChip extends StatelessWidget {
-  const _MethodChip({required this.kind});
-
-  final BookingKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          boxShadow: AppElevation.level2,
-        ),
-        child: Container(
-          height: 48,
-          constraints: const BoxConstraints(minWidth: 144),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                kind == BookingKind.videoCall
-                    ? Icons.videocam
-                    : Icons.person_outline,
-                size: 23,
-                color: AppColors.accentSoft,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                kind.label,
-                style: AppTypography.inputText.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accentSoft,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The dark panel of bookable times for the chosen day.
-class _SlotPanel extends ConsumerWidget {
-  const _SlotPanel({
-    required this.booking,
-    required this.date,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final Booking booking;
-  final DateTime? date;
-  final BookingSlot? selected;
-  final ValueChanged<BookingSlot> onSelected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (date == null) {
-      return _buildContainer(
-        child: Text(
-          'Pilih tanggal untuk melihat jam yang tersedia.',
-          style: AppTypography.bodySm.copyWith(
-            fontSize: 14,
-            color: const Color(0xCCDDDFF3),
-          ),
-        ),
-      );
-    }
-
-    final query = SlotQuery(
-      doctorId: booking.doctorId ?? '',
-      unitCode: booking.unitCode ?? '',
-      date: date!,
-    );
-
-    final slotsAsync = ref.watch(slotsProvider(query));
-    final schedulesAsync = ref.watch(doctorSchedulesProvider(query.doctorId));
-
-    return slotsAsync.when(
-      loading: () => _buildContainer(
-        child: const Center(
-          child: CircularProgressIndicator(color: AppColors.white),
-        ),
-      ),
-      error: (e, _) => _buildContainer(
-        child: Text(
-          'Gagal memuat jadwal. ${e.toString()}',
-          style: AppTypography.bodySm.copyWith(color: AppColors.white),
-        ),
-      ),
-      data: (daySlots) {
-        if (daySlots.isEmpty) {
-          return _buildContainer(
-            child: Text(
-              'Tidak ada jam yang tersedia pada tanggal ini.',
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 14,
-                color: const Color(0xCCDDDFF3),
-              ),
-            ),
-          );
-        }
-
-        // Look up operationalTimeCode from the doctor's weekly schedule for this day.
-        String? getOperationalTimeCode(int session) {
-          final schedules = schedulesAsync.valueOrNull;
-          if (schedules == null) return null;
-          
-          final dayNumber = date!.weekday; // 1 = Monday, 7 = Sunday
-          for (final schedule in schedules) {
-            if (schedule.unitCode == query.unitCode && schedule.dayNumber == dayNumber) {
-              // We check if this schedule's windows contain the session
-              if (schedule.windows.any((w) => w.session == session)) {
-                return schedule.operationalTimeCode;
-              }
-            }
-          }
-          return null;
-        }
-
-        return _buildContainer(
-          child: Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              for (final bookable in daySlots.slots)
-                _SlotChip(
-                  slot: BookingSlot(
-                    start: DateFormat('HH:mm').parse(bookable.start).copyWith(
-                          year: date!.year,
-                          month: date!.month,
-                          day: date!.day,
-                        ),
-                    end: DateFormat('HH:mm').parse(bookable.end).copyWith(
-                          year: date!.year,
-                          month: date!.month,
-                          day: date!.day,
-                        ),
-                    session: bookable.session,
-                    slotNumber: bookable.number,
-                    operationalTimeCode: getOperationalTimeCode(bookable.session),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    widget.booking.kind.leadTimeNote,
+                    style: AppTypography.bodySm.copyWith(
+                      fontSize: 13,
+                      height: 1.3,
+                      color: AppColors.accentSoft,
+                    ),
                   ),
-                  isSelected: selected?.start.hour ==
-                          DateFormat('HH:mm').parse(bookable.start).hour &&
-                      selected?.start.minute ==
-                          DateFormat('HH:mm').parse(bookable.start).minute,
-                  onTap: () {
-                    final start = DateFormat('HH:mm').parse(bookable.start);
-                    final end = DateFormat('HH:mm').parse(bookable.end);
-                    onSelected(
-                      BookingSlot(
-                        start: DateTime(
-                          date!.year,
-                          date!.month,
-                          date!.day,
-                          start.hour,
-                          start.minute,
-                        ),
-                        end: DateTime(
-                          date!.year,
-                          date!.month,
-                          date!.day,
-                          end.hour,
-                          end.minute,
-                        ),
-                        session: bookable.session,
-                        slotNumber: bookable.number,
-                        operationalTimeCode: getOperationalTimeCode(bookable.session),
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildContainer({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pilih Jam',
-            style: AppTypography.inputText.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFFDDDFF3),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          child,
         ],
       ),
-    );
-  }
-}
-
-class _SlotChip extends StatelessWidget {
-  const _SlotChip({
-    required this.slot,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final BookingSlot slot;
-  final bool isSelected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // Selected reads as an outlined white chip; taken slots dim out.
-    final background = isSelected ? AppColors.white : const Color(0xFFDDDFF3);
-    final opacity = slot.isAvailable ? 1.0 : 0.4;
-
-    return Opacity(
-      opacity: opacity,
-      child: Material(
-        color: background,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          child: Container(
-            width: 139,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.xs),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFDDDFF3)
-                    : Colors.transparent,
-              ),
-            ),
-            child: Text(
-              slot.label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                letterSpacing: 0.33,
-              ),
-            ),
-          ),
+      bottomNavigationBar: Container(
+        color: AppColors.white,
+        padding: EdgeInsets.only(
+          left: AppSpacing.xxl,
+          right: AppSpacing.xxl,
+          top: AppSpacing.sm,
+          bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
+        ),
+        child: AppButton(
+          label: 'Lanjutkan',
+          expand: true,
+          background: AppColors.accentSoft,
+          onPressed: _confirm,
         ),
       ),
     );

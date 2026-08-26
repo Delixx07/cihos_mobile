@@ -1302,31 +1302,11 @@ void main() {
     expect(find.text('dr. Edwin Hadinata, Sp.PD'), findsOneWidget);
   });
 
-  testWidgets('continuing without a date is refused', (tester) async {
-    await _startAtLogin(tester);
-    await _signIn(tester);
-    await _pickEdwinInFinder(tester);
-
-    await tester.tap(find.text('Lanjutkan'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Pilih jadwal terlebih dahulu.'), findsOneWidget);
-  });
-
-  testWidgets('continuing with doctor and date opens consultation methods',
+  testWidgets('continuing with doctor opens consultation methods',
       (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _pickEdwinInFinder(tester);
-
-    // Pick date in finder
-    await tester.tap(find.byKey(const Key('finderDate')));
-    await tester.pumpAndSettle();
-    final tomorrow = DateTime.now().add(const Duration(days: 1)).day;
-    await tester.tap(find.text('$tomorrow').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Pilih Tanggal'));
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Lanjutkan'));
     await tester.pumpAndSettle();

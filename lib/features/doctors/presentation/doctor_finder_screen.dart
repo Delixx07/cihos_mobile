@@ -1,29 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_back_button.dart';
-import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
-import '../../booking/widgets/practice_calendar.dart';
 import '../../booking/widgets/specialty_picker_sheet.dart';
 import '../data/catalog_repository.dart';
 import '../data/doctor_repository.dart';
 import '../domain/clinic.dart';
 import '../domain/doctor.dart';
-import '../domain/practice_schedule.dart';
 import 'widgets/consultation_method_card.dart';
 import 'widgets/doctor_picker_sheet.dart';
 import '../../../core/theme/app_elevation.dart';
 
-/// Find a doctor by clinic, name, and date — the entry point to their
-/// schedule.
+/// Find a doctor by clinic and name — the entry point to their schedule.
 class DoctorFinderScreen extends ConsumerStatefulWidget {
   const DoctorFinderScreen({super.key});
 
@@ -35,7 +30,6 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   Clinic? _selectedClinic;
   String? _doctorId;
   String? _doctorName;
-  DateTime? _date;
 
   Future<void> _pickClinic() async {
     final picked = await showModalBottomSheet<Clinic>(
@@ -52,7 +46,6 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     if (picked != null) {
       setState(() {
         _selectedClinic = picked;
-        // Opsional: jika klinik ganti, reset dokter agar relevan
         _doctorId = null;
         _doctorName = null;
       });
@@ -72,7 +65,6 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
 
     if (picked == null) return;
 
-    // Cari klinik yang sesuai dari daftar klinik yang tersedia
     final clinics = ref.read(clinicsProvider).valueOrNull ?? [];
     Clinic? matchedClinic;
 
@@ -103,35 +95,10 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     setState(() {
       _doctorId = picked.id;
       _doctorName = picked.name;
-      _selectedClinic =
-          matchedClinic ??
-          Clinic(code: picked.unitCode ?? '', name: picked.specialty);
+      if (matchedClinic != null) {
+        _selectedClinic = matchedClinic;
+      }
     });
-  }
-
-  Future<void> _pickDate() async {
-    if (_doctorId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilih dokter terlebih dahulu untuk melihat jadwal.'),
-        ),
-      );
-      return;
-    }
-
-    final picked = await showModalBottomSheet<DateTime>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _DatePickerSheet(
-        doctorId: _doctorId!,
-        unitCode: _selectedClinic?.code,
-        doctorName: _doctorName,
-        selected: _date,
-      ),
-    );
-
-    if (picked != null) setState(() => _date = picked);
   }
 
   void _reset() {
@@ -139,7 +106,6 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
       _selectedClinic = null;
       _doctorId = null;
       _doctorName = null;
-      _date = null;
     });
   }
 
@@ -158,23 +124,10 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     });
   }
 
-  void _clearDate() {
-    setState(() {
-      _date = null;
-    });
-  }
-
   Future<void> _search() async {
     if (_doctorId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
-      );
-      return;
-    }
-
-    if (_date == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih jadwal terlebih dahulu.')),
       );
       return;
     }
@@ -208,7 +161,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
         doctorId: doctor.id,
         doctorName: doctor.name,
         specialty: _selectedClinic?.displayName ?? doctor.specialty,
-        date: _date,
+        unitCode: _selectedClinic?.code ?? doctor.unitCode,
       ),
     );
   }
@@ -236,13 +189,10 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
                 child: _Panel(
                   clinic: _selectedClinic?.displayName,
                   doctorName: _doctorName,
-                  date: _date,
                   onClinicTap: _pickClinic,
                   onDoctorTap: _pickDoctor,
-                  onDateTap: _pickDate,
                   onClearClinic: _clearClinic,
                   onClearDoctor: _clearDoctor,
-                  onClearDate: _clearDate,
                   onReset: _reset,
                   onSearch: _search,
                 ),
@@ -259,31 +209,25 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   }
 }
 
-/// The slate card holding the three criteria and the search button.
+/// The slate card holding the two criteria (Klinik & Dokter) and the continue button.
 class _Panel extends StatelessWidget {
   const _Panel({
     required this.clinic,
     required this.doctorName,
-    required this.date,
     required this.onClinicTap,
     required this.onDoctorTap,
-    required this.onDateTap,
     required this.onClearClinic,
     required this.onClearDoctor,
-    required this.onClearDate,
     required this.onReset,
     required this.onSearch,
   });
 
   final String? clinic;
   final String? doctorName;
-  final DateTime? date;
   final VoidCallback onClinicTap;
   final VoidCallback onDoctorTap;
-  final VoidCallback onDateTap;
   final VoidCallback onClearClinic;
   final VoidCallback onClearDoctor;
-  final VoidCallback onClearDate;
   final VoidCallback onReset;
   final VoidCallback onSearch;
 
@@ -299,7 +243,7 @@ class _Panel extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         color: AppColors.accentSoft,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
             color: Color(0x40000000),
@@ -346,16 +290,6 @@ class _Panel extends StatelessWidget {
               isFilled: doctorName != null,
               onTap: onDoctorTap,
               onClear: onClearDoctor,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _CriteriaRow(
-              key: const Key('finderDate'),
-              label: date == null
-                  ? 'Pilih Jadwal'
-                  : DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(date!),
-              isFilled: date != null,
-              onTap: onDateTap,
-              onClear: onClearDate,
             ),
             const SizedBox(height: AppSpacing.xl),
             Row(
@@ -513,294 +447,6 @@ class _CriteriaRow extends StatelessWidget {
                 const Icon(Icons.expand_more, color: AppColors.textPrimary),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A sheet wrapping the practice calendar showing the doctor's upcoming schedule.
-class _DatePickerSheet extends ConsumerStatefulWidget {
-  const _DatePickerSheet({
-    required this.doctorId,
-    this.unitCode,
-    this.doctorName,
-    required this.selected,
-  });
-
-  final String doctorId;
-  final String? unitCode;
-  final String? doctorName;
-  final DateTime? selected;
-
-  @override
-  ConsumerState<_DatePickerSheet> createState() => _DatePickerSheetState();
-}
-
-class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
-  late DateTime? _date = widget.selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final query = UpcomingScheduleQuery(
-      doctorId: widget.doctorId,
-      unitCode: widget.unitCode,
-      days: 64,
-      withSlots: 0,
-    );
-    final upcomingAsync = ref.watch(upcomingSchedulesProvider(query));
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            AppSpacing.lg,
-            AppSpacing.xl,
-            AppSpacing.lg,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pilih Jadwal Dokter',
-                          style: AppTypography.headingMd.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        if (widget.doctorName != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.doctorName!,
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Tutup',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, size: 20),
-                    color: AppColors.textPrimary,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              AsyncView(
-                value: upcomingAsync,
-                onRetry: () => ref.invalidate(upcomingSchedulesProvider(query)),
-                builder: (schedules) {
-                  final practisingDates = schedules
-                      .map(
-                        (s) => DateTime(s.date.year, s.date.month, s.date.day),
-                      )
-                      .toSet();
-
-                  final selectedSchedule = _date == null
-                      ? null
-                      : schedules.cast<UpcomingScheduleDate?>().firstWhere(
-                          (s) =>
-                              s != null &&
-                              s.date.year == _date!.year &&
-                              s.date.month == _date!.month &&
-                              s.date.day == _date!.day,
-                          orElse: () => null,
-                        );
-
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PracticeCalendar(
-                        kind: BookingKind.appointment,
-                        selected: _date,
-                        practisingDates: practisingDates,
-                        onSelected: (value) {
-                          setState(() => _date = value);
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      if (schedules.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.danger.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                size: 20,
-                                color: AppColors.danger,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  'Dokter tidak memiliki jadwal praktek dalam 64 hari ke depan.',
-                                  style: AppTypography.bodySm.copyWith(
-                                    fontSize: 12,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (_date != null)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: AppColors.mint.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.accentSoft,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentSoft.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.calendar_today_rounded,
-                                  color: AppColors.accentSoft,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Tanggal Dipilih:',
-                                      style: AppTypography.bodySm.copyWith(
-                                        fontSize: 11,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat(
-                                        'EEEE, d MMMM yyyy',
-                                        'id_ID',
-                                      ).format(_date!),
-                                      style: AppTypography.bodySm.copyWith(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    if (selectedSchedule != null &&
-                                        selectedSchedule.timeLabel.isNotEmpty)
-                                      Text(
-                                        'Jam Praktek: ${selectedSchedule.timeLabel}',
-                                        style: AppTypography.bodySm.copyWith(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.link,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: AppSpacing.sm,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.info_outline_rounded,
-                                size: 18,
-                                color: AppColors.textTertiary,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  'Pilih salah satu tanggal praktek pada kalender di atas.',
-                                  style: AppTypography.bodySm.copyWith(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _date != null
-                        ? AppColors.accentSoft
-                        : AppColors.border,
-                    elevation: _date != null ? 2 : 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _date != null
-                      ? () => Navigator.of(context).pop(_date)
-                      : null,
-                  child: Text(
-                    'Pilih Tanggal',
-                    style: AppTypography.bodySm.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: _date != null
-                          ? AppColors.white
-                          : AppColors.textPrimary.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -71,12 +71,12 @@ class CatalogRepository {
     return _listOf(response['schedules'], PracticeSchedule.fromJson);
   }
 
-  /// Upcoming schedules for a doctor within [days] (default 64).
-  /// GET /app/schedule-upcoming?paramedic_id=...&unit=...&days=64&with_slots=0
+  /// Upcoming schedules for a doctor within [days] (default 30).
+  /// GET /app/schedule-upcoming?paramedic_id=...&unit=...&days=30&with_slots=0
   Future<List<UpcomingScheduleDate>> upcomingSchedules({
     required String doctorId,
     String? unitCode,
-    int days = 64,
+    int days = 30,
     int withSlots = 0,
   }) async {
     final response = await _client.get(
@@ -93,24 +93,35 @@ class CatalogRepository {
     Object? rawList = response['schedules'] ??
         response['data'] ??
         response['dates'] ??
-        response['upcoming'];
-
+        response['upcoming'] ??
+        response['list'] ??
+        response['result'] ??
+        response['items'];
     if (rawList is Map) {
       rawList = rawList['schedules'] ??
           rawList['data'] ??
           rawList['dates'] ??
           rawList['upcoming'] ??
-          rawList['list'];
+          rawList['list'] ??
+          rawList['result'] ??
+          rawList['items'];
     }
 
     if (rawList is List) {
       final list = <UpcomingScheduleDate>[];
-      for (final item in rawList.whereType<Map>()) {
-        final dateObj = UpcomingScheduleDate.fromJson(
-          item.cast<String, dynamic>(),
-        );
-        if (dateObj.isValidDate) {
-          list.add(dateObj);
+      for (final item in rawList) {
+        if (item is Map) {
+          final dateObj = UpcomingScheduleDate.fromJson(
+            item.cast<String, dynamic>(),
+          );
+          if (dateObj.isValidDate) {
+            list.add(dateObj);
+          }
+        } else if (item is String) {
+          final parsed = DateTime.tryParse(item.trim());
+          if (parsed != null && parsed.year > 2000) {
+            list.add(UpcomingScheduleDate(date: parsed));
+          }
         }
       }
       return list;
@@ -231,12 +242,12 @@ final slotsProvider = FutureProvider.family<DaySlots, SlotQuery>(
       ),
 );
 
-/// Query for upcoming schedules within a number of days (default 64).
+/// Query for upcoming schedules within a number of days (default 30).
 class UpcomingScheduleQuery {
   const UpcomingScheduleQuery({
     required this.doctorId,
     this.unitCode,
-    this.days = 64,
+    this.days = 30,
     this.withSlots = 0,
   });
 

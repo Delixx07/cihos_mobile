@@ -157,7 +157,10 @@ class UpcomingScheduleDate {
         json['practice_date'] ??
         json['schedule_date'] ??
         json['booking_date'] ??
-        json['tanggal'];
+        json['service_date'] ??
+        json['day_date'] ??
+        json['tanggal'] ??
+        json['dt'];
 
     if (rawDate != null) {
       final str = rawDate.toString().trim();

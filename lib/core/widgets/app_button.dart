@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_typography.dart';
 
 /// The rounded button used across the app, carrying the drop shadow the design
 /// specifies and dipping slightly under the finger.
@@ -142,7 +143,11 @@ class _ButtonContent extends StatelessWidget {
                 color: foreground,
               ),
             )
-          : Text(label, key: ValueKey(label)),
+          : Text(
+              label,
+              key: ValueKey(label),
+              style: AppTypography.button.copyWith(color: foreground),
+            ),
     );
   }
 }

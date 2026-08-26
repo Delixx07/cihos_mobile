@@ -52,9 +52,13 @@ abstract final class AppTypography {
   static TextStyle get titleLg => _kumbh(16, FontWeight.w600, lineHeight: 23);
   static TextStyle get titleMd => _kumbh(14, FontWeight.w600, lineHeight: 20);
 
-  /// Button labels — Inter 14px, weight 600, 140% line height.
-  static TextStyle get button =>
-      GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, height: 1.4);
+  /// Button labels — Kumbh Sans 14px, weight 700.
+  static TextStyle get button => _kumbh(
+    14,
+    FontWeight.w700,
+    lineHeight: 20,
+    color: AppColors.surface,
+  );
 
   static TextStyle get labelLg => _kumbh(14, FontWeight.w600, lineHeight: 20);
   static TextStyle get labelMd => _kumbh(12, FontWeight.w500, lineHeight: 17);
