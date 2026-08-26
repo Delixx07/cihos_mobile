@@ -12,6 +12,7 @@ import '../../features/booking/presentation/booking_results_screen.dart';
 import '../../features/booking/presentation/booking_schedule_screen.dart';
 import '../../features/booking/presentation/booking_search_screen.dart';
 import '../../features/booking/presentation/booking_summary_screen.dart';
+import '../../features/doctors/domain/doctor.dart';
 import '../../features/doctors/presentation/doctor_finder_screen.dart';
 import '../../features/doctors/presentation/doctor_list_screen.dart';
 import '../../features/doctors/presentation/doctor_schedule_screen.dart';
@@ -213,10 +214,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '${AppRoutes.doctorSchedule}/:id',
-        builder: (context, state) =>
-            DoctorScheduleScreen(
+        builder: (context, state) => DoctorScheduleScreen(
           doctorId: state.pathParameters['id']!,
-          initialDate: state.extra as DateTime?,
+          doctor: state.extra is Doctor ? state.extra as Doctor : null,
+          initialDate: state.extra is DateTime ? state.extra as DateTime : null,
         ),
       ),
 

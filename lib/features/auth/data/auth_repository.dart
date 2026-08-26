@@ -56,7 +56,7 @@ class AuthRepository {
           'gender': gender == Gender.male ? 'Laki-Laki' : 'Perempuan',
       },
     );
-    return _persist(response);
+    return _persist(response, fallbackNik: nik.trim());
   }
 
   /// Returns the signed-in patient, or null when there is no valid session.
@@ -74,6 +74,9 @@ class AuthRepository {
       final mergedUser = user.copyWith(
         photoUrl: localUser?.photoUrl ?? user.photoUrl,
         address: localUser?.address ?? user.address,
+        nik: (user.nik != null && user.nik!.isNotEmpty)
+            ? user.nik
+            : localUser?.nik,
       );
       await _tokens.writeUser(mergedUser);
       return mergedUser;
@@ -106,7 +109,10 @@ class AuthRepository {
     }
   }
 
-  Future<AppUser> _persist(Map<String, dynamic> response) async {
+  Future<AppUser> _persist(
+    Map<String, dynamic> response, {
+    String? fallbackNik,
+  }) async {
     final token =
         response['token'] as String? ??
         (response['data'] is Map ? response['data']['token'] as String? : null);
@@ -123,7 +129,13 @@ class AuthRepository {
       rawUser = response;
     }
 
-    final user = AppUser.fromJson(rawUser);
+    var user = AppUser.fromJson(rawUser);
+    if ((user.nik == null || user.nik!.isEmpty) &&
+        fallbackNik != null &&
+        fallbackNik.isNotEmpty) {
+      user = user.copyWith(nik: fallbackNik);
+    }
+
     await _tokens.writeUser(user);
     return user;
   }

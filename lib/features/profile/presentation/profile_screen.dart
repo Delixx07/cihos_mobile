@@ -27,7 +27,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
-    final fullName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Pengguna';
+    final fullName = user?.fullName.isNotEmpty == true
+        ? user!.fullName
+        : 'Pengguna';
     final photoUrl = user?.photoUrl;
 
     return Scaffold(
@@ -233,22 +235,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return Image.network(
           photoUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const Icon(
-            Icons.person,
-            size: 28,
-            color: AppColors.textTertiary,
-          ),
+          errorBuilder: (_, _, _) =>
+              const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
         );
       }
     }
     return Image.asset(
       'assets/images/avatar.jpg',
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => const Icon(
-        Icons.person,
-        size: 28,
-        color: AppColors.textTertiary,
-      ),
+      errorBuilder: (_, _, _) =>
+          const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
     );
   }
 }

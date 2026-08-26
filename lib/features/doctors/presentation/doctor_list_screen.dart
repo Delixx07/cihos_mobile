@@ -55,7 +55,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   }
 
   void _book(Doctor doctor) {
-    context.push('${AppRoutes.doctorSchedule}/${doctor.id}');
+    context.push('${AppRoutes.doctorSchedule}/${doctor.id}', extra: doctor);
   }
 
   @override

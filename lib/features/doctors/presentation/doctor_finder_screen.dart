@@ -8,15 +8,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_back_button.dart';
 import '../../../core/widgets/textured_background.dart';
-import '../../booking/domain/booking.dart';
+import '../../../core/theme/app_elevation.dart';
 import '../../booking/widgets/specialty_picker_sheet.dart';
 import '../data/catalog_repository.dart';
-import '../data/doctor_repository.dart';
 import '../domain/clinic.dart';
 import '../domain/doctor.dart';
-import 'widgets/consultation_method_card.dart';
 import 'widgets/doctor_picker_sheet.dart';
-import '../../../core/theme/app_elevation.dart';
 
 /// Find a doctor by clinic and name — the entry point to their schedule.
 class DoctorFinderScreen extends ConsumerStatefulWidget {
@@ -28,6 +25,7 @@ class DoctorFinderScreen extends ConsumerStatefulWidget {
 
 class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   Clinic? _selectedClinic;
+  Doctor? _selectedDoctor;
   String? _doctorId;
   String? _doctorName;
 
@@ -46,6 +44,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     if (picked != null) {
       setState(() {
         _selectedClinic = picked;
+        _selectedDoctor = null;
         _doctorId = null;
         _doctorName = null;
       });
@@ -92,18 +91,24 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
       }, orElse: () => null);
     }
 
+    // 3. Fallback: jika tidak ditemukan di daftar, buat Clinic baru dari data dokter
+    matchedClinic ??= Clinic(
+      code: picked.unitCode ?? '',
+      name: picked.specialty.isNotEmpty ? picked.specialty : 'Klinik Spesialis',
+    );
+
     setState(() {
+      _selectedDoctor = picked;
       _doctorId = picked.id;
       _doctorName = picked.name;
-      if (matchedClinic != null) {
-        _selectedClinic = matchedClinic;
-      }
+      _selectedClinic = matchedClinic;
     });
   }
 
   void _reset() {
     setState(() {
       _selectedClinic = null;
+      _selectedDoctor = null;
       _doctorId = null;
       _doctorName = null;
     });
@@ -112,6 +117,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   void _clearClinic() {
     setState(() {
       _selectedClinic = null;
+      _selectedDoctor = null;
       _doctorId = null;
       _doctorName = null;
     });
@@ -119,12 +125,13 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
 
   void _clearDoctor() {
     setState(() {
+      _selectedDoctor = null;
       _doctorId = null;
       _doctorName = null;
     });
   }
 
-  Future<void> _search() async {
+  void _search() {
     if (_doctorId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
@@ -132,8 +139,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
       return;
     }
 
-    final cachedDoctor = ref.read(doctorByIdProvider(_doctorId!));
-    final doctor = cachedDoctor ??
+    final doc = _selectedDoctor ??
         Doctor(
           id: _doctorId!,
           name: _doctorName ?? '',
@@ -145,25 +151,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
           },
         );
 
-    final method = await showModalBottomSheet<BookingKind>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ConsultationMethodSheet(doctor: doctor),
-    );
-
-    if (method == null || !mounted) return;
-
-    context.push(
-      AppRoutes.bookingSchedule,
-      extra: Booking(
-        kind: method,
-        doctorId: doctor.id,
-        doctorName: doctor.name,
-        specialty: _selectedClinic?.displayName ?? doctor.specialty,
-        unitCode: _selectedClinic?.code ?? doctor.unitCode,
-      ),
-    );
+    context.push('${AppRoutes.doctorSchedule}/$_doctorId', extra: doc);
   }
 
   @override
@@ -176,9 +164,9 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
               Align(
                 alignment: Alignment.topCenter,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 40),
+                  padding: const EdgeInsets.only(top: 90),
                   child: Image.asset(
-                    'assets/images/cari dokter.png',
+                    'assets/images/doctor.png',
                     width: 280,
                     fit: BoxFit.contain,
                   ),
@@ -258,7 +246,7 @@ class _Panel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Jadwal Dokter',
+              'Cari Dokter',
               style: AppTypography.headingLg.copyWith(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -360,7 +348,7 @@ class _Panel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         child: Center(
                           child: Text(
-                            'Lanjutkan',
+                            'Cari',
                             style: AppTypography.bodySm.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,

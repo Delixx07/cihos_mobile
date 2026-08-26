@@ -1,432 +1,476 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
+import '../../../core/widgets/app_back_button.dart';
 import '../../../core/widgets/textured_background.dart';
+import '../../doctors/data/catalog_repository.dart';
+import '../../doctors/data/doctor_repository.dart';
 import '../../doctors/domain/clinic.dart';
+import '../../doctors/domain/doctor.dart';
+import '../../doctors/presentation/widgets/consultation_method_card.dart';
+import '../../doctors/presentation/widgets/doctor_picker_sheet.dart';
 import '../domain/booking.dart';
-import '../widgets/practice_calendar.dart';
 import '../widgets/specialty_picker_sheet.dart';
 
-/// Search entry for a booking — by doctor name, specialty, or date. Serves
-/// both appointments and video calls; [kind] decides the copy and lead time.
-class BookingSearchScreen extends StatefulWidget {
+/// Modern booking search screen for Janji Temu & Video Call.
+/// Allows selecting Clinic and Doctor, then directly proceeds to consultation method & schedule.
+class BookingSearchScreen extends ConsumerStatefulWidget {
   const BookingSearchScreen({super.key, required this.kind});
 
   final BookingKind kind;
 
   @override
-  State<BookingSearchScreen> createState() => _BookingSearchScreenState();
+  ConsumerState<BookingSearchScreen> createState() =>
+      _BookingSearchScreenState();
 }
 
-class _BookingSearchScreenState extends State<BookingSearchScreen> {
-  final _nameController = TextEditingController();
+class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
+  Clinic? _selectedClinic;
+  String? _doctorId;
+  String? _doctorName;
 
-  Clinic? _specialty;
-  DateTime? _date;
-
-  /// The calendar only unfolds once the patient taps the date row.
-  bool _isCalendarOpen = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickSpecialty() async {
+  Future<void> _pickClinic() async {
     final picked = await showModalBottomSheet<Clinic>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SpecialtyPickerSheet(selected: _specialty),
+      builder: (_) => SpecialtyPickerSheet(selected: _selectedClinic),
     );
 
-    if (picked != null) setState(() => _specialty = picked);
+    if (picked != null) {
+      setState(() {
+        _selectedClinic = picked;
+        _doctorId = null;
+        _doctorName = null;
+      });
+    }
   }
 
-  void _search() {
-    final booking = Booking(
-      kind: widget.kind,
-      doctorName: _nameController.text.trim(),
-      specialty: _specialty?.displayName,
-      unitCode: _specialty?.code,
-      date: _date,
+  Future<void> _pickDoctor() async {
+    final picked = await showModalBottomSheet<Doctor>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DoctorPickerSheet(
+        unitCode: _selectedClinic?.code,
+        selectedId: _doctorId,
+      ),
     );
 
-    if (!booking.hasSearchCriteria) {
+    if (picked == null) return;
+
+    final clinics = ref.read(clinicsProvider).valueOrNull ?? [];
+    Clinic? matchedClinic;
+
+    // 1. Coba cocokkan berdasarkan unitCode dokter jika ada
+    if (picked.unitCode != null && picked.unitCode!.isNotEmpty) {
+      matchedClinic = clinics.cast<Clinic?>().firstWhere(
+        (c) => c?.code.toUpperCase() == picked.unitCode!.toUpperCase(),
+        orElse: () => null,
+      );
+    }
+
+    // 2. Jika belum cocok, cocokkan berdasarkan specialty dokter
+    if (matchedClinic == null && picked.specialty.isNotEmpty) {
+      final spec = picked.specialty.toLowerCase();
+      matchedClinic = clinics.cast<Clinic?>().firstWhere((c) {
+        if (c == null) return false;
+        final dName = c.displayName.toLowerCase();
+        final cName = c.name.toLowerCase();
+        return dName == spec ||
+            cName == spec ||
+            spec.contains(dName) ||
+            dName.contains(spec) ||
+            spec.contains(cName) ||
+            cName.contains(spec);
+      }, orElse: () => null);
+    }
+
+    // 3. Fallback: jika tidak ditemukan di daftar, buat Clinic baru dari data dokter
+    matchedClinic ??= Clinic(
+      code: picked.unitCode ?? '',
+      name: picked.specialty.isNotEmpty ? picked.specialty : 'Klinik Spesialis',
+    );
+
+    setState(() {
+      _doctorId = picked.id;
+      _doctorName = picked.name;
+      _selectedClinic = matchedClinic;
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _selectedClinic = null;
+      _doctorId = null;
+      _doctorName = null;
+    });
+  }
+
+  void _clearClinic() {
+    setState(() {
+      _selectedClinic = null;
+      _doctorId = null;
+      _doctorName = null;
+    });
+  }
+
+  void _clearDoctor() {
+    setState(() {
+      _doctorId = null;
+      _doctorName = null;
+    });
+  }
+
+  Future<void> _submit() async {
+    if (_doctorId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Isi salah satu: nama dokter, spesialisasi, '
-              'atau tanggal.'),
-        ),
+        const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
       );
       return;
     }
 
-    context.push(AppRoutes.bookingResults, extra: booking);
+    final cachedDoctor = ref.read(doctorByIdProvider(_doctorId!));
+    final doctor = cachedDoctor ??
+        Doctor(
+          id: _doctorId!,
+          name: _doctorName ?? '',
+          specialty: _selectedClinic?.displayName ?? '',
+          unitCode: _selectedClinic?.code,
+          methods: const {
+            ConsultationMethod.appointment,
+            ConsultationMethod.videoCall,
+          },
+        );
+
+    final method = await showModalBottomSheet<BookingKind>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConsultationMethodSheet(doctor: doctor),
+    );
+
+    if (method == null || !mounted) return;
+
+    // Langsung ke pemilihan jadwal dokter tanpa membuka profil dokter
+    context.push(
+      AppRoutes.bookingSchedule,
+      extra: Booking(
+        kind: method,
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        specialty: _selectedClinic?.displayName ?? doctor.specialty,
+        unitCode: _selectedClinic?.code ?? doctor.unitCode,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final title = widget.kind == BookingKind.videoCall
+        ? 'Video Call Dokter'
+        : 'Buat Janji Temu';
+    final subtitle = widget.kind == BookingKind.videoCall
+        ? 'Pilih klinik dan dokter untuk\nkonsultasi video call'
+        : 'Pilih klinik dan dokter untuk\nmembuat janji temu';
+
     return Scaffold(
       body: TexturedBackground(
         child: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              ScreenHeader(title: widget.kind.searchTitle),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl,
-                    AppSpacing.md,
-                    AppSpacing.xxl,
-                    AppSpacing.xxl,
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 90),
+                  child: Image.asset(
+                    'assets/images/cari dokter.png',
+                    width: 280,
+                    fit: BoxFit.contain,
                   ),
-                  children: [
-                    _Note(
-                      'Pencarian dapat berdasarkan salah satu pilihan saja '
-                      'antara Nama Dokter / Spesialisasi / Tanggal.',
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: _SearchPanel(
+                  title: title,
+                  subtitle: subtitle,
+                  clinic: _selectedClinic?.displayName,
+                  doctorName: _doctorName,
+                  onClinicTap: _pickClinic,
+                  onDoctorTap: _pickDoctor,
+                  onClearClinic: _clearClinic,
+                  onClearDoctor: _clearDoctor,
+                  onReset: _reset,
+                  onSubmit: _submit,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                child: AppBackButton(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchPanel extends StatelessWidget {
+  const _SearchPanel({
+    required this.title,
+    required this.subtitle,
+    required this.clinic,
+    required this.doctorName,
+    required this.onClinicTap,
+    required this.onDoctorTap,
+    required this.onClearClinic,
+    required this.onClearDoctor,
+    required this.onReset,
+    required this.onSubmit,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? clinic;
+  final String? doctorName;
+  final VoidCallback onClinicTap;
+  final VoidCallback onDoctorTap;
+  final VoidCallback onClearClinic;
+  final VoidCallback onClearDoctor;
+  final VoidCallback onReset;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+        AppSpacing.xxl,
+        AppSpacing.xxl,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.accentSoft,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x40000000),
+            offset: Offset(0, -6),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: AppTypography.headingLg.copyWith(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: AppColors.white,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 13.5,
+                height: 1.4,
+                color: AppColors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            _CriteriaRow(
+              key: const Key('bookingSearchClinic'),
+              label: clinic ?? 'Pilih Klinik',
+              isFilled: clinic != null,
+              onTap: onClinicTap,
+              onClear: onClearClinic,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _CriteriaRow(
+              key: const Key('bookingSearchDoctor'),
+              label: doctorName ?? 'Cari Nama Dokter',
+              isFilled: doctorName != null,
+              onTap: onDoctorTap,
+              onClear: onClearDoctor,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    _Note(widget.kind.leadTimeNote),
-                    const SizedBox(height: AppSpacing.lg),
-                    _DarkBar(
-                      icon: Icons.mark_email_unread_outlined,
-                      label: widget.kind.guideLabel,
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Panduan ${widget.kind.label} akan segera hadir.',
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: onReset,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.refresh_rounded,
+                                size: 18,
+                                color: AppColors.white,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Reset',
+                                style: AppTypography.bodySm.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    _SearchByNameBar(
-                      controller: _nameController,
-                      onSubmitted: (_) => _search(),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    const _OrDivider(),
-                    const SizedBox(height: AppSpacing.xl),
-                    _CriteriaPanel(
-                      kind: widget.kind,
-                      specialty: _specialty?.displayName,
-                      date: _date,
-                      onSpecialtyTapped: _pickSpecialty,
-                      onDateTapped: () => setState(
-                        () => _isCalendarOpen = !_isCalendarOpen,
-                      ),
-                    ),
-                    if (_isCalendarOpen) ...[
-                      const SizedBox(height: AppSpacing.lg),
-                      PracticeCalendar(
-                        kind: widget.kind,
-                        selected: _date,
-                        onSelected: (value) => setState(() {
-                          _date = value;
-                          _isCalendarOpen = false;
-                        }),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xxl,
-                  0,
-                  AppSpacing.xxl,
-                  AppSpacing.xl,
-                ),
-                child: AppButton(
-                  label: 'Selanjutnya, Pilih Dokter',
-                  expand: true,
-                  background: AppColors.accentSoft,
-                  onPressed: _search,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Note extends StatelessWidget {
-  const _Note(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      textAlign: TextAlign.justify,
-      style: AppTypography.bodySm.copyWith(
-        fontSize: 14,
-        height: 1.25,
-        fontWeight: FontWeight.w500,
-        color: AppColors.accentSoft,
-      ),
-    );
-  }
-}
-
-/// A slim dark bar with a leading icon, used for the two shortcuts.
-class _DarkBar extends StatelessWidget {
-  const _DarkBar({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.accentSoft,
-      borderRadius: BorderRadius.circular(AppRadius.xs),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: AppColors.white),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySm.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The dark bar that doubles as the doctor-name field.
-class _SearchByNameBar extends StatelessWidget {
-  const _SearchByNameBar({
-    required this.controller,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      child: Row(
-        children: [
-          const Icon(Icons.search, size: 16, color: AppColors.white),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onSubmitted: onSubmitted,
-              textInputAction: TextInputAction.search,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.white,
-              ),
-              cursorColor: AppColors.white,
-              decoration: InputDecoration(
-                isDense: true,
-                filled: false,
-                hintText: 'Cari Dokter',
-                hintStyle: AppTypography.bodySm.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 9),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.textPrimary)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Text(
-            'Atau',
-            style: AppTypography.inputText.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.textPrimary)),
-      ],
-    );
-  }
-}
-
-/// The dark panel holding the specialty dropdown and the date row.
-class _CriteriaPanel extends StatelessWidget {
-  const _CriteriaPanel({
-    required this.kind,
-    required this.specialty,
-    required this.date,
-    required this.onSpecialtyTapped,
-    required this.onDateTapped,
-  });
-
-  final BookingKind kind;
-  final String? specialty;
-  final DateTime? date;
-  final VoidCallback onSpecialtyTapped;
-  final VoidCallback onDateTapped;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            key: const Key('specialtyRow'),
-            onTap: onSpecialtyTapped,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _PanelLabel('Pilih Spesialisasi'),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PanelValue(specialty ?? 'Pilih Spesialisasi'),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x24000000),
+                          offset: Offset(0, 4),
+                          blurRadius: 16,
+                        ),
+                      ],
                     ),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: Color(0xFFDDDFF3),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(color: Color(0xCCDDDFF3), height: AppSpacing.xl),
-          InkWell(
-            onTap: onDateTapped,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _PanelLabel('Pilih Tanggal'),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PanelValue(
-                        date == null
-                            ? kind.datePlaceholder
-                            : DateFormat(
-                                'EEEE, d MMMM yyyy',
-                                'id_ID',
-                              ).format(date!),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: onSubmit,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Center(
+                          child: Text(
+                            'Lanjutkan',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const Icon(
-                      Icons.calendar_month_outlined,
-                      size: 18,
-                      color: AppColors.white,
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CriteriaRow extends StatelessWidget {
+  const _CriteriaRow({
+    super.key,
+    required this.label,
+    required this.isFilled,
+    required this.onTap,
+    this.onClear,
+  });
+
+  final String label;
+  final bool isFilled;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            offset: Offset(0, 4),
+            blurRadius: 10,
           ),
         ],
       ),
-    );
-  }
-}
-
-class _PanelLabel extends StatelessWidget {
-  const _PanelLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: AppTypography.bodySm.copyWith(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: AppColors.white,
-      ),
-    );
-  }
-}
-
-class _PanelValue extends StatelessWidget {
-  const _PanelValue(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      overflow: TextOverflow.ellipsis,
-      style: AppTypography.bodySm.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xCCDDDFF3),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.inputText.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isFilled
+                          ? AppColors.textPrimary
+                          : AppColors.textPrimary.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+                if (isFilled && onClear != null) ...[
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onClear,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                        vertical: AppSpacing.xs,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                const Icon(Icons.expand_more, color: AppColors.textPrimary),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

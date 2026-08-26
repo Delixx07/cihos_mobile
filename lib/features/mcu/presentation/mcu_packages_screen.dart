@@ -104,14 +104,9 @@ class _McuPackagesScreenState extends State<McuPackagesScreen> {
                       const SizedBox(height: AppSpacing.lg),
                       Center(
                         child: Image.asset(
-                          'assets/images/mcu_illustration.png',
-                          height: 141,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                                Icons.medical_services_outlined,
-                                size: 100,
-                                color: Colors.white54,
-                              ),
+                          'assets/images/mcu.png',
+                          height: 140,
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
