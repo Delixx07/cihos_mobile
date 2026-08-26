@@ -5,7 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/doctor.dart';
 
-/// A doctor on the slate card the design uses across the search screens.
+/// Modern doctor card for search and catalog screens.
 class DoctorCard extends StatelessWidget {
   const DoctorCard({
     super.key,
@@ -20,160 +20,191 @@ class DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        boxShadow: const [
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x17000000),
-            offset: Offset(2, 16),
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 4),
             blurRadius: 16,
-          ),
-          BoxShadow(
-            color: Color(0x1A000000),
-            offset: Offset(0, 4),
-            blurRadius: 9,
           ),
         ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.accentSoft,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  child: SizedBox(
-                    width: 66,
-                    height: 66,
-                    child: doctor.photoAsset == null
-                        ? const _PhotoPlaceholder()
-                        : Image.asset(
-                            doctor.photoAsset!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const _PhotoPlaceholder(),
-                          ),
-                  ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Circle Avatar on the LEFT (Full fill & cut)
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.border, width: 1.5),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        doctor.name,
-                        style: AppTypography.bodySm.copyWith(
-                          fontSize: 15,
+                child: ClipOval(
+                  child: doctor.photoAsset == null
+                      ? const _PhotoPlaceholder()
+                      : Image.asset(
+                          doctor.photoAsset!,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const _PhotoPlaceholder(),
+                        ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Doctor Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doctor.name,
+                      style: AppTypography.inputText.copyWith(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Specialty Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentSoft.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        doctor.specialty.isNotEmpty
+                            ? doctor.specialty
+                            : 'Dokter Spesialis',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.accentSoft,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.white,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      _MetaLine(
-                        icon: Icons.medical_services_outlined,
-                        text: doctor.specialty,
-                      ),
-                      _MetaLine(
-                        icon: Icons.location_on,
-                        text: doctor.hospital,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: onProfileTap,
-                    child: Row(
+                    ),
+                    const SizedBox(height: 4),
+                    // Hospital
+                    Row(
                       children: [
                         const Icon(
-                          Icons.error_outline,
-                          size: 18,
-                          color: AppColors.white,
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: AppColors.textTertiary,
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Flexible(
+                        const SizedBox(width: 4),
+                        Expanded(
                           child: Text(
-                            'Lihat Profil',
+                            doctor.hospital,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textTertiary,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.white,
+                              fontSize: 12,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-                Material(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
-                  child: InkWell(
-                    onTap: onBookTap,
-                    borderRadius: BorderRadius.circular(AppRadius.xs),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 5,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: AppSpacing.sm),
+          // Actions
+          Row(
+            children: [
+              // Lihat Profil Button
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onProfileTap,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    side: BorderSide(
+                      color: AppColors.accentSoft.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: AppColors.accentSoft,
                       ),
-                      child: Text(
-                        'Booking Jadwal',
+                      const SizedBox(width: 5),
+                      Text(
+                        'Profil',
                         style: AppTypography.bodySm.copyWith(
-                          fontSize: 12,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.accentSoft,
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetaLine extends StatelessWidget {
-  const _MetaLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          Icon(icon, size: 11, color: AppColors.white),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.white,
               ),
-            ),
+              const SizedBox(width: 10),
+              // Pilih Jadwal Button
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: onBookTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentSoft,
+                    foregroundColor: AppColors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.calendar_month_outlined,
+                        size: 15,
+                        color: AppColors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Jadwal',
+                        style: AppTypography.bodySm.copyWith(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -186,9 +217,15 @@ class _PhotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.white.withValues(alpha: 0.15),
-      child: const Icon(Icons.person, size: 34, color: AppColors.white),
+    return const ColoredBox(
+      color: AppColors.surface,
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          size: 36,
+          color: AppColors.textTertiary,
+        ),
+      ),
     );
   }
 }

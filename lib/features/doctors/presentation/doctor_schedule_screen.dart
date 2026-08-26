@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -10,13 +11,14 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/screen_header.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
-import '../../booking/widgets/practice_calendar.dart';
+import '../data/catalog_repository.dart';
 import '../data/doctor_repository.dart';
 import '../domain/doctor.dart';
 import 'widgets/consultation_method_card.dart';
 import '../../../core/widgets/pressable.dart';
 
-/// Doctor profile and practicing schedule screen.
+/// Doctor profile and practicing schedule preview screen.
+/// Displays read-only calendar of practicing days, then proceeds to booking schedule.
 class DoctorScheduleScreen extends ConsumerStatefulWidget {
   const DoctorScheduleScreen({
     super.key,
@@ -35,16 +37,7 @@ class DoctorScheduleScreen extends ConsumerStatefulWidget {
 }
 
 class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
-  late DateTime? _date = widget.initialDate;
-
   Future<void> _book(Doctor doctor) async {
-    if (_date == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih tanggal terlebih dahulu.')),
-      );
-      return;
-    }
-
     final method = await showModalBottomSheet<BookingKind>(
       context: context,
       isScrollControlled: true,
@@ -54,6 +47,7 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
 
     if (method == null || !mounted) return;
 
+    // Proceed to interactive booking schedule screen
     context.push(
       AppRoutes.bookingSchedule,
       extra: Booking(
@@ -62,7 +56,6 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
         doctorName: doctor.name,
         specialty: doctor.specialty,
         unitCode: doctor.unitCode,
-        date: _date,
       ),
     );
   }
@@ -70,6 +63,28 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     final doctor = widget.doctor ?? ref.watch(doctorByIdProvider(widget.doctorId));
+
+    final effectiveUnitCode = doctor?.unitCode;
+    final upcomingQuery = doctor != null
+        ? UpcomingScheduleQuery(
+            doctorId: doctor.id,
+            unitCode: effectiveUnitCode,
+            days: 30,
+            withSlots: 0,
+          )
+        : null;
+
+    final upcomingAsync = upcomingQuery != null
+        ? ref.watch(upcomingSchedulesProvider(upcomingQuery))
+        : null;
+
+    final practisingDates = upcomingAsync?.valueOrNull
+        ?.map((s) => DateTime(s.date.year, s.date.month, s.date.day))
+        .toSet();
+
+    final availableDates = upcomingAsync?.valueOrNull != null
+        ? (practisingDates ?? const <DateTime>{})
+        : null;
 
     return Scaffold(
       body: TexturedBackground(
@@ -123,19 +138,18 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
 
                           const SizedBox(height: AppSpacing.sm),
                           Text(
-                            'Berikut ini Jadwal Dokter yang tersedia:',
+                            'Jadwal Hari Praktek Dokter:',
                             style: AppTypography.bodySm.copyWith(
                               fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
-                          PracticeCalendar(
-                            kind: BookingKind.appointment,
-                            selected: _date,
-                            onSelected: (value) =>
-                                setState(() => _date = value),
+
+                          // Read-Only Preview Calendar
+                          _DoctorSchedulePreviewCalendar(
+                            practisingDates: availableDates,
                           ),
                         ],
                       ),
@@ -156,6 +170,228 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A read-only preview calendar specifically designed to display active practice days.
+class _DoctorSchedulePreviewCalendar extends StatefulWidget {
+  const _DoctorSchedulePreviewCalendar({
+    required this.practisingDates,
+  });
+
+  final Set<DateTime>? practisingDates;
+
+  @override
+  State<_DoctorSchedulePreviewCalendar> createState() =>
+      _DoctorSchedulePreviewCalendarState();
+}
+
+class _DoctorSchedulePreviewCalendarState
+    extends State<_DoctorSchedulePreviewCalendar> {
+  late DateTime _visibleMonth = DateTime.now();
+
+  static const _labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final monthName = DateFormat('MMMM yyyy', 'id_ID').format(_visibleMonth);
+
+    final firstOfMonth = DateTime(_visibleMonth.year, _visibleMonth.month);
+    final daysInMonth =
+        DateTime(_visibleMonth.year, _visibleMonth.month + 1, 0).day;
+    final leadingBlanks = firstOfMonth.weekday - DateTime.monday;
+    final cellCount = leadingBlanks + daysInMonth;
+    final rowCount = (cellCount / 7).ceil();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        children: [
+          // Month navigation header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded, size: 24),
+                color: AppColors.textPrimary,
+                onPressed: () => _shiftMonth(-1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              Text(
+                monthName,
+                style: AppTypography.headingSm.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded, size: 24),
+                color: AppColors.textPrimary,
+                onPressed: () => _shiftMonth(1),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Day of week labels
+          Row(
+            children: [
+              for (final label in _labels)
+                Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.caption.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: AppSpacing.sm),
+
+          // Day Grid (Read-Only)
+          Column(
+            children: [
+              for (var row = 0; row < rowCount; row++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      for (var col = 0; col < 7; col++)
+                        Expanded(
+                          child: _buildDayCell(
+                            row * 7 + col - leadingBlanks,
+                            daysInMonth,
+                            today,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: AppSpacing.sm),
+
+          // Legend & Info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  border: Border.all(color: const Color(0xFFA5D6A7), width: 1.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Hari Praktek',
+                style: AppTypography.caption.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2E7D32),
+                ),
+              ),
+              const SizedBox(width: 18),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Tidak Ada Jadwal',
+                style: AppTypography.caption.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayCell(int dayOffset, int daysInMonth, DateTime today) {
+    if (dayOffset < 0 || dayOffset >= daysInMonth) {
+      return const SizedBox(height: 34);
+    }
+
+    final day = DateTime(_visibleMonth.year, _visibleMonth.month, dayOffset + 1);
+    final isPractising = widget.practisingDates != null &&
+        widget.practisingDates!.any((d) =>
+            d.year == day.year && d.month == day.month && d.day == day.day);
+
+    final isPast = day.isBefore(today);
+
+    return Container(
+      height: 34,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: isPractising
+            ? const Color(0xFFE8F5E9)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isPractising
+            ? Border.all(color: const Color(0xFFA5D6A7), width: 1.2)
+            : null,
+      ),
+      child: Center(
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: isPractising ? FontWeight.w800 : FontWeight.w500,
+            color: isPractising
+                ? const Color(0xFF2E7D32)
+                : (isPast
+                    ? AppColors.textTertiary.withValues(alpha: 0.4)
+                    : AppColors.textSecondary),
           ),
         ),
       ),
@@ -190,16 +426,24 @@ class _DoctorCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: SizedBox(
-                width: 84,
-                height: 84,
+            // Circle Avatar on the LEFT (Full fill & cut)
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border, width: 1.5),
+              ),
+              child: ClipOval(
                 child: doctor.photoAsset == null
                     ? const _PhotoPlaceholder()
                     : Image.asset(
                         doctor.photoAsset!,
+                        width: 72,
+                        height: 72,
                         fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
                         errorBuilder: (context, error, stackTrace) =>
                             const _PhotoPlaceholder(),
                       ),

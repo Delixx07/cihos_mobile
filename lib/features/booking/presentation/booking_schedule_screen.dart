@@ -135,6 +135,41 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Circle Avatar on the LEFT (Full fill & cut)
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: doctor?.photoAsset == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 38,
+                                  color: AppColors.white,
+                                )
+                              : Image.asset(
+                                  doctor!.photoAsset!,
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.topCenter,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                    Icons.person,
+                                    size: 38,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,11 +178,11 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                               widget.booking.doctorName ?? 'Dokter',
                               style: AppTypography.headingMd.copyWith(
                                 color: AppColors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             Text(
                               widget.booking.specialty ?? '',
                               style: AppTypography.bodySm.copyWith(
@@ -158,33 +193,6 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      // Avatar placeholder
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            width: 1.5,
-                          ),
-                          image: doctor?.photoAsset != null
-                              ? DecorationImage(
-                                  image: AssetImage(doctor!.photoAsset!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: doctor?.photoAsset == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 42,
-                                color: AppColors.lavender,
-                              )
-                            : null,
                       ),
                     ],
                   ),

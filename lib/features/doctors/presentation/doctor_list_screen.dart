@@ -6,18 +6,19 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/screen_header.dart';
 import '../../../core/widgets/textured_background.dart';
+import '../data/catalog_repository.dart';
 import '../domain/doctor.dart';
 import 'widgets/doctor_card.dart';
 import 'widgets/doctor_profile_sheet.dart';
-import '../../../core/theme/app_elevation.dart';
-import '../../../core/widgets/async_view.dart';
-import '../data/catalog_repository.dart';
 
-/// Search across every doctor, with live name suggestions.
+/// Modern search screen for doctors with live search, filters, and profile view.
 class DoctorListScreen extends ConsumerStatefulWidget {
-  const DoctorListScreen({super.key});
+  const DoctorListScreen({super.key, this.initialUnitCode});
+
+  final String? initialUnitCode;
 
   @override
   ConsumerState<DoctorListScreen> createState() => _DoctorListScreenState();
@@ -32,7 +33,6 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
   @override
   void initState() {
     super.initState();
-    // The suggestion list only shows while the field has focus.
     _searchFocus.addListener(() => setState(() {}));
   }
 
@@ -60,16 +60,18 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final doctorsAsync = ref.watch(liveDoctorsProvider(null));
+    final doctorsAsync = ref.watch(liveDoctorsProvider(widget.initialUnitCode));
     final matches = doctorsAsync.maybeWhen(
-      data: (doctors) => doctors
-          .where((d) => d.name.toLowerCase().contains(_query.toLowerCase()))
-          .toList(),
+      data: (doctors) {
+        if (_query.trim().isEmpty) return doctors;
+        final q = _query.toLowerCase();
+        return doctors.where((d) {
+          return d.name.toLowerCase().contains(q) ||
+              d.specialty.toLowerCase().contains(q);
+        }).toList();
+      },
       orElse: () => const <Doctor>[],
     );
-
-    // Suggestions appear over the list while the patient is still typing.
-    final showSuggestions = _searchFocus.hasFocus && matches.isNotEmpty;
 
     return Scaffold(
       body: TexturedBackground(
@@ -84,51 +86,40 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                   controller: _searchController,
                   focusNode: _searchFocus,
                   onChanged: (value) => setState(() => _query = value),
+                  onClear: () {
+                    _searchController.clear();
+                    setState(() => _query = '');
+                  },
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
               Expanded(
-                child: Stack(
-                  children: [
-                    RefreshIndicator(
-                      color: AppColors.accentSoft,
-                      onRefresh: () async {
-                        ref.invalidate(liveDoctorsProvider(null));
-                        await ref.read(liveDoctorsProvider(null).future);
-                      },
-                      child: AsyncView(
-                        value: doctorsAsync,
-                        onRetry: () =>
-                            ref.invalidate(liveDoctorsProvider(null)),
-                        isEmpty: (_) => matches.isEmpty,
-                        emptyTitle: _query.isEmpty
-                            ? 'Belum ada dokter'
-                            : 'Dokter tidak ditemukan',
-                        emptyMessage: _query.isEmpty
-                            ? null
-                            : 'Coba kata kunci lain.',
-                        builder: (_) => _Results(
-                          matches: matches,
-                          onProfileTap: _openProfile,
-                          onBookTap: _book,
-                        ),
-                      ),
+                child: RefreshIndicator(
+                  color: AppColors.accentSoft,
+                  onRefresh: () async {
+                    ref.invalidate(liveDoctorsProvider(widget.initialUnitCode));
+                    await ref.read(
+                      liveDoctorsProvider(widget.initialUnitCode).future,
+                    );
+                  },
+                  child: AsyncView(
+                    value: doctorsAsync,
+                    onRetry: () =>
+                        ref.invalidate(liveDoctorsProvider(widget.initialUnitCode)),
+                    isEmpty: (_) => matches.isEmpty,
+                    emptyTitle: _query.isEmpty
+                        ? 'Belum ada dokter tersedia'
+                        : 'Dokter tidak ditemukan',
+                    emptyMessage: _query.isEmpty
+                        ? 'Silakan coba beberapa saat lagi.'
+                        : 'Tidak ada dokter yang cocok dengan "$_query". Coba kata kunci lain.',
+                    builder: (_) => _Results(
+                      matches: matches,
+                      totalCount: matches.length,
+                      onProfileTap: _openProfile,
+                      onBookTap: _book,
                     ),
-                    if (showSuggestions)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xxl,
-                        ),
-                        child: _Suggestions(
-                          doctors: matches,
-                          onTap: (doctor) {
-                            _searchController.text = doctor.name;
-                            setState(() => _query = doctor.name);
-                            _searchFocus.unfocus();
-                          },
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -144,103 +135,73 @@ class _SearchBar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.onChanged,
+    required this.onClear,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         children: [
-          const Icon(Icons.search, size: 20, color: AppColors.white),
-          const SizedBox(width: AppSpacing.md),
+          const Icon(
+            Icons.search_rounded,
+            size: 22,
+            color: AppColors.accentSoft,
+          ),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: TextField(
               key: const Key('doctorSearch'),
               controller: controller,
               focusNode: focusNode,
               onChanged: onChanged,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.white,
+              style: AppTypography.inputText.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
-              cursorColor: AppColors.white,
               decoration: InputDecoration(
                 isDense: true,
                 filled: false,
-                hintText: 'Cari Dokter',
+                hintText: 'Cari nama dokter atau spesialis...',
                 hintStyle: AppTypography.bodySm.copyWith(
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textTertiary,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The dropdown of matching names that hovers under the search bar.
-class _Suggestions extends StatelessWidget {
-  const _Suggestions({required this.doctors, required this.onTap});
-
-  final List<Doctor> doctors;
-  final ValueChanged<Doctor> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          boxShadow: AppElevation.level2,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.accentSoft,
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          constraints: const BoxConstraints(maxHeight: 180),
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: doctors.length,
-            itemBuilder: (context, index) => InkWell(
-              onTap: () => onTap(doctors[index]),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: 5,
-                ),
-                child: Text(
-                  doctors[index].name,
-                  style: AppTypography.bodySm.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFDDDFF3),
-                  ),
-                ),
-              ),
+          if (controller.text.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18, color: AppColors.textTertiary),
+              onPressed: onClear,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -249,34 +210,52 @@ class _Suggestions extends StatelessWidget {
 class _Results extends StatelessWidget {
   const _Results({
     required this.matches,
+    required this.totalCount,
     required this.onProfileTap,
     required this.onBookTap,
   });
 
   final List<Doctor> matches;
+  final int totalCount;
   final ValueChanged<Doctor> onProfileTap;
   final ValueChanged<Doctor> onBookTap;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      // Always scrollable so pull-to-refresh works even on a short list.
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        0,
+        AppSpacing.sm,
         AppSpacing.xxl,
         AppSpacing.xxxl,
       ),
       itemCount: matches.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.lg),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return Text(
-            'Pilih Dokter',
-            style: AppTypography.inputText.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs, top: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Daftar Dokter',
+                  style: AppTypography.headingMd.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  '$totalCount Dokter Ditemukan',
+                  style: AppTypography.caption.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
             ),
           );
         }

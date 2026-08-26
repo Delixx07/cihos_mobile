@@ -284,20 +284,24 @@ class _DoctorRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          child: SizedBox(
-            width: 56,
-            height: 56,
-            child: doctor.photoAsset == null
-                ? const _PhotoPlaceholder()
-                : Image.asset(
-                    doctor.photoAsset!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const _PhotoPlaceholder(),
-                  ),
+        // Circle Avatar on the LEFT
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border, width: 1),
           ),
+          clipBehavior: Clip.antiAlias,
+          child: doctor.photoAsset == null
+              ? const _PhotoPlaceholder()
+              : Image.asset(
+                  doctor.photoAsset!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const _PhotoPlaceholder(),
+                ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(

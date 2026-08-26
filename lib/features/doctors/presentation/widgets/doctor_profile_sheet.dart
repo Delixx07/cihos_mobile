@@ -131,16 +131,24 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          child: SizedBox(
-            width: 124,
-            height: 124,
+        // Circle Avatar on the LEFT (Full fill & cut)
+        Container(
+          width: 88,
+          height: 88,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border, width: 1.5),
+          ),
+          child: ClipOval(
             child: doctor.photoAsset == null
                 ? const _PhotoPlaceholder()
                 : Image.asset(
                     doctor.photoAsset!,
+                    width: 88,
+                    height: 88,
                     fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
                     errorBuilder: (context, error, stackTrace) =>
                         const _PhotoPlaceholder(),
                   ),

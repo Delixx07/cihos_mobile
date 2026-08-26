@@ -40,21 +40,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xxl,
-              AppSpacing.xl,
+              AppSpacing.lg,
               AppSpacing.xxl,
               AppSpacing.xxxl,
             ),
             children: [
-              // Screen Title
-              Text(
-                'Profil',
-                style: AppTypography.headingLg.copyWith(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
+              const SizedBox(height: 8),
+              // Screen Title matching Sehat-mu
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Profil',
+                    style: AppTypography.headingLg.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // User Info Header Card
               Container(

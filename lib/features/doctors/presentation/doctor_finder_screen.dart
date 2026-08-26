@@ -132,26 +132,22 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   }
 
   void _search() {
-    if (_doctorId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
-      );
-      return;
+    if (_doctorId != null) {
+      final doc = _selectedDoctor ??
+          Doctor(
+            id: _doctorId!,
+            name: _doctorName ?? '',
+            specialty: _selectedClinic?.displayName ?? '',
+            unitCode: _selectedClinic?.code,
+            methods: const {
+              ConsultationMethod.appointment,
+              ConsultationMethod.videoCall,
+            },
+          );
+      context.push('${AppRoutes.doctorSchedule}/$_doctorId', extra: doc);
+    } else {
+      context.push(AppRoutes.doctors, extra: _selectedClinic?.code);
     }
-
-    final doc = _selectedDoctor ??
-        Doctor(
-          id: _doctorId!,
-          name: _doctorName ?? '',
-          specialty: _selectedClinic?.displayName ?? '',
-          unitCode: _selectedClinic?.code,
-          methods: const {
-            ConsultationMethod.appointment,
-            ConsultationMethod.videoCall,
-          },
-        );
-
-    context.push('${AppRoutes.doctorSchedule}/$_doctorId', extra: doc);
   }
 
   @override

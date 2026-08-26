@@ -12,13 +12,12 @@ import '../../doctors/data/catalog_repository.dart';
 import '../../doctors/data/doctor_repository.dart';
 import '../../doctors/domain/clinic.dart';
 import '../../doctors/domain/doctor.dart';
-import '../../doctors/presentation/widgets/consultation_method_card.dart';
 import '../../doctors/presentation/widgets/doctor_picker_sheet.dart';
 import '../domain/booking.dart';
 import '../widgets/specialty_picker_sheet.dart';
 
-/// Modern booking search screen for Janji Temu & Video Call.
-/// Allows selecting Clinic and Doctor, then directly proceeds to consultation method & schedule.
+/// Modern search screen for both Janji Temu and Video Call Dokter.
+/// Directly forwards the selected [kind] to the schedule screen without prompting for consultation method.
 class BookingSearchScreen extends ConsumerStatefulWidget {
   const BookingSearchScreen({super.key, required this.kind});
 
@@ -67,7 +66,7 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
     final clinics = ref.read(clinicsProvider).valueOrNull ?? [];
     Clinic? matchedClinic;
 
-    // 1. Coba cocokkan berdasarkan unitCode dokter jika ada
+    // 1. Cocokkan berdasarkan unitCode
     if (picked.unitCode != null && picked.unitCode!.isNotEmpty) {
       matchedClinic = clinics.cast<Clinic?>().firstWhere(
         (c) => c?.code.toUpperCase() == picked.unitCode!.toUpperCase(),
@@ -75,7 +74,7 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
       );
     }
 
-    // 2. Jika belum cocok, cocokkan berdasarkan specialty dokter
+    // 2. Cocokkan berdasarkan nama spesialisasi
     if (matchedClinic == null && picked.specialty.isNotEmpty) {
       final spec = picked.specialty.toLowerCase();
       matchedClinic = clinics.cast<Clinic?>().firstWhere((c) {
@@ -91,7 +90,7 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
       }, orElse: () => null);
     }
 
-    // 3. Fallback: jika tidak ditemukan di daftar, buat Clinic baru dari data dokter
+    // 3. Fallback
     matchedClinic ??= Clinic(
       code: picked.unitCode ?? '',
       name: picked.specialty.isNotEmpty ? picked.specialty : 'Klinik Spesialis',
@@ -127,7 +126,7 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
     });
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     if (_doctorId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
@@ -142,26 +141,18 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
           name: _doctorName ?? '',
           specialty: _selectedClinic?.displayName ?? '',
           unitCode: _selectedClinic?.code,
-          methods: const {
-            ConsultationMethod.appointment,
-            ConsultationMethod.videoCall,
+          methods: {
+            widget.kind == BookingKind.videoCall
+                ? ConsultationMethod.videoCall
+                : ConsultationMethod.appointment,
           },
         );
 
-    final method = await showModalBottomSheet<BookingKind>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ConsultationMethodSheet(doctor: doctor),
-    );
-
-    if (method == null || !mounted) return;
-
-    // Langsung ke pemilihan jadwal dokter tanpa membuka profil dokter
+    // Langsung navigasi ke jadwal dengan membawa kind yang sudah dipilih tanpa menanyakan lagi
     context.push(
       AppRoutes.bookingSchedule,
       extra: Booking(
-        kind: method,
+        kind: widget.kind,
         doctorId: doctor.id,
         doctorName: doctor.name,
         specialty: _selectedClinic?.displayName ?? doctor.specialty,
@@ -172,34 +163,33 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.kind == BookingKind.videoCall
-        ? 'Video Call Dokter'
-        : 'Buat Janji Temu';
-    final subtitle = widget.kind == BookingKind.videoCall
-        ? 'Pilih klinik dan dokter untuk\nkonsultasi video call'
-        : 'Pilih klinik dan dokter untuk\nmembuat janji temu';
+    final isVideoCall = widget.kind == BookingKind.videoCall;
 
     return Scaffold(
       body: TexturedBackground(
         child: SafeArea(
           child: Stack(
             children: [
+              // Top Illustration (dibedakan sesuai kind)
               Align(
                 alignment: Alignment.topCenter,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 90),
+                  padding: EdgeInsets.only(top: isVideoCall ? 50 : 90),
                   child: Image.asset(
-                    'assets/images/cari dokter.png',
-                    width: 280,
+                    isVideoCall
+                        ? 'assets/images/videoCall.png'
+                        : 'assets/images/cari dokter.png',
+                    width: isVideoCall ? 250 : 280,
                     fit: BoxFit.contain,
                   ),
                 ),
               ),
+
+              // Bottom Panel
               Align(
                 alignment: Alignment.bottomCenter,
                 child: _SearchPanel(
-                  title: title,
-                  subtitle: subtitle,
+                  kind: widget.kind,
                   clinic: _selectedClinic?.displayName,
                   doctorName: _doctorName,
                   onClinicTap: _pickClinic,
@@ -210,6 +200,8 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
                   onSubmit: _submit,
                 ),
               ),
+
+              // Back Button
               const Padding(
                 padding: EdgeInsets.all(AppSpacing.sm),
                 child: AppBackButton(),
@@ -224,8 +216,7 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
 
 class _SearchPanel extends StatelessWidget {
   const _SearchPanel({
-    required this.title,
-    required this.subtitle,
+    required this.kind,
     required this.clinic,
     required this.doctorName,
     required this.onClinicTap,
@@ -236,8 +227,7 @@ class _SearchPanel extends StatelessWidget {
     required this.onSubmit,
   });
 
-  final String title;
-  final String subtitle;
+  final BookingKind kind;
   final String? clinic;
   final String? doctorName;
   final VoidCallback onClinicTap;
@@ -249,11 +239,18 @@ class _SearchPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isVideoCall = kind == BookingKind.videoCall;
+
+    final title = isVideoCall ? 'Video Call Dokter' : 'Buat Janji Temu';
+    final subtitle = isVideoCall
+        ? 'Konsultasi online tatap muka dengan dokter spesialis dari rumah'
+        : 'Pilih klinik dan dokter untuk membuat janji temu di rumah sakit';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        AppSpacing.xxxl,
+        AppSpacing.xxl,
         AppSpacing.xxl,
         AppSpacing.xxl,
       ),
@@ -273,25 +270,96 @@ class _SearchPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Kind Badge (Khusus Video Call)
+            if (isVideoCall) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.videocam_rounded,
+                      size: 15,
+                      color: AppColors.white,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Telekonsultasi Online',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
             Text(
               title,
               style: AppTypography.headingLg.copyWith(
-                fontSize: 28,
+                fontSize: 27,
                 fontWeight: FontWeight.w900,
                 color: AppColors.white,
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 6),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: AppTypography.bodySm.copyWith(
-                fontSize: 13.5,
-                height: 1.4,
+                fontSize: 13,
+                height: 1.35,
                 color: AppColors.white.withValues(alpha: 0.9),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxl),
+
+            const SizedBox(height: AppSpacing.lg),
+
+            // Benefits Row (Khusus Video Call)
+            if (isVideoCall) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _FeatureBenefit(
+                      icon: Icons.hd_outlined,
+                      label: 'Tatap Muka HD',
+                    ),
+                    _FeatureBenefit(
+                      icon: Icons.bolt_outlined,
+                      label: 'Tanpa Antre',
+                    ),
+                    _FeatureBenefit(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Resep Digital',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+
             _CriteriaRow(
               key: const Key('bookingSearchClinic'),
               label: clinic ?? 'Pilih Klinik',
@@ -393,6 +461,35 @@ class _SearchPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FeatureBenefit extends StatelessWidget {
+  const _FeatureBenefit({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.white),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.white,
+          ),
+        ),
+      ],
     );
   }
 }

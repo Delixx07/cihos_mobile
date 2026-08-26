@@ -172,7 +172,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.doctors,
         pageBuilder: (context, state) =>
-            _sharedAxis(state, const DoctorListScreen()),
+            _sharedAxis(state, DoctorListScreen(initialUnitCode: state.extra as String?)),
       ),
       // Booking flow. The draft rides along with the navigation rather than
       // living in global state, so an abandoned booking cannot leak into the

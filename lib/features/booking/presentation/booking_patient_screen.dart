@@ -180,21 +180,34 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                           height: 38,
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(10),
-                            image: doctor?.photoAsset != null
-                                ? DecorationImage(
-                                    image: AssetImage(doctor!.photoAsset!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
                           ),
-                          child: doctor?.photoAsset == null
-                              ? const Icon(
-                                  Icons.person,
-                                  color: AppColors.white,
-                                  size: 22,
-                                )
-                              : null,
+                          child: ClipOval(
+                            child: doctor?.photoAsset == null
+                                ? const Icon(
+                                    Icons.person,
+                                    color: AppColors.white,
+                                    size: 22,
+                                  )
+                                : Image.asset(
+                                    doctor!.photoAsset!,
+                                    width: 38,
+                                    height: 38,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.topCenter,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                      Icons.person,
+                                      color: AppColors.white,
+                                      size: 22,
+                                    ),
+                                  ),
+                          ),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
