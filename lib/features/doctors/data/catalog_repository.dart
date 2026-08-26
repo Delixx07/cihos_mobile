@@ -111,6 +111,15 @@ class CatalogRepository {
       final list = <UpcomingScheduleDate>[];
       for (final item in rawList) {
         if (item is Map) {
+          final schedules = item['schedules'];
+          // Skip if schedules is explicitly an empty list or explicitly null when the key exists
+          if (schedules is List && schedules.isEmpty) {
+            continue;
+          }
+          if (item.containsKey('schedules') && schedules == null) {
+            continue;
+          }
+
           final dateObj = UpcomingScheduleDate.fromJson(
             item.cast<String, dynamic>(),
           );
