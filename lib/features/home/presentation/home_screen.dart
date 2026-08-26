@@ -18,6 +18,7 @@ import 'widgets/queue_monitor_card.dart';
 import 'widgets/service_grid.dart';
 import '../../../core/theme/app_elevation.dart';
 import '../../../core/widgets/pressable.dart';
+import '../../../core/widgets/social_media_buttons.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -106,63 +107,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: TexturedBackground(
         child: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              AppSpacing.lg,
-              AppSpacing.xl,
-              AppSpacing.xxxl,
-            ),
+          child: Stack(
             children: [
-              const HomeHeader(),
-              const SizedBox(height: AppSpacing.md),
-              const PromoCarousel(),
-              const SizedBox(height: AppSpacing.xxl),
-              ServiceGrid(items: _services(context)),
-              const SizedBox(height: AppSpacing.xxl),
-              QueueMonitorCard(onTap: () => context.push(AppRoutes.queueMonitor)),
-              const SizedBox(height: AppSpacing.xxl),
-              Row(
+              ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                  AppSpacing.xl,
+                  AppSpacing.xxxl,
+                ),
                 children: [
-                  Container(
-                    width: 4,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Konsultasi Anda',
-                    style: AppTypography.headingMd.copyWith(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _PatientFilter(
-                patientName: patientName,
-                selected: _patientFilter,
-                onChanged: (value) => setState(() => _patientFilter = value),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ConsultationCard(
-                patientName: patientName,
-                scheduledAt: DateTime(2025, 2, 13, 12),
-                endsAt: DateTime(2025, 2, 13, 12, 15),
-                bookingCode: '0002367894',
-                doctorName: 'dr. Edwin Hadinata, Sp.PD',
-                specialty: 'Penyakit Dalam',
-                hospital: 'Ciputra Hospital Surabaya',
-              ),
-              const SizedBox(height: AppSpacing.xxxl),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  const HomeHeader(),
+                  const SizedBox(height: AppSpacing.md),
+                  const PromoCarousel(),
+                  const SizedBox(height: AppSpacing.xxl),
+                  ServiceGrid(items: _services(context)),
+                  const SizedBox(height: AppSpacing.xxl),
+                  QueueMonitorCard(onTap: () => context.push(AppRoutes.queueMonitor)),
+                  const SizedBox(height: AppSpacing.xxl),
                   Row(
                     children: [
                       Container(
@@ -175,7 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Info Kesehatan',
+                        'Konsultasi Anda',
                         style: AppTypography.headingMd.copyWith(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -184,48 +146,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ],
                   ),
-                  InkWell(
-                    key: const Key('moreArticles'),
-                    onTap: () => context.push(AppRoutes.healthNews),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: Row(
+                  const SizedBox(height: AppSpacing.md),
+                  _PatientFilter(
+                    patientName: patientName,
+                    selected: _patientFilter,
+                    onChanged: (value) => setState(() => _patientFilter = value),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ConsultationCard(
+                    patientName: patientName,
+                    scheduledAt: DateTime(2025, 2, 13, 12),
+                    endsAt: DateTime(2025, 2, 13, 12, 15),
+                    bookingCode: '0002367894',
+                    doctorName: 'dr. Edwin Hadinata, Sp.PD',
+                    specialty: 'Penyakit Dalam',
+                    hospital: 'Ciputra Hospital Surabaya',
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            'Lihat Semua',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                          Container(
+                            width: 4,
+                            height: 18,
+                            decoration: BoxDecoration(
                               color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          const SizedBox(width: 2),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: AppColors.primary,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Info Kesehatan',
+                            style: AppTypography.headingMd.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                      InkWell(
+                        key: const Key('moreArticles'),
+                        onTap: () => context.push(AppRoutes.healthNews),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'Lihat Semua',
+                                style: AppTypography.bodySm.copyWith(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final article in _articles) ...[
+                    Pressable(
+                      scale: 0.98,
+                      child: ArticleCard(
+                        article: article,
+                        onTap: () => context.push(AppRoutes.healthNews),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              for (final article in _articles) ...[
-                Pressable(
-                  scale: 0.98,
-                  child: ArticleCard(
-                    article: article,
-                    onTap: () => context.push(AppRoutes.healthNews),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-              ],
+              const Positioned(
+                right: 0,
+                bottom: 24,
+                child: CollapsibleSocialSidebar(),
+              ),
             ],
           ),
         ),

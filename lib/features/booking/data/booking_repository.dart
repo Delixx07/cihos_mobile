@@ -44,24 +44,15 @@ class BookingRepository {
       'Session': booking.session ?? 1,
       'StartDate': startDate,
       'slot_no': booking.slotNumber ?? 1,
-      
-      // Patient Identifiers
-      // If the MRN is a temporary app ID (starts with APP-), send empty string 
-      // so Medinfras doesn't reject it, and rely on NIK / Name instead.
-      'MedicalNo': (booking.patientMedicalRecordNumber?.startsWith('APP-') == true) 
-          ? '' 
-          : (booking.patientMedicalRecordNumber ?? ''),
-      'PatientName': booking.patientName ?? '',
-      'PatientPhone': booking.patientPhone ?? '',
-      'PatientDOB': booking.patientBirthDate != null 
-          ? DateFormat('yyyy-MM-dd').format(booking.patientBirthDate!) 
-          : '',
-      'IDNumber': booking.patientNik ?? '',
-      'NIK': booking.patientNik ?? '',
-      'IsNewPatient': booking.isNewPatient ? '1' : '0',
 
       // Patient relation / guarantor
       'RelationToPatient': relationToPatient,
+
+      // Only send MedicalNo if it is a real hospital-issued MRN (not a temporary APP- one).
+      // The backend resolves patient identity from the JWT token when MedicalNo is absent.
+      // Sending an empty string or APP- prefix actively breaks the MEDINFRAS lookup.
+      if (_isRealMrn(booking.patientMedicalRecordNumber))
+        'MedicalNo': booking.patientMedicalRecordNumber!,
     };
 
     // ignore: avoid_print
@@ -90,19 +81,21 @@ class BookingRepository {
   /// - For a named family member, use the relation string directly
   /// - Insurance / company payer → pass the guarantor company name
   String _resolveRelation(Booking booking) {
-    // If the patient has an explicit family relation (e.g. "Suami", "Anak"),
-    // that is the value expected by RelationToPatient.
-    // We store it in paymentMethod or derive it from context.
-    // When the patient's record has a relation, use it; otherwise "Pribadi".
     final paymentMethod = booking.paymentMethod ?? 'Pribadi';
 
     if (paymentMethod == 'Asuransi/Perusahaan' && booking.company != null) {
-      // For insurance, RelationToPatient indicates the guarantor
       return booking.company!;
     }
 
-    // Default: Pribadi (self-pay / self-booking)
     return 'Pribadi';
+  }
+
+  /// Returns true only for real hospital-issued MRNs.
+  /// Temporary app IDs (APP-XXXXX), empty strings, and null are excluded.
+  bool _isRealMrn(String? mrn) {
+    if (mrn == null || mrn.isEmpty) return false;
+    if (mrn.startsWith('APP-')) return false;
+    return true;
   }
 }
 

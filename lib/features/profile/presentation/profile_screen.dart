@@ -90,9 +90,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         border: Border.all(color: AppColors.border, width: 1),
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: ClipOval(
-                        child: _buildAvatar(photoUrl),
-                      ),
+                      child: ClipOval(child: _buildAvatar(photoUrl)),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -204,10 +202,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.lg),
 
-              // Social Media & WhatsApp Contact Card
-              const SocialContactCard(),
+              // Social Media Quick Actions (Bottom Right)
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    WhatsAppIconButton(size: 30),
+                    SizedBox(width: AppSpacing.sm),
+                    InstagramIconButton(size: 30),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -219,7 +227,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (photoUrl != null && photoUrl.isNotEmpty) {
       final file = File(photoUrl);
       if (file.existsSync()) {
-        return Image.file(file, fit: BoxFit.cover, alignment: Alignment.topCenter);
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+        );
       } else if (photoUrl.startsWith('http')) {
         return Image.network(
           photoUrl,

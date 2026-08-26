@@ -29,6 +29,35 @@ class ApiClient {
               // a 401 body can be read rather than thrown away by Dio.
               validateStatus: (_) => true,
             ),
+          )..interceptors.add(
+            InterceptorsWrapper(
+              onRequest: (options, handler) {
+                // ignore: avoid_print
+                print(
+                  '[API ▶] ${options.method} ${options.uri}\n'
+                  '  Headers: ${options.headers}\n'
+                  '  Body: ${options.data}',
+                );
+                handler.next(options);
+              },
+              onResponse: (response, handler) {
+                // ignore: avoid_print
+                print(
+                  '[API ◀] ${response.statusCode} ${response.requestOptions.uri}\n'
+                  '  Body: ${response.data}',
+                );
+                handler.next(response);
+              },
+              onError: (error, handler) {
+                // ignore: avoid_print
+                print(
+                  '[API ✗] ${error.type} ${error.requestOptions.uri}\n'
+                  '  Message: ${error.message}\n'
+                  '  Response: ${error.response?.data}',
+                );
+                handler.next(error);
+              },
+            ),
           );
 
   final Dio _dio;
