@@ -298,7 +298,6 @@ abstract final class BookingOptions {
 
   static const companies = [
     'Ciputra Hospital Surabaya',
-    'BPJS Kesehatan',
     'Prudential',
     'Allianz',
     'AXA Mandiri',

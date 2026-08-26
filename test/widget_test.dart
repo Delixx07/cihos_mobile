@@ -20,7 +20,6 @@ import 'package:cihos_mobile/features/promo/presentation/promo_screen.dart';
 import 'package:cihos_mobile/features/schedule/presentation/appointment_detail_screen.dart';
 import 'package:cihos_mobile/features/schedule/presentation/schedule_screen.dart';
 import 'package:cihos_mobile/features/wellness/presentation/wellness_screen.dart';
-import 'package:cihos_mobile/features/queue/presentation/check_queue_screen.dart';
 import 'package:cihos_mobile/features/booking/presentation/booking_patient_screen.dart';
 import 'package:cihos_mobile/features/booking/presentation/booking_results_screen.dart';
 import 'package:cihos_mobile/features/booking/presentation/booking_schedule_screen.dart';
@@ -412,7 +411,7 @@ void main() {
     await tester.tap(find.text('Monitor Antrean Dokter'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CheckQueueScreen), findsOneWidget);
+    expect(find.byType(QueueMonitorScreen), findsOneWidget);
     expect(find.text('Klinik'), findsOneWidget);
     expect(find.text('Farmasi'), findsOneWidget);
   });

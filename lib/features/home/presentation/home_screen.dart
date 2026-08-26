@@ -19,6 +19,7 @@ import 'widgets/service_grid.dart';
 import '../../../core/theme/app_elevation.dart';
 import '../../../core/widgets/pressable.dart';
 import '../../../core/widgets/social_media_buttons.dart';
+import '../../schedule/data/schedule_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -100,7 +101,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
-    final patientName = user?.fullName.toUpperCase() ?? 'NADILA';
+    final userName = user?.fullName.trim().isNotEmpty == true
+        ? user!.fullName.trim()
+        : 'Pasien';
+
+    final upcomingList = ref.watch(upcomingAppointmentsProvider);
+    final appointmentPatients = upcomingList
+        .map((a) => a.patientName)
+        .where((n) => n.trim().isNotEmpty && n.toLowerCase() != 'pasien')
+        .toSet()
+        .toList();
+
+    final activeAppointment = _patientFilter == null
+        ? upcomingList.firstOrNull
+        : (upcomingList
+                .where((a) =>
+                    a.patientName.toLowerCase() ==
+                    _patientFilter!.toLowerCase())
+                .firstOrNull ??
+            upcomingList.firstOrNull);
 
     return Scaffold(
       bottomNavigationBar: const AppBottomNav(current: AppTab.home),
@@ -109,127 +128,153 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bottom: false,
           child: Stack(
             children: [
-              ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.lg,
-                  AppSpacing.xl,
-                  AppSpacing.xxxl,
-                ),
-                children: [
-                  const HomeHeader(),
-                  const SizedBox(height: AppSpacing.md),
-                  const PromoCarousel(),
-                  const SizedBox(height: AppSpacing.xxl),
-                  ServiceGrid(items: _services(context)),
-                  const SizedBox(height: AppSpacing.xxl),
-                  QueueMonitorCard(onTap: () => context.push(AppRoutes.queueMonitor)),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Konsultasi Anda',
-                        style: AppTypography.headingMd.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
+              RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () => ref.refresh(appointmentsProvider.future),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.lg,
+                    AppSpacing.xl,
+                    AppSpacing.xxxl,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  _PatientFilter(
-                    patientName: patientName,
-                    selected: _patientFilter,
-                    onChanged: (value) => setState(() => _patientFilter = value),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ConsultationCard(
-                    patientName: patientName,
-                    scheduledAt: DateTime(2025, 2, 13, 12),
-                    endsAt: DateTime(2025, 2, 13, 12, 15),
-                    bookingCode: '0002367894',
-                    doctorName: 'dr. Edwin Hadinata, Sp.PD',
-                    specialty: 'Penyakit Dalam',
-                    hospital: 'Ciputra Hospital Surabaya',
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Info Kesehatan',
-                            style: AppTypography.headingMd.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      InkWell(
-                        key: const Key('moreArticles'),
-                        onTap: () => context.push(AppRoutes.healthNews),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                'Lihat Semua',
-                                style: AppTypography.bodySm.copyWith(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                size: 18,
-                                color: AppColors.primary,
-                              ),
-                            ],
+                  children: [
+                    const HomeHeader(),
+                    const SizedBox(height: AppSpacing.md),
+                    const PromoCarousel(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    ServiceGrid(items: _services(context)),
+                    const SizedBox(height: AppSpacing.xxl),
+                    QueueMonitorCard(
+                      onTap: () => context.push(AppRoutes.queueMonitor),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  for (final article in _articles) ...[
-                    Pressable(
-                      scale: 0.98,
-                      child: ArticleCard(
-                        article: article,
-                        onTap: () => context.push(AppRoutes.healthNews),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Konsultasi Anda',
+                          style: AppTypography.headingMd.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppSpacing.md),
+                    if (appointmentPatients.length > 1) ...[
+                      _PatientFilter(
+                        patients: appointmentPatients,
+                        selected: _patientFilter,
+                        onChanged: (value) =>
+                            setState(() => _patientFilter = value),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                    if (activeAppointment != null)
+                      ConsultationCard(
+                        patientName: activeAppointment.patientName,
+                        scheduledAt: activeAppointment.startsAt,
+                        endsAt: activeAppointment.endsAt,
+                        bookingCode: activeAppointment.bookingCode,
+                        doctorName: activeAppointment.doctorName,
+                        specialty: activeAppointment.specialty,
+                        hospital: activeAppointment.hospital,
+                        onDetailTap: () => context.push(
+                          '${AppRoutes.appointments}/${activeAppointment.id}',
+                        ),
+                      )
+                    else
+                      ConsultationCard(
+                        patientName: userName,
+                        scheduledAt: DateTime.now(),
+                        endsAt: DateTime.now().add(const Duration(minutes: 15)),
+                        bookingCode: '-',
+                        doctorName: 'Belum Ada Jadwal Temu',
+                        specialty: 'Pilih dokter untuk membuat janji temu',
+                        hospital: 'Ciputra Hospital Surabaya',
+                        onDetailTap: () =>
+                            context.push(AppRoutes.appointmentSearch),
+                      ),
+                    const SizedBox(height: AppSpacing.xxxl),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Info Kesehatan',
+                              style: AppTypography.headingMd.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          key: const Key('moreArticles'),
+                          onTap: () => context.push(AppRoutes.healthNews),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Lihat Semua',
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    for (final article in _articles) ...[
+                      Pressable(
+                        scale: 0.98,
+                        child: ArticleCard(
+                          article: article,
+                          onTap: () => context.push(AppRoutes.healthNews),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
                   ],
-                ],
+                ),
               ),
               const Positioned(
                 right: 0,
@@ -244,34 +289,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// The "Semua" / per-patient chips above the consultation card.
+/// Dynamic per-patient filter chips above the consultation card.
 class _PatientFilter extends StatelessWidget {
   const _PatientFilter({
-    required this.patientName,
+    required this.patients,
     required this.selected,
     required this.onChanged,
   });
 
-  final String patientName;
+  final List<String> patients;
   final String? selected;
   final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _FilterChip(
-          label: 'Semua',
-          isSelected: selected == null,
-          onTap: () => onChanged(null),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        _FilterChip(
-          label: patientName,
-          isSelected: selected == patientName,
-          onTap: () => onChanged(patientName),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _FilterChip(
+            label: 'Semua',
+            isSelected: selected == null,
+            onTap: () => onChanged(null),
+          ),
+          for (final name in patients) ...[
+            const SizedBox(width: AppSpacing.md),
+            _FilterChip(
+              label: name,
+              isSelected: selected?.toLowerCase() == name.toLowerCase(),
+              onTap: () => onChanged(name),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

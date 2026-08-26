@@ -26,8 +26,8 @@ class FaqSheet extends StatelessWidget {
       a: 'Ya, Anda dapat mendaftarkan diri atau anggota keluarga langsung melalui aplikasi dengan mengisi nomor NIK dan data diri yang sesuai KTP.',
     ),
     (
-      q: 'Bagaimana cara menggunakan asuransi/BPJS?',
-      a: 'Saat mengisi data pasien janji temu, pilih jenis jaminan "Asuransi" atau "Perusahaan" dan cantumkan nomor polis atau kartu asuransi Anda.',
+      q: 'Bagaimana cara menggunakan asuransi / penjamin perusahaan?',
+      a: 'Saat mengisi data pasien janji temu, pilih jenis jaminan "Asuransi/Perusahaan" dan cantumkan nomor polis atau kartu asuransi Anda.',
     ),
     (
       q: 'Layanan IGD buka jam berapa?',

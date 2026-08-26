@@ -14,6 +14,7 @@ import '../../../core/widgets/textured_background.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/history_repository.dart';
 import '../domain/past_appointment.dart';
+import '../../schedule/data/schedule_repository.dart';
 import '../../../core/theme/app_elevation.dart';
 import '../../../core/widgets/pressable.dart';
 import '../../../core/widgets/staggered_entrance.dart';
@@ -270,59 +271,72 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
               // Visits List
               Expanded(
-                child: filteredVisits.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                child: RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () => ref.refresh(appointmentsProvider.future),
+                  child: filteredVisits.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           children: [
-                            Illustrations.emptySchedule(size: 140),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              _query.isNotEmpty || _selectedDate != null
-                                  ? 'Tidak ada riwayat yang sesuai'
-                                  : 'Belum ada riwayat kunjungan',
-                              style: AppTypography.bodySm.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.accentSoft,
-                              ),
-                            ),
-                            if (_query.isNotEmpty || _selectedDate != null)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(top: AppSpacing.sm),
-                                child: TextButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _query = '';
-                                      _selectedDate = null;
-                                    });
-                                  },
-                                  child: const Text('Reset Filter'),
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.35,
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Illustrations.emptySchedule(size: 140),
+                                    const SizedBox(height: AppSpacing.md),
+                                    Text(
+                                      _query.isNotEmpty || _selectedDate != null
+                                          ? 'Tidak ada riwayat yang sesuai'
+                                          : 'Belum ada riwayat kunjungan',
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.accentSoft,
+                                      ),
+                                    ),
+                                    if (_query.isNotEmpty || _selectedDate != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            top: AppSpacing.sm),
+                                        child: TextButton(
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() {
+                                              _query = '';
+                                              _selectedDate = null;
+                                            });
+                                          },
+                                          child: const Text('Reset Filter'),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
+                            ),
                           ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.sm,
-                          AppSpacing.xxl,
-                          AppSpacing.xxxl,
-                        ),
-                        itemCount: filteredVisits.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.lg),
-                        itemBuilder: (context, index) => StaggeredEntrance(
-                          index: index,
-                          child: Pressable(
-                            scale: 0.98,
-                            child: _VisitCard(visit: filteredVisits[index]),
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.xxl,
+                            AppSpacing.sm,
+                            AppSpacing.xxl,
+                            AppSpacing.xxxl,
+                          ),
+                          itemCount: filteredVisits.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppSpacing.lg),
+                          itemBuilder: (context, index) => StaggeredEntrance(
+                            index: index,
+                            child: Pressable(
+                              scale: 0.98,
+                              child: _VisitCard(visit: filteredVisits[index]),
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
             ],
           ),

@@ -28,6 +28,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appointmentsAsync = ref.watch(appointmentsProvider);
     final all = ref.watch(scheduledAppointmentsProvider);
     final user = ref.watch(authControllerProvider).user;
     final photoUrl = user?.photoUrl;
@@ -156,21 +157,41 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
               // Appointments List
               Expanded(
-                child: visible.isEmpty
-                    ? const _EmptyState()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.sm,
-                          AppSpacing.xxl,
-                          AppSpacing.xxxl,
-                        ),
-                        itemCount: visible.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.lg),
-                        itemBuilder: (context, index) =>
-                            _AppointmentCard(appointment: visible[index]),
-                      ),
+                child: RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () => ref.refresh(appointmentsProvider.future),
+                  child: appointmentsAsync.isLoading && all.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : visible.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.4,
+                                  child: const _EmptyState(),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.xxl,
+                                AppSpacing.sm,
+                                AppSpacing.xxl,
+                                AppSpacing.xxxl,
+                              ),
+                              itemCount: visible.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: AppSpacing.lg),
+                              itemBuilder: (context, index) =>
+                                  _AppointmentCard(appointment: visible[index]),
+                            ),
+                ),
               ),
             ],
           ),
@@ -300,7 +321,8 @@ class _AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBPJS = appointment.guaranteeType.toLowerCase().contains('bpjs');
+    final isInsurance =
+        !appointment.guaranteeType.toLowerCase().contains('pribadi');
 
     return Container(
       decoration: BoxDecoration(
@@ -416,12 +438,12 @@ class _AppointmentCard extends StatelessWidget {
               Expanded(
                 child: _DetailBox(
                   icon: Icons.verified_user_outlined,
-                  iconColor: isBPJS
+                  iconColor: isInsurance
                       ? const Color(0xFF10B981)
                       : const Color(0xFF6366F1),
                   label: 'JENIS JAMINAN',
                   value: appointment.guaranteeType,
-                  backgroundColor: isBPJS
+                  backgroundColor: isInsurance
                       ? const Color(0xFFECFDF5)
                       : const Color(0xFFEEF2FF),
                 ),
