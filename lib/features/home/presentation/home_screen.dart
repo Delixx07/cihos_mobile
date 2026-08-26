@@ -191,7 +191,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         specialty: activeAppointment.specialty,
                         hospital: activeAppointment.hospital,
                         onDetailTap: () => context.push(
-                          '${AppRoutes.appointments}/${activeAppointment.id}',
+                          '${AppRoutes.appointments}/${activeAppointment.id.isNotEmpty ? activeAppointment.id : activeAppointment.bookingCode}',
+                          extra: activeAppointment,
                         ),
                       )
                     else

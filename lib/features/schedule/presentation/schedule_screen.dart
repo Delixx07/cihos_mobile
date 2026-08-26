@@ -565,7 +565,8 @@ class _AppointmentCard extends StatelessWidget {
                     ),
                   ),
                   onPressed: () => context.push(
-                    '${AppRoutes.appointments}/${appointment.id}',
+                    '${AppRoutes.appointments}/${appointment.id.isNotEmpty ? appointment.id : appointment.bookingCode}',
+                    extra: appointment,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

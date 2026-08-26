@@ -31,6 +31,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/promo/presentation/promo_screen.dart';
 import '../../features/results/presentation/exam_results_screen.dart';
 import '../../features/results/presentation/result_viewer_screen.dart';
+import '../../features/schedule/domain/scheduled_appointment.dart';
 import '../../features/schedule/presentation/appointment_detail_screen.dart';
 import '../../features/schedule/presentation/schedule_screen.dart';
 import '../../features/wellness/presentation/wellness_screen.dart';
@@ -96,6 +97,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: ':id',
             builder: (context, state) => AppointmentDetailScreen(
               appointmentId: state.pathParameters['id']!,
+              initialAppointment: state.extra is ScheduledAppointment
+                  ? state.extra as ScheduledAppointment
+                  : null,
             ),
           ),
         ],

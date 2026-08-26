@@ -332,7 +332,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             index: index,
                             child: Pressable(
                               scale: 0.98,
-                              child: _VisitCard(visit: filteredVisits[index]),
+                              child: _VisitCard(
+                                visit: filteredVisits[index],
+                                onTap: () => context.push(
+                                  '${AppRoutes.appointments}/${filteredVisits[index].id}',
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -376,9 +381,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
 /// One finished visit: doctor, when it happened, and a rebook shortcut.
 class _VisitCard extends StatelessWidget {
-  const _VisitCard({required this.visit});
+  const _VisitCard({required this.visit, this.onTap});
 
   final PastAppointment visit;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -390,13 +396,15 @@ class _VisitCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.sm),
         boxShadow: AppElevation.level2,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -487,7 +495,9 @@ class _VisitCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
