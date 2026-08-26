@@ -120,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: AppSpacing.xxl),
               ServiceGrid(items: _services(context)),
               const SizedBox(height: AppSpacing.xxl),
-              QueueMonitorCard(onTap: () => context.push(AppRoutes.checkQueue)),
+              QueueMonitorCard(onTap: () => context.push(AppRoutes.queueMonitor)),
               const SizedBox(height: AppSpacing.xxl),
               Row(
                 children: [

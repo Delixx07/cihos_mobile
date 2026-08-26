@@ -61,10 +61,7 @@ class QueueMonitorCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textPrimary,
-                ),
+                const Icon(Icons.chevron_right, color: AppColors.textPrimary),
               ],
             ),
           ),

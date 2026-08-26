@@ -29,7 +29,6 @@ import '../../features/patient_registration/presentation/patient_review_screen.d
 import '../../features/patient_registration/presentation/patient_type_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/promo/presentation/promo_screen.dart';
-import '../../features/queue/presentation/check_queue_screen.dart';
 import '../../features/results/presentation/exam_results_screen.dart';
 import '../../features/results/presentation/result_viewer_screen.dart';
 import '../../features/schedule/presentation/appointment_detail_screen.dart';
@@ -133,11 +132,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) =>
             _sharedAxis(state, const QueueMonitorScreen()),
       ),
-      GoRoute(
-        path: AppRoutes.checkQueue,
-        pageBuilder: (context, state) =>
-            _sharedAxis(state, const CheckQueueScreen()),
-      ),
+
       GoRoute(
         path: AppRoutes.examResults,
         pageBuilder: (context, state) =>

@@ -12,9 +12,10 @@ import '../theme/app_colors.dart';
 /// to home; the auth screens pass [AppRoutes.login] or the onboarding route
 /// instead.
 class AppBackButton extends StatelessWidget {
-  const AppBackButton({super.key, this.fallback = AppRoutes.home});
+  const AppBackButton({super.key, this.fallback = AppRoutes.home, this.color});
 
   final String fallback;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class AppBackButton extends StatelessWidget {
         }
       },
       icon: const Icon(Icons.arrow_back),
-      color: AppColors.textPrimary,
+      color: color ?? AppColors.textPrimary,
     );
   }
 }
