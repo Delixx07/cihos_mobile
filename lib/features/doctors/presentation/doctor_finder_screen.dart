@@ -14,9 +14,11 @@ import '../../booking/domain/booking.dart';
 import '../../booking/widgets/practice_calendar.dart';
 import '../../booking/widgets/specialty_picker_sheet.dart';
 import '../data/catalog_repository.dart';
+import '../data/doctor_repository.dart';
 import '../domain/clinic.dart';
 import '../domain/doctor.dart';
 import '../domain/practice_schedule.dart';
+import 'widgets/consultation_method_card.dart';
 import 'widgets/doctor_picker_sheet.dart';
 import '../../../core/theme/app_elevation.dart';
 
@@ -162,7 +164,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     });
   }
 
-  void _search() {
+  Future<void> _search() async {
     if (_doctorId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih dokter terlebih dahulu.')),
@@ -170,7 +172,45 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
       return;
     }
 
-    context.push('${AppRoutes.doctorSchedule}/$_doctorId', extra: _date);
+    if (_date == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih jadwal terlebih dahulu.')),
+      );
+      return;
+    }
+
+    final cachedDoctor = ref.read(doctorByIdProvider(_doctorId!));
+    final doctor = cachedDoctor ??
+        Doctor(
+          id: _doctorId!,
+          name: _doctorName ?? '',
+          specialty: _selectedClinic?.displayName ?? '',
+          unitCode: _selectedClinic?.code,
+          methods: const {
+            ConsultationMethod.appointment,
+            ConsultationMethod.videoCall,
+          },
+        );
+
+    final method = await showModalBottomSheet<BookingKind>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConsultationMethodSheet(doctor: doctor),
+    );
+
+    if (method == null || !mounted) return;
+
+    context.push(
+      AppRoutes.bookingSchedule,
+      extra: Booking(
+        kind: method,
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        specialty: _selectedClinic?.displayName ?? doctor.specialty,
+        date: _date,
+      ),
+    );
   }
 
   @override
@@ -386,7 +426,7 @@ class _Panel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         child: Center(
                           child: Text(
-                            'Cari',
+                            'Lanjutkan',
                             style: AppTypography.bodySm.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -511,26 +551,25 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
     );
     final upcomingAsync = ref.watch(upcomingSchedulesProvider(query));
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.lg,
-                AppSpacing.lg,
-                0,
-              ),
-              child: Row(
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.lg,
+            AppSpacing.xl,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -563,10 +602,8 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Expanded(
-              child: AsyncView(
+              const SizedBox(height: AppSpacing.sm),
+              AsyncView(
                 value: upcomingAsync,
                 onRetry: () => ref.invalidate(upcomingSchedulesProvider(query)),
                 builder: (schedules) {
@@ -587,14 +624,8 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                           orElse: () => null,
                         );
 
-                  return ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      AppSpacing.xs,
-                      AppSpacing.xl,
-                      AppSpacing.sm,
-                    ),
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       PracticeCalendar(
                         kind: BookingKind.appointment,
@@ -740,10 +771,8 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                   );
                 },
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: SizedBox(
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
@@ -771,8 +800,8 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../booking/domain/booking.dart';
 import '../../../../core/theme/app_elevation.dart';
 import '../../../../core/theme/app_motion.dart';
+import '../../domain/doctor.dart';
 
 /// The benefits a consultation method offers, per the design.
 abstract final class ConsultationBenefits {
@@ -200,3 +201,79 @@ class _PickButton extends StatelessWidget {
     );
   }
 }
+
+/// "Buat Appointment?" — sheet to pick a consultation method for [doctor].
+class ConsultationMethodSheet extends StatefulWidget {
+  const ConsultationMethodSheet({super.key, this.doctor});
+
+  final Doctor? doctor;
+
+  @override
+  State<ConsultationMethodSheet> createState() =>
+      _ConsultationMethodSheetState();
+}
+
+class _ConsultationMethodSheetState extends State<ConsultationMethodSheet> {
+  BookingKind _selected = BookingKind.appointment;
+
+  static const _available = [
+    BookingKind.appointment,
+    BookingKind.videoCall,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxl,
+            AppSpacing.lg,
+            AppSpacing.xxl,
+            AppSpacing.xxl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Buat Appointment?',
+                      style: AppTypography.headingMd.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Tutup',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, size: 20),
+                    color: AppColors.textPrimary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              for (final kind in _available) ...[
+                ConsultationMethodCard(
+                  key: Key('method_${kind.name}'),
+                  kind: kind,
+                  isSelected: kind == _selected,
+                  onSelect: () => setState(() => _selected = kind),
+                  onConfirm: () => Navigator.of(context).pop(kind),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

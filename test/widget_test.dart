@@ -470,8 +470,7 @@ void main() {
     expect(find.text('Pilih Dokter Ini'), findsOneWidget);
   });
 
-  testWidgets('the profile sheet leads to the doctor schedule',
-      (tester) async {
+  testWidgets('the profile sheet leads to the doctor schedule', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _openDoctorList(tester);
@@ -531,8 +530,9 @@ void main() {
     expect(find.byType(PatientTypeScreen), findsOneWidget);
   });
 
-  testWidgets('new-patient registration reaches the review step',
-      (tester) async {
+  testWidgets('new-patient registration reaches the review step', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _reachPatientRegistration(tester);
@@ -613,8 +613,9 @@ void main() {
     expect(find.text('Atau'), findsOneWidget);
   });
 
-  testWidgets('the appointment tile opens its own search screen',
-      (tester) async {
+  testWidgets('the appointment tile opens its own search screen', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
 
@@ -638,8 +639,9 @@ void main() {
     expect(find.textContaining('Isi salah satu'), findsOneWidget);
   });
 
-  testWidgets('searching by doctor name lists matching doctors',
-      (tester) async {
+  testWidgets('searching by doctor name lists matching doctors', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _searchForEdwin(tester);
@@ -661,8 +663,9 @@ void main() {
     expect(find.text('Dokter tidak ditemukan'), findsOneWidget);
   });
 
-  testWidgets('picking a slot from the results opens the schedule',
-      (tester) async {
+  testWidgets('picking a slot from the results opens the schedule', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _searchForEdwin(tester);
@@ -674,8 +677,9 @@ void main() {
     expect(find.text('Pilih Jam'), findsOneWidget);
   });
 
-  testWidgets('the schedule carries the slot through to patient selection',
-      (tester) async {
+  testWidgets('the schedule carries the slot through to patient selection', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _searchForEdwin(tester);
@@ -689,8 +693,9 @@ void main() {
     expect(find.text('Jenis Jaminan'), findsOneWidget);
   });
 
-  testWidgets('booking a doctor without a slot needs a date first',
-      (tester) async {
+  testWidgets('booking a doctor without a slot needs a date first', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _searchForEdwin(tester);
@@ -719,8 +724,9 @@ void main() {
     expect(find.byType(BookingSummaryScreen), findsNothing);
   });
 
-  testWidgets('the patient picker sheet changes the chosen patient',
-      (tester) async {
+  testWidgets('the patient picker sheet changes the chosen patient', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _reachPatientStep(tester);
@@ -757,15 +763,13 @@ void main() {
     await tester.tap(find.text('Konfirmasi'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('Setujui Syarat & Ketentuan'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Setujui Syarat & Ketentuan'), findsOneWidget);
     expect(find.text('Janji Temu Berhasil Dibuat!'), findsNothing);
   });
 
-  testWidgets('creating the booking confirms and opens the schedule',
-      (tester) async {
+  testWidgets('creating the booking confirms and opens the schedule', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _reachPatientStep(tester);
@@ -846,8 +850,9 @@ void main() {
     expect(find.text('CT Scan Thorax'), findsNothing);
   });
 
-  testWidgets('a patient with no results shows the empty state',
-      (tester) async {
+  testWidgets('a patient with no results shows the empty state', (
+    tester,
+  ) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Hasil Pemeriksaan'));
@@ -886,8 +891,7 @@ void main() {
     expect(find.text('Paket Khusus'), findsOneWidget);
   });
 
-  testWidgets('the search filter narrows results by specialty',
-      (tester) async {
+  testWidgets('the search filter narrows results by specialty', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Janji Temu Dokter'));
@@ -943,10 +947,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Urologi'),
       200,
-      scrollable: find.descendant(
-        of: find.byType(ListView),
-        matching: find.byType(Scrollable),
-      ).last,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .last,
     );
     expect(find.text('Urologi'), findsOneWidget);
   });
@@ -1056,8 +1062,7 @@ void main() {
     expect(find.text('PUTRI (Anak)'), findsOneWidget);
   });
 
-  testWidgets('the schedule filter separates self from others',
-      (tester) async {
+  testWidgets('the schedule filter separates self from others', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Jadwal Temu'));
@@ -1200,10 +1205,7 @@ void main() {
       find.textContaining('Ketahui 7 Penyebab Badan Meriang'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining('7 Manfaat Minum Teh Tawar'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('7 Manfaat Minum Teh Tawar'), findsOneWidget);
   });
 
   testWidgets('the wellness tab lists its tools', (tester) async {
@@ -1267,14 +1269,13 @@ void main() {
     expect(find.text('Buat Video Call'), findsWidgets);
   });
 
-
-  testWidgets('the finder needs a doctor before searching', (tester) async {
+  testWidgets('the finder needs a doctor before continuing', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Dokter'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cari'));
+    await tester.tap(find.text('Lanjutkan'));
     await tester.pumpAndSettle();
 
     expect(find.text('Pilih dokter terlebih dahulu.'), findsOneWidget);
@@ -1301,43 +1302,33 @@ void main() {
     expect(find.text('dr. Edwin Hadinata, Sp.PD'), findsOneWidget);
   });
 
-  testWidgets('searching a doctor opens their schedule', (tester) async {
+  testWidgets('continuing without a date is refused', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _pickEdwinInFinder(tester);
 
-    await tester.tap(find.text('Cari'));
+    await tester.tap(find.text('Lanjutkan'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DoctorScheduleScreen), findsOneWidget);
-    expect(find.textContaining('Jadwal Dokter yang tersedia'), findsOneWidget);
+    expect(find.text('Pilih jadwal terlebih dahulu.'), findsOneWidget);
   });
 
-  testWidgets('booking without a date is refused', (tester) async {
-    await _startAtLogin(tester);
-    await _signIn(tester);
-    await _pickEdwinInFinder(tester);
-    await tester.tap(find.text('Cari'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Buat Appointment'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Pilih tanggal terlebih dahulu.'), findsOneWidget);
-  });
-
-  testWidgets('the schedule offers both consultation methods',
+  testWidgets('continuing with doctor and date opens consultation methods',
       (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await _pickEdwinInFinder(tester);
-    await tester.tap(find.text('Cari'));
+
+    // Pick date in finder
+    await tester.tap(find.byKey(const Key('finderDate')));
+    await tester.pumpAndSettle();
+    final tomorrow = DateTime.now().add(const Duration(days: 1)).day;
+    await tester.tap(find.text('$tomorrow').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pilih Tanggal'));
     await tester.pumpAndSettle();
 
-    final today = DateTime.now().day;
-    await tester.tap(find.text('$today').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Buat Appointment'));
+    await tester.tap(find.text('Lanjutkan'));
     await tester.pumpAndSettle();
 
     expect(find.text('Buat Appointment?'), findsOneWidget);

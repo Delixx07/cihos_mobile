@@ -13,7 +13,7 @@ import '../../booking/domain/booking.dart';
 import '../../booking/widgets/practice_calendar.dart';
 import '../data/doctor_repository.dart';
 import '../domain/doctor.dart';
-import 'widgets/appointment_method_sheet.dart';
+import 'widgets/consultation_method_card.dart';
 import '../../../core/widgets/pressable.dart';
 
 /// A doctor's practising days, with the option to book one.
@@ -47,7 +47,7 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AppointmentMethodSheet(doctor: doctor),
+      builder: (_) => ConsultationMethodSheet(doctor: doctor),
     );
 
     if (method == null || !mounted) return;
