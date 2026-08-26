@@ -85,30 +85,25 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     // 2. Jika belum cocok, cocokkan berdasarkan specialty dokter
     if (matchedClinic == null && picked.specialty.isNotEmpty) {
       final spec = picked.specialty.toLowerCase();
-      matchedClinic = clinics.cast<Clinic?>().firstWhere(
-        (c) {
-          if (c == null) return false;
-          final dName = c.displayName.toLowerCase();
-          final cName = c.name.toLowerCase();
-          return dName == spec ||
-              cName == spec ||
-              spec.contains(dName) ||
-              dName.contains(spec) ||
-              spec.contains(cName) ||
-              cName.contains(spec);
-        },
-        orElse: () => null,
-      );
+      matchedClinic = clinics.cast<Clinic?>().firstWhere((c) {
+        if (c == null) return false;
+        final dName = c.displayName.toLowerCase();
+        final cName = c.name.toLowerCase();
+        return dName == spec ||
+            cName == spec ||
+            spec.contains(dName) ||
+            dName.contains(spec) ||
+            spec.contains(cName) ||
+            cName.contains(spec);
+      }, orElse: () => null);
     }
 
     setState(() {
       _doctorId = picked.id;
       _doctorName = picked.name;
-      _selectedClinic = matchedClinic ??
-          Clinic(
-            code: picked.unitCode ?? '',
-            name: picked.specialty,
-          );
+      _selectedClinic =
+          matchedClinic ??
+          Clinic(code: picked.unitCode ?? '', name: picked.specialty);
     });
   }
 
@@ -175,10 +170,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
       return;
     }
 
-    context.push(
-      '${AppRoutes.doctorSchedule}/$_doctorId',
-      extra: _date,
-    );
+    context.push('${AppRoutes.doctorSchedule}/$_doctorId', extra: _date);
   }
 
   @override
@@ -186,67 +178,37 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
     return Scaffold(
       body: TexturedBackground(
         child: SafeArea(
-          bottom: false,
           child: Stack(
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          const SizedBox(height: 10),
-                          Stack(
-                            alignment: Alignment.topCenter,
-                            clipBehavior: Clip.none,
-                            children: [
-                              // Dark Panel at bottom
-                              Padding(
-                                padding: const EdgeInsets.only(top: 200),
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    minHeight: (constraints.maxHeight - 210)
-                                        .clamp(420.0, 1200.0),
-                                  ),
-                                  child: _Panel(
-                                    clinic: _selectedClinic?.displayName,
-                                    doctorName: _doctorName,
-                                    date: _date,
-                                    onClinicTap: _pickClinic,
-                                    onDoctorTap: _pickDoctor,
-                                    onDateTap: _pickDate,
-                                    onClearClinic: _clearClinic,
-                                    onClearDoctor: _clearDoctor,
-                                    onClearDate: _clearDate,
-                                    onReset: _reset,
-                                    onSearch: _search,
-                                  ),
-                                ),
-                              ),
-                              // Doctor Image overlapping on top of the panel curve
-                              Positioned(
-                                top: 0,
-                                child: Image.asset(
-                                  'assets/images/cari dokter.png',
-                                  width: 320,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: Image.asset(
+                    'assets/images/cari dokter.png',
+                    width: 280,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-              const Positioned(
-                top: AppSpacing.sm,
-                left: AppSpacing.sm,
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: _Panel(
+                  clinic: _selectedClinic?.displayName,
+                  doctorName: _doctorName,
+                  date: _date,
+                  onClinicTap: _pickClinic,
+                  onDoctorTap: _pickDoctor,
+                  onDateTap: _pickDate,
+                  onClearClinic: _clearClinic,
+                  onClearDoctor: _clearDoctor,
+                  onClearDate: _clearDate,
+                  onReset: _reset,
+                  onSearch: _search,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
                 child: AppBackButton(),
               ),
             ],
@@ -291,15 +253,13 @@ class _Panel extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        36,
+        AppSpacing.xxxl,
         AppSpacing.xxl,
         AppSpacing.xxl,
       ),
       decoration: const BoxDecoration(
         color: AppColors.accentSoft,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(32),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
         boxShadow: [
           BoxShadow(
             color: Color(0x40000000),
@@ -332,116 +292,116 @@ class _Panel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xxl),
-          _CriteriaRow(
-            key: const Key('finderClinic'),
-            label: clinic ?? 'Pilih Klinik',
-            isFilled: clinic != null,
-            onTap: onClinicTap,
-            onClear: onClearClinic,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _CriteriaRow(
-            key: const Key('finderDoctor'),
-            label: doctorName ?? 'Cari Nama Dokter',
-            isFilled: doctorName != null,
-            onTap: onDoctorTap,
-            onClear: onClearDoctor,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _CriteriaRow(
-            key: const Key('finderDate'),
-            label: date == null
-                ? 'Pilih Jadwal'
-                : DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(date!),
-            isFilled: date != null,
-            onTap: onDateTap,
-            onClear: onClearDate,
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.white.withValues(alpha: 0.35),
-                      width: 1,
-                    ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      onTap: onReset,
+            _CriteriaRow(
+              key: const Key('finderClinic'),
+              label: clinic ?? 'Pilih Klinik',
+              isFilled: clinic != null,
+              onTap: onClinicTap,
+              onClear: onClearClinic,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _CriteriaRow(
+              key: const Key('finderDoctor'),
+              label: doctorName ?? 'Cari Nama Dokter',
+              isFilled: doctorName != null,
+              onTap: onDoctorTap,
+              onClear: onClearDoctor,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _CriteriaRow(
+              key: const Key('finderDate'),
+              label: date == null
+                  ? 'Pilih Jadwal'
+                  : DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(date!),
+              isFilled: date != null,
+              onTap: onDateTap,
+              onClear: onClearDate,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.refresh_rounded,
-                              size: 18,
-                              color: AppColors.white,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Reset',
-                              style: AppTypography.bodySm.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: onReset,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.refresh_rounded,
+                                size: 18,
                                 color: AppColors.white,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x24000000),
-                        offset: Offset(0, 4),
-                        blurRadius: 16,
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      onTap: onSearch,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Center(
-                        child: Text(
-                          'Cari',
-                          style: AppTypography.bodySm.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                              const SizedBox(width: 6),
+                              Text(
+                                'Reset',
+                                style: AppTypography.bodySm.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x24000000),
+                          offset: Offset(0, 4),
+                          blurRadius: 16,
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        onTap: onSearch,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Center(
+                          child: Text(
+                            'Cari',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -510,10 +470,7 @@ class _CriteriaRow extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                 ],
-                const Icon(
-                  Icons.expand_more,
-                  color: AppColors.textPrimary,
-                ),
+                const Icon(Icons.expand_more, color: AppColors.textPrimary),
               ],
             ),
           ),
@@ -614,19 +571,21 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                 onRetry: () => ref.invalidate(upcomingSchedulesProvider(query)),
                 builder: (schedules) {
                   final practisingDates = schedules
-                      .map((s) => DateTime(s.date.year, s.date.month, s.date.day))
+                      .map(
+                        (s) => DateTime(s.date.year, s.date.month, s.date.day),
+                      )
                       .toSet();
 
                   final selectedSchedule = _date == null
                       ? null
                       : schedules.cast<UpcomingScheduleDate?>().firstWhere(
-                            (s) =>
-                                s != null &&
-                                s.date.year == _date!.year &&
-                                s.date.month == _date!.month &&
-                                s.date.day == _date!.day,
-                            orElse: () => null,
-                          );
+                          (s) =>
+                              s != null &&
+                              s.date.year == _date!.year &&
+                              s.date.month == _date!.month &&
+                              s.date.day == _date!.day,
+                          orElse: () => null,
+                        );
 
                   return ListView(
                     controller: scrollController,
@@ -695,8 +654,9 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color:
-                                      AppColors.accentSoft.withValues(alpha: 0.15),
+                                  color: AppColors.accentSoft.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -788,8 +748,9 @@ class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _date != null ? AppColors.accentSoft : AppColors.border,
+                    backgroundColor: _date != null
+                        ? AppColors.accentSoft
+                        : AppColors.border,
                     elevation: _date != null ? 2 : 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
