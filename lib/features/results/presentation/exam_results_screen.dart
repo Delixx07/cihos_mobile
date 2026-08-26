@@ -7,15 +7,11 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
+import '../../../core/theme/app_motion.dart';
 import '../data/results_repository.dart';
 import '../domain/exam_result.dart';
-import '../../../core/theme/app_elevation.dart';
-import '../../../core/theme/app_motion.dart';
 
-/// Finished examinations, filtered by category and by which patient they
-/// belong to.
+/// Finished examinations, filtered by category and by which patient they belong to.
 class ExamResultsScreen extends ConsumerStatefulWidget {
   const ExamResultsScreen({super.key});
 
@@ -44,75 +40,128 @@ class _ExamResultsScreenState extends ConsumerState<ExamResultsScreen> {
         .toList();
 
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const ScreenHeader(title: 'Hasil Pemeriksaan'),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                ),
-                child: _CategoryTabs(
-                  selected: _category,
-                  onSelected: (value) => setState(() => _category = value),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                ),
-                child: _PatientSelector(
-                  value: patient,
-                  isOpen: _isPatientListOpen,
-                  onToggle: () => setState(
-                    () => _isPatientListOpen = !_isPatientListOpen,
-                  ),
-                ),
-              ),
-              if (_isPatientListOpen)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                  ),
-                  child: _PatientList(
-                    patients: patients,
-                    selected: patient,
-                    onSelected: (value) => setState(() {
-                      _patientName = value;
-                      _isPatientListOpen = false;
-                    }),
-                  ),
-                ),
-              const SizedBox(height: AppSpacing.lg),
-              Expanded(
-                child: visible.isEmpty
-                    ? const _EmptyState()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.lg,
-                          0,
-                          AppSpacing.lg,
-                          AppSpacing.xxxl,
+      backgroundColor: AppColors.accentSoft,
+      body: Column(
+        children: [
+          // Modern Dark Slate Header
+          Container(
+            color: AppColors.accentSoft,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.sm,
+              AppSpacing.xxl,
+              AppSpacing.lg,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // App Bar Row
+                  Row(
+                    children: [
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
-                        itemCount: visible.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.xl),
-                        itemBuilder: (context, index) =>
-                            _ResultCard(result: visible[index]),
+                        onPressed: () => context.pop(),
                       ),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        'Hasil Pemeriksaan',
+                        style: AppTypography.headingMd.copyWith(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Patient Selector Row
+                  _PatientSelector(
+                    value: patient,
+                    isOpen: _isPatientListOpen,
+                    onToggle: () => setState(
+                      () => _isPatientListOpen = !_isPatientListOpen,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Category Filter Chips
+                  _CategoryTabs(
+                    selected: _category,
+                    onSelected: (value) => setState(() => _category = value),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Main Curved White/Surface Content Panel
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Stack(
+                children: [
+                  visible.isEmpty
+                      ? const _EmptyState()
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.xxl,
+                            AppSpacing.xl,
+                            AppSpacing.xxl,
+                            AppSpacing.xxxl,
+                          ),
+                          itemCount: visible.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppSpacing.md),
+                          itemBuilder: (context, index) =>
+                              _ResultCard(result: visible[index]),
+                        ),
+
+                  // Expandable Patient Dropdown Overlay
+                  if (_isPatientListOpen)
+                    Positioned(
+                      top: 0,
+                      left: AppSpacing.xxl,
+                      right: AppSpacing.xxl,
+                      child: _PatientList(
+                        patients: patients,
+                        selected: patient,
+                        onSelected: (value) => setState(() {
+                          _patientName = value;
+                          _isPatientListOpen = false;
+                        }),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// The Semua / Laboratorium / MCU / Radiologi strip.
+/// The modern category filter pill bar.
 class _CategoryTabs extends StatelessWidget {
   const _CategoryTabs({required this.selected, required this.onSelected});
 
@@ -121,41 +170,29 @@ class _CategoryTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        boxShadow: AppElevation.level2,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: ColoredBox(
-          color: AppColors.white,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _Tab(
-                  label: 'Semua',
-                  isSelected: selected == null,
-                  onTap: () => onSelected(null),
-                ),
-                for (final category in ExamCategory.values)
-                  _Tab(
-                    label: category.label,
-                    isSelected: selected == category,
-                    onTap: () => onSelected(category),
-                  ),
-              ],
-            ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _TabPill(
+            label: 'Semua',
+            isSelected: selected == null,
+            onTap: () => onSelected(null),
           ),
-        ),
+          for (final category in ExamCategory.values)
+            _TabPill(
+              label: category.label,
+              isSelected: selected == category,
+              onTap: () => onSelected(category),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _Tab extends StatelessWidget {
-  const _Tab({
+class _TabPill extends StatelessWidget {
+  const _TabPill({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -167,20 +204,26 @@ class _Tab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isSelected ? const Color(0xFF4BAEE2) : AppColors.white,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: AppTypography.inputText.copyWith(
-              fontSize: 16,
-              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
-              color: isSelected ? AppColors.white : AppColors.textPrimary,
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: isSelected
+            ? AppColors.white
+            : Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: AppTypography.caption.copyWith(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppColors.accentSoft : Colors.white,
+              ),
             ),
           ),
         ),
@@ -203,56 +246,73 @@ class _PatientSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x803F4153),
-            offset: Offset(0, 4),
-            blurRadius: 10.4,
-            spreadRadius: -5,
+    return Material(
+      color: Colors.white.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        key: const Key('resultPatientSelector'),
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: 11,
           ),
-        ],
-      ),
-      child: Material(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: InkWell(
-          key: const Key('resultPatientSelector'),
-          onTap: onToggle,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.account_circle,
-                  size: 26,
-                  color: AppColors.textPrimary,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    value,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodySm.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: isOpen ? 0.5 : 0,
-                  duration: AppMotion.fast,
-                  child: const Icon(
-                    Icons.expand_more,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
             ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pilih Rekam Medis',
+                      style: AppTypography.caption.copyWith(
+                        fontSize: 10.5,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySm.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedRotation(
+                turns: isOpen ? 0.5 : 0,
+                duration: AppMotion.fast,
+                child: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -274,16 +334,29 @@ class _PatientList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        boxShadow: AppElevation.level2,
-      ),
-      child: ColoredBox(
+    return Container(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        child: Column(
-          children: [
-            for (final patient in patients)
-              InkWell(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final patient in patients)
+            Material(
+              color: patient.name == selected
+                  ? AppColors.surface
+                  : AppColors.white,
+              child: InkWell(
                 onTap: () => onSelected(patient.name),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -292,6 +365,23 @@ class _PatientList extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: patient.name == selected
+                              ? AppColors.accentSoft.withValues(alpha: 0.1)
+                              : AppColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          size: 16,
+                          color: patient.name == selected
+                              ? AppColors.accentSoft
+                              : AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,18 +389,18 @@ class _PatientList extends StatelessWidget {
                             Text(
                               patient.name,
                               style: AppTypography.bodySm.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5,
+                                fontWeight: patient.name == selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                             Text(
-                              patient.medicalRecordNumber,
-                              style: AppTypography.bodySm.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary.withValues(
-                                  alpha: 0.6,
-                                ),
+                              'No. RM: ${patient.medicalRecordNumber}',
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -318,16 +408,16 @@ class _PatientList extends StatelessWidget {
                       ),
                       if (patient.name == selected)
                         const Icon(
-                          Icons.check,
+                          Icons.check_circle_rounded,
                           size: 18,
-                          color: AppColors.textPrimary,
+                          color: AppColors.accentSoft,
                         ),
                     ],
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -340,35 +430,71 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        boxShadow: AppElevation.level2,
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Material(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: () =>
               context.push('${AppRoutes.examResults}/${result.id}'),
-          borderRadius: BorderRadius.circular(AppRadius.xs),
+          borderRadius: BorderRadius.circular(18),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CategoryPill(label: result.category.label),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _CategoryPill(category: result.category),
+                    Row(
+                      children: [
+                        Text(
+                          result.documentAsset != null
+                              ? 'Tersedia'
+                              : 'Diproses',
+                          style: AppTypography.caption.copyWith(
+                            color: result.documentAsset != null
+                                ? AppColors.success
+                                : AppColors.warning,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   result.title,
-                  style: AppTypography.bodySm.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                  style: AppTypography.headingSm.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _MetaLine(
-                  icon: Icons.calendar_month,
+                  icon: Icons.calendar_today_outlined,
                   text: DateFormat(
                     'EEEE, dd MMMM yyyy',
                     'id_ID',
@@ -376,7 +502,7 @@ class _ResultCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 _MetaLine(
-                  icon: Icons.account_circle,
+                  icon: Icons.person_outline_rounded,
                   text: result.patientName,
                 ),
               ],
@@ -389,24 +515,50 @@ class _ResultCard extends StatelessWidget {
 }
 
 class _CategoryPill extends StatelessWidget {
-  const _CategoryPill({required this.label});
+  const _CategoryPill({required this.category});
 
-  final String label;
+  final ExamCategory category;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.textPrimary.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySm.copyWith(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
+    final (categoryBg, categoryColor, categoryIcon) = switch (category) {
+      ExamCategory.laboratorium => (
+          const Color(0xFFE0F2FE),
+          const Color(0xFF0284C7),
+          Icons.science_outlined,
         ),
+      ExamCategory.mcu => (
+          const Color(0xFFEDE9FE),
+          const Color(0xFF7C3AED),
+          Icons.health_and_safety_outlined,
+        ),
+      ExamCategory.radiologi => (
+          const Color(0xFFCCFBF1),
+          const Color(0xFF0D9488),
+          Icons.biotech_outlined,
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: categoryBg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(categoryIcon, size: 12, color: categoryColor),
+          const SizedBox(width: 4),
+          Text(
+            category.label,
+            style: AppTypography.caption.copyWith(
+              color: categoryColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -422,7 +574,7 @@ class _MetaLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 13, color: AppColors.textPrimary),
+        Icon(icon, size: 14, color: AppColors.textSecondary),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
@@ -430,6 +582,7 @@ class _MetaLine extends StatelessWidget {
             style: AppTypography.bodySm.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
             ),
           ),
         ),
@@ -447,13 +600,35 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.folder_off_outlined,
-            size: 48,
-            color: AppColors.textTertiary,
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: AppColors.accentSoft.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.folder_off_outlined,
+              size: 44,
+              color: AppColors.textTertiary,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text('Belum ada hasil pemeriksaan', style: AppTypography.bodyMd),
+          Text(
+            'Belum ada hasil pemeriksaan',
+            style: AppTypography.headingSm.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Hasil pemeriksaan akan muncul di sini setelah selesai diproses.',
+            style: AppTypography.bodySm.copyWith(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );

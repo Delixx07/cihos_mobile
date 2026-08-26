@@ -28,6 +28,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
   BookingPatient? _patient;
   String _paymentMethod = 'Pribadi';
   String? _company;
+  bool _isChecking = false;
 
   @override
   void initState() {
@@ -59,7 +60,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
     }
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     if (_patient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -78,15 +79,193 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
       return;
     }
 
+    // If the patient already has a valid MRN (not a temporary APP- one), we can proceed directly.
+    if (_patient!.medicalRecordNumber.isNotEmpty && !_patient!.medicalRecordNumber.startsWith('APP-')) {
+      _proceedToSummary();
+      return;
+    }
+
+    if (_patient!.nik == null || _patient!.nik!.isEmpty) {
+       // If no NIK and no valid MRN, we can't reliably look them up. 
+       // We'll proceed and let the backend handle it (which may result in a new patient or failure).
+       _proceedToSummary();
+       return;
+    }
+
+    setState(() => _isChecking = true);
+
+    try {
+      final repo = ref.read(patientRepositoryProvider);
+      final result = await repo.checkPatientLink(
+        nik: _patient!.nik!,
+        name: _patient!.name,
+        phone: _patient!.phone ?? '',
+        dob: _patient!.birthDate,
+      );
+
+      if (!mounted) return;
+
+      if (result.status == LinkStatus.ambiguous) {
+        _showAmbiguousDialog();
+      } else if (result.status == LinkStatus.found && result.medicalNo != null) {
+        // If it's the main account holder ("Diri Sendiri"), auto-link without prompt
+        if (_patient!.familyRelation == 'Diri Sendiri') {
+          await _saveLinkedPatient(result.medicalNo!);
+          _proceedToSummary();
+        } else {
+          // Show confirmation bottom sheet for family member
+          _showLinkConfirmationSheet(result);
+        }
+      } else {
+        // Not found - safe to proceed as a new patient
+        _proceedToSummary();
+      }
+    } finally {
+      if (mounted) setState(() => _isChecking = false);
+    }
+  }
+
+  void _proceedToSummary() {
     context.push(
       AppRoutes.bookingSummary,
       extra: widget.booking.copyWith(
         patientName: _patient!.name,
         patientMedicalRecordNumber: _patient!.medicalRecordNumber,
         patientNik: _patient!.nik,
+        patientPhone: _patient!.phone,
+        patientBirthDate: _patient!.birthDate,
         paymentMethod: _paymentMethod,
         company: _company,
       ),
+    );
+  }
+
+  Future<void> _saveLinkedPatient(String newMedicalNo) async {
+    final updatedPatient = _patient!.copyWith(medicalRecordNumber: newMedicalNo);
+    await ref.read(registeredPatientsProvider.notifier).addPatient(updatedPatient);
+    setState(() => _patient = updatedPatient);
+  }
+
+  void _showAmbiguousDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Data Ganda / Tidak Pasti', style: TextStyle(color: AppColors.danger)),
+        content: const Text(
+          'Data pasien dengan NIK ini belum dapat dipastikan karena terdapat kemiripan data ganda di sistem rumah sakit.\n\n'
+          'Untuk menjaga keamanan rekam medis, mohon lakukan pendaftaran atau verifikasi manual di meja pendaftaran Rumah Sakit.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Mengerti', style: TextStyle(color: AppColors.accentSoft)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLinkConfirmationSheet(PatientLinkResult result) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        // Mask the MRN for privacy e.g. 010304596 -> ******596
+        final rawMrn = result.medicalNo ?? '';
+        final maskedMrn = rawMrn.length > 3 
+            ? '${'*' * (rawMrn.length - 3)}${rawMrn.substring(rawMrn.length - 3)}' 
+            : rawMrn;
+        
+        // Mask the name e.g. SITI AMINAH -> SITI A*****
+        final rawName = result.matchedName ?? 'Pasien';
+        final nameParts = rawName.split(' ');
+        final maskedName = nameParts.length > 1 
+            ? '${nameParts[0]} ${nameParts[1].substring(0, 1)}${'*' * (nameParts[1].length - 1)}'
+            : '$rawName***';
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.paddingOf(ctx).bottom + 24),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Konfirmasi Pasien',
+                style: AppTypography.headingMd.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Sistem rumah sakit mendeteksi ada rekam medis yang sudah cocok dengan NIK keluarga Anda:',
+                style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.accentSoft.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentSoft.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(maskedName, style: AppTypography.titleMd.copyWith(color: AppColors.accentSoft)),
+                    const SizedBox(height: 4),
+                    Text('No. RM: $maskedMrn', style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                    if (result.matchedDob != null) ...[
+                      const SizedBox(height: 4),
+                      Text('Tgl Lahir: ${result.matchedDob}', style: AppTypography.bodySm),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Apakah ini benar pasien yang dimaksud?',
+                style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Bukan', style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await _saveLinkedPatient(result.medicalNo!);
+                        _proceedToSummary();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentSoft,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Ya, Lanjutkan', style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w700, color: AppColors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -644,12 +823,14 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
           top: AppSpacing.sm,
           bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
         ),
-        child: AppButton(
-          label: 'Lanjutkan',
-          expand: true,
-          background: AppColors.accentSoft,
-          onPressed: _confirm,
-        ),
+        child: _isChecking
+            ? const Center(child: CircularProgressIndicator(color: AppColors.accentSoft))
+            : AppButton(
+                label: 'Lanjutkan',
+                expand: true,
+                background: AppColors.accentSoft,
+                onPressed: _confirm,
+              ),
       ),
     );
   }

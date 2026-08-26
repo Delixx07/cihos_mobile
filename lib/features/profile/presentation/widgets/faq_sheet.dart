@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/social_media_buttons.dart';
 
 class FaqSheet extends StatelessWidget {
   const FaqSheet({super.key});
@@ -83,10 +84,18 @@ class FaqSheet extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 controller: scrollController,
-                itemCount: _faqs.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(color: AppColors.divider, height: 1),
+                itemCount: _faqs.length + 1,
+                separatorBuilder: (_, index) => index < _faqs.length - 1
+                    ? const Divider(color: AppColors.divider, height: 1)
+                    : const SizedBox(height: AppSpacing.lg),
                 itemBuilder: (context, index) {
+                  if (index == _faqs.length) {
+                    return const SocialContactCard(
+                      title: 'Masih punya pertanyaan?',
+                      subtitle:
+                          'Tim customer care kami siap membantu via WhatsApp & Instagram.',
+                    );
+                  }
                   final faq = _faqs[index];
                   return Theme(
                     data: Theme.of(context)

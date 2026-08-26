@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
+import '../../../core/widgets/social_media_buttons.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../auth/application/auth_controller.dart';
 import 'edit_profile_screen.dart';
@@ -205,58 +206,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              // WhatsApp / Query Card at the bottom
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.xl,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF5F7),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.mint.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Punya pertanyaan atau butuh bantuan lebih lanjut? Hubungi kami.',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodySm.copyWith(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    InkWell(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Menghubungi Layanan Bantuan Ciputra Hospital...',
-                            ),
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(
-                          'Hubungi via WhatsApp',
-                          style: AppTypography.bodySm.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Social Media & WhatsApp Contact Card
+              const SocialContactCard(),
             ],
           ),
         ),

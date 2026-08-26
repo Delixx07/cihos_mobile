@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -494,8 +496,13 @@ class _NewPatientFormScreenState extends State<NewPatientFormScreen> {
                     _ConsentRow(
                       value: _wantsWhatsApp,
                       onChanged: (val) => setState(() => _wantsWhatsApp = val),
+                      leadingIcon: const FaIcon(
+                        FontAwesomeIcons.whatsapp,
+                        size: 15,
+                        color: Color(0xFF25D366),
+                      ),
                       text:
-                          'Saya bersedia mendapatkan informasi terbaru dari Ciputra Hospital melalui WA',
+                          'Saya bersedia mendapatkan informasi terbaru dari Ciputra Hospital melalui WhatsApp',
                     ),
                   ],
                 ),
@@ -619,11 +626,13 @@ class _ConsentRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.text,
+    this.leadingIcon,
   });
 
   final bool value;
   final ValueChanged<bool> onChanged;
   final String text;
+  final Widget? leadingIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -643,6 +652,10 @@ class _ConsentRow extends StatelessWidget {
               color: value ? AppColors.accentSoft : AppColors.textTertiary,
             ),
             const SizedBox(width: AppSpacing.sm),
+            if (leadingIcon != null) ...[
+              leadingIcon!,
+              const SizedBox(width: 6),
+            ],
             Expanded(
               child: Text(
                 text,

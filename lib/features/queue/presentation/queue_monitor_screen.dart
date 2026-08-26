@@ -51,7 +51,6 @@ class _QueueMonitorScreenState extends State<QueueMonitorScreen>
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: AppColors.surface,

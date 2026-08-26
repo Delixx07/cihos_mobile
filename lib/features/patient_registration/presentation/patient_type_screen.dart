@@ -123,36 +123,7 @@ class PatientTypeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // Helper Notice Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.info_outline_rounded,
-                          size: 20,
-                          color: AppColors.accentSoft,
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Text(
-                            'Pasien di atas satu tahun wajib memasukkan nomor NIK yang terdaftar pada Kartu Keluarga / KTP.',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  
                 ],
               ),
             ),

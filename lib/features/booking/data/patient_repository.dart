@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -11,12 +12,15 @@ import '../domain/booking.dart';
 /// Stored locally in secure storage per account/device.
 class PatientRepository {
   PatientRepository({
+    required ApiClient client,
     FlutterSecureStorage? storage,
     TokenStore? tokens,
-  })  : _storage = storage ?? const FlutterSecureStorage(),
+  })  : _client = client,
+        _storage = storage ?? const FlutterSecureStorage(),
         _tokens = tokens ?? TokenStore();
 
   static const _key = 'user_registered_patients';
+  final ApiClient _client;
   final FlutterSecureStorage _storage;
   final TokenStore _tokens;
 
@@ -121,10 +125,70 @@ class PatientRepository {
   Future<void> clear() async {
     await _storage.delete(key: _key);
   }
+
+  /// Checks if a patient exists in MEDINFRAS by NIK, Name, DOB, and Phone.
+  /// Returns a [PatientLinkResult] indicating if a confident match was found.
+  /// If a match is found, the result will contain the `medical_no`.
+  Future<PatientLinkResult> checkPatientLink({
+    required String nik,
+    required String name,
+    required String phone,
+    DateTime? dob,
+  }) async {
+    try {
+      final response = await _client.post(
+        '/app/patients/check',
+        body: {
+          'nik': nik,
+          'name': name,
+          'phone': phone,
+          if (dob != null) 'dob': DateFormat('yyyy-MM-dd').format(dob),
+        },
+        authenticated: true,
+      );
+
+      final status = response['status'] as String?;
+      if (status == 'found') {
+        final data = response['data'] as Map<String, dynamic>?;
+        return PatientLinkResult(
+          status: LinkStatus.found,
+          medicalNo: data?['medical_no'] as String?,
+          matchedName: data?['name'] as String?,
+          matchedDob: data?['birth_date'] as String?,
+        );
+      } else if (status == 'ambiguous') {
+        return const PatientLinkResult(status: LinkStatus.ambiguous);
+      }
+      return const PatientLinkResult(status: LinkStatus.notFound);
+    } catch (e) {
+      // If the API isn't ready or fails, fallback to assuming not_found so it doesn't block the app entirely during dev.
+      // In production, you might want to throw or return ambiguous.
+      return const PatientLinkResult(status: LinkStatus.notFound);
+    }
+  }
+}
+
+enum LinkStatus { found, notFound, ambiguous }
+
+class PatientLinkResult {
+  const PatientLinkResult({
+    required this.status,
+    this.medicalNo,
+    this.matchedName,
+    this.matchedDob,
+  });
+
+  final LinkStatus status;
+  final String? medicalNo;
+  final String? matchedName;
+  final String? matchedDob;
 }
 
 final patientRepositoryProvider = Provider<PatientRepository>((ref) {
-  return PatientRepository(tokens: ref.watch(tokenStoreProvider));
+  return PatientRepository(
+    client: ref.watch(apiClientProvider),
+    tokens: ref.watch(tokenStoreProvider),
+  );
 });
 
 class PatientsNotifier extends StateNotifier<List<BookingPatient>> {

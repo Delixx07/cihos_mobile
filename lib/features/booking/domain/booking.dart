@@ -182,6 +182,8 @@ class Booking {
     this.patientName,
     this.patientMedicalRecordNumber,
     this.patientNik,
+    this.patientPhone,
+    this.patientBirthDate,
     this.isNewPatient = false,
     this.paymentMethod,
     this.company,
@@ -202,6 +204,8 @@ class Booking {
   final String? patientName;
   final String? patientMedicalRecordNumber;
   final String? patientNik;
+  final String? patientPhone;
+  final DateTime? patientBirthDate;
   final bool isNewPatient;
 
   /// "Pribadi" or "Asuransi/Perusahaan".
@@ -228,6 +232,8 @@ class Booking {
     String? patientName,
     String? patientMedicalRecordNumber,
     String? patientNik,
+    String? patientPhone,
+    DateTime? patientBirthDate,
     bool? isNewPatient,
     String? paymentMethod,
     String? company,
@@ -248,6 +254,8 @@ class Booking {
       patientName: patientName ?? this.patientName,
       patientMedicalRecordNumber: patientMedicalRecordNumber ?? this.patientMedicalRecordNumber,
       patientNik: patientNik ?? this.patientNik,
+      patientPhone: patientPhone ?? this.patientPhone,
+      patientBirthDate: patientBirthDate ?? this.patientBirthDate,
       isNewPatient: isNewPatient ?? this.isNewPatient,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       company: company ?? this.company,

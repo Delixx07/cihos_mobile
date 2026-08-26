@@ -47,11 +47,15 @@ class BookingRepository {
       
       // Patient Identifiers
       // If the MRN is a temporary app ID (starts with APP-), send empty string 
-      // so Medinfras doesn't reject it, and rely on NIK instead.
+      // so Medinfras doesn't reject it, and rely on NIK / Name instead.
       'MedicalNo': (booking.patientMedicalRecordNumber?.startsWith('APP-') == true) 
           ? '' 
           : (booking.patientMedicalRecordNumber ?? ''),
       'PatientName': booking.patientName ?? '',
+      'PatientPhone': booking.patientPhone ?? '',
+      'PatientDOB': booking.patientBirthDate != null 
+          ? DateFormat('yyyy-MM-dd').format(booking.patientBirthDate!) 
+          : '',
       'IDNumber': booking.patientNik ?? '',
       'NIK': booking.patientNik ?? '',
       'IsNewPatient': booking.isNewPatient ? '1' : '0',
