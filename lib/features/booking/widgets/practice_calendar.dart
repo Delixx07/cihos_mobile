@@ -4,10 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../domain/booking.dart';
-import '../../../core/theme/app_elevation.dart';
 
-/// Month grid for picking a telemedicine date, with a legend separating days
-/// the doctor practises from days they do not.
+/// Month grid for picking a booking date with vibrant modern styling & practice day indicators.
 class PracticeCalendar extends StatefulWidget {
   const PracticeCalendar({
     super.key,
@@ -17,13 +15,9 @@ class PracticeCalendar extends StatefulWidget {
     this.practisingDates,
   });
 
-  /// Decides how far ahead days stay bookable.
   final BookingKind kind;
   final DateTime? selected;
   final ValueChanged<DateTime> onSelected;
-
-  /// Explicit set of available practising dates from the backend.
-  /// If provided, only these exact dates will be marked as practising / bookable.
   final Set<DateTime>? practisingDates;
 
   @override
@@ -38,45 +32,50 @@ class _PracticeCalendarState extends State<PracticeCalendar> {
 
   void _shiftMonth(int delta) {
     setState(() {
-      _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+      _visibleMonth =
+          DateTime(_visibleMonth.year, _visibleMonth.month + delta);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppElevation.level2,
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+          ),
+        ],
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _MonthHeader(
-              month: _visibleMonth,
-              onPrevious: () => _shiftMonth(-1),
-              onNext: () => _shiftMonth(1),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            const _WeekdayRow(),
-            const SizedBox(height: AppSpacing.sm),
-            _DayGrid(
-              month: _visibleMonth,
-              kind: widget.kind,
-              selected: widget.selected,
-              practisingDates: widget.practisingDates,
-              onSelected: widget.onSelected,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            const _Legend(),
-          ],
-        ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _MonthHeader(
+            month: _visibleMonth,
+            onPrevious: () => _shiftMonth(-1),
+            onNext: () => _shiftMonth(1),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const _WeekdayRow(),
+          const SizedBox(height: AppSpacing.sm),
+          _DayGrid(
+            month: _visibleMonth,
+            kind: widget.kind,
+            selected: widget.selected,
+            practisingDates: widget.practisingDates,
+            onSelected: widget.onSelected,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: AppSpacing.md),
+          const _Legend(),
+        ],
       ),
     );
   }
@@ -98,42 +97,58 @@ class _MonthHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: AppSpacing.sm,
+          child: Row(
             children: [
-              Text(
-                DateFormat('MMMM', 'id_ID').format(month),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.45,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  size: 18,
+                  color: Color(0xFFD97706),
                 ),
               ),
+              const SizedBox(width: 10),
               Text(
-                '${month.year}',
+                DateFormat('MMMM yyyy', 'id_ID').format(month),
                 style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.75,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Bulan sebelumnya',
-          onPressed: onPrevious,
-          icon: const Icon(Icons.chevron_left),
-          iconSize: 20,
-          visualDensity: VisualDensity.compact,
-        ),
-        IconButton(
-          tooltip: 'Bulan berikutnya',
-          onPressed: onNext,
-          icon: const Icon(Icons.chevron_right),
-          iconSize: 20,
-          visualDensity: VisualDensity.compact,
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Bulan sebelumnya',
+                onPressed: onPrevious,
+                icon: const Icon(Icons.chevron_left_rounded),
+                iconSize: 20,
+                color: AppColors.textPrimary,
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                tooltip: 'Bulan berikutnya',
+                onPressed: onNext,
+                icon: const Icon(Icons.chevron_right_rounded),
+                iconSize: 20,
+                color: AppColors.textPrimary,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -147,21 +162,28 @@ class _WeekdayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final label in _labels)
-          Expanded(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.39,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          for (final label in _labels)
+            Expanded(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -186,7 +208,6 @@ class _DayGrid extends StatelessWidget {
     final firstOfMonth = DateTime(month.year, month.month);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
 
-    // Monday-first grid, so Monday contributes no leading blanks.
     final leadingBlanks = firstOfMonth.weekday - DateTime.monday;
     final cellCount = leadingBlanks + daysInMonth;
     final rowCount = (cellCount / 7).ceil();
@@ -195,7 +216,7 @@ class _DayGrid extends StatelessWidget {
       children: [
         for (var row = 0; row < rowCount; row++)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            padding: const EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
                 for (var column = 0; column < 7; column++)
@@ -210,8 +231,9 @@ class _DayGrid extends StatelessWidget {
   }
 
   Widget _cellFor(int dayOffset) {
-    if (dayOffset < 0 || dayOffset >= DateTime(month.year, month.month + 1, 0).day) {
-      return const SizedBox(height: 30);
+    if (dayOffset < 0 ||
+        dayOffset >= DateTime(month.year, month.month + 1, 0).day) {
+      return const SizedBox(height: 36);
     }
 
     final day = DateTime(month.year, month.month, dayOffset + 1);
@@ -220,16 +242,21 @@ class _DayGrid extends StatelessWidget {
             d.year == day.year && d.month == day.month && d.day == day.day)
         : (BookingOptions.isPractisingDay(day) &&
             BookingOptions.isBookable(day, kind));
-    final isSelected =
-        selected != null &&
+    final isSelected = selected != null &&
         selected!.year == day.year &&
         selected!.month == day.month &&
         selected!.day == day.day;
+
+    final now = DateTime.now();
+    final isToday = now.year == day.year &&
+        now.month == day.month &&
+        now.day == day.day;
 
     return _DayCell(
       day: day.day,
       isPractising: isPractising,
       isSelected: isSelected,
+      isToday: isToday,
       onTap: isPractising ? () => onSelected(day) : null,
     );
   }
@@ -240,39 +267,79 @@ class _DayCell extends StatelessWidget {
     required this.day,
     required this.isPractising,
     required this.isSelected,
+    required this.isToday,
     required this.onTap,
   });
 
   final int day;
   final bool isPractising;
   final bool isSelected;
+  final bool isToday;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? AppColors.white
-        : isPractising
-        ? AppColors.textPrimary
-        : Colors.black.withValues(alpha: 0.3);
+    if (isSelected) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 36,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D9488).withValues(alpha: 0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$day',
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
 
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 30,
+        height: 36,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.textPrimary : null,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
+          color: isPractising
+              ? const Color(0xFFF0FDF4)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: isToday
+              ? Border.all(color: const Color(0xFF0D9488), width: 1.5)
+              : (isPractising
+                  ? Border.all(color: const Color(0xFFBBF7D0), width: 1)
+                  : null),
         ),
         alignment: Alignment.center,
         child: Text(
           '$day',
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.45,
-            color: color,
+            fontSize: 13.5,
+            fontWeight: isPractising ? FontWeight.w700 : FontWeight.w400,
+            color: isPractising
+                ? const Color(0xFF065F46)
+                : const Color(0xFF94A3B8),
           ),
         ),
       ),
@@ -285,12 +352,22 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        const _LegendDot(color: AppColors.textPrimary, label: 'Praktek'),
-        const SizedBox(width: AppSpacing.xl),
         _LegendDot(
-          color: Colors.black.withValues(alpha: 0.3),
+          color: Color(0xFF059669),
+          label: 'Tersedia',
+          isBox: true,
+        ),
+        SizedBox(width: AppSpacing.lg),
+        _LegendDot(
+          color: Color(0xFF0D9488),
+          label: 'Dipilih',
+          isGradient: true,
+        ),
+        SizedBox(width: AppSpacing.lg),
+        _LegendDot(
+          color: Color(0xFFCBD5E1),
           label: 'Tidak Praktek',
         ),
       ],
@@ -299,10 +376,17 @@ class _Legend extends StatelessWidget {
 }
 
 class _LegendDot extends StatelessWidget {
-  const _LegendDot({required this.color, required this.label});
+  const _LegendDot({
+    required this.color,
+    required this.label,
+    this.isBox = false,
+    this.isGradient = false,
+  });
 
   final Color color;
   final String label;
+  final bool isBox;
+  final bool isGradient;
 
   @override
   Widget build(BuildContext context) {
@@ -310,17 +394,23 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: isBox ? const Color(0xFFDCFCE7) : color,
+            border: isBox
+                ? Border.all(color: const Color(0xFF059669), width: 1.5)
+                : null,
+            shape: BoxShape.circle,
+          ),
         ),
-        const SizedBox(width: AppSpacing.xs),
+        const SizedBox(width: 6),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.24,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
           ),
         ),
       ],

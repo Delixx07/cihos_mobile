@@ -26,8 +26,11 @@ class BookingScheduleScreen extends ConsumerStatefulWidget {
 
 class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
   late DateTime? _date = widget.booking.date;
+  // Holds the matched UpcomingScheduleDate so _confirm() can read its codes.
+  // Stores the UpcomingScheduleDate whose date matches the calendar selection.
+  UpcomingScheduleDate? _selectedScheduleCache;
 
-  void _confirm() {
+  void _confirm(List<UpcomingScheduleDate>? upcomingList) {
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih tanggal terlebih dahulu.')),
@@ -35,10 +38,28 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
       return;
     }
 
+    // Prefer cached entry; fall back to scanning the latest upcoming list.
+    final schedule = _selectedScheduleCache ??
+        upcomingList?.cast<UpcomingScheduleDate?>().firstWhere(
+          (s) =>
+              s != null &&
+              s.date.year == _date!.year &&
+              s.date.month == _date!.month &&
+              s.date.day == _date!.day,
+          orElse: () => null,
+        );
+
+    // Only override if the resolved value is non-empty — never wipe with null.
+    final resolvedUnitCode = (schedule?.unitCode.isNotEmpty == true)
+        ? schedule!.unitCode
+        : widget.booking.unitCode; // keep original from doctor selection
+
     context.push(
       AppRoutes.bookingPatient,
       extra: widget.booking.copyWith(
         date: _date,
+        operationalTimeCode: schedule?.operationalTimeCode,
+        unitCode: resolvedUnitCode,
       ),
     );
   }
@@ -81,7 +102,7 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
         ?.map((s) => DateTime(s.date.year, s.date.month, s.date.day))
         .toSet();
 
-    final selectedSchedule = _date == null
+    final selectedSchedule = _selectedScheduleCache ?? (_date == null
         ? null
         : upcomingAsync?.valueOrNull?.cast<UpcomingScheduleDate?>().firstWhere(
             (s) =>
@@ -90,7 +111,7 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                 s.date.month == _date!.month &&
                 s.date.day == _date!.day,
             orElse: () => null,
-          );
+          ));
 
     final availableDates = upcomingAsync?.valueOrNull != null
         ? (practisingDates ?? const <DateTime>{})
@@ -295,7 +316,24 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                     kind: widget.booking.kind,
                     selected: _date,
                     practisingDates: availableDates,
-                    onSelected: (value) => setState(() => _date = value),
+                    onSelected: (value) {
+                      // Cache the matched schedule entry so _confirm() can
+                      // read operationalTimeCode without needing build context.
+                      final matched = upcomingAsync?.valueOrNull
+                          ?.cast<UpcomingScheduleDate?>()
+                          .firstWhere(
+                            (s) =>
+                                s != null &&
+                                s.date.year == value.year &&
+                                s.date.month == value.month &&
+                                s.date.day == value.day,
+                            orElse: () => null,
+                          );
+                      setState(() {
+                        _date = value;
+                        _selectedScheduleCache = matched;
+                      });
+                    },
                   ),
                   if (upcomingAsync != null &&
                       upcomingAsync.hasValue &&
@@ -429,7 +467,7 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
           label: 'Lanjutkan',
           expand: true,
           background: AppColors.accentSoft,
-          onPressed: _confirm,
+          onPressed: () => _confirm(upcomingAsync?.valueOrNull),
         ),
       ),
     );

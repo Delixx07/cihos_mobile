@@ -337,22 +337,36 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                                 child: Row(
                                   children: [
                                     // Avatar
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: isSelected
-                                          ? AppColors.accentSoft
-                                          : AppColors.accentSoft
-                                              .withValues(alpha: 0.12),
-                                      child: Text(
-                                        patient.name.isNotEmpty
-                                            ? patient.name[0].toUpperCase()
-                                            : 'P',
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? AppColors.white
-                                              : AppColors.accentSoft,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15,
+                                    // Avatar with Gradient
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: isSelf
+                                              ? const [
+                                                  Color(0xFF0D9488),
+                                                  Color(0xFF14B8A6),
+                                                ]
+                                              : const [
+                                                  Color(0xFF4F46E5),
+                                                  Color(0xFF6366F1),
+                                                ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          patient.name.isNotEmpty
+                                              ? patient.name[0].toUpperCase()
+                                              : 'P',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 17,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -370,7 +384,7 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                                                   patient.name,
                                                   style: AppTypography.inputText
                                                       .copyWith(
-                                                    fontWeight: FontWeight.w700,
+                                                    fontWeight: FontWeight.w800,
                                                     fontSize: 14.5,
                                                     color: AppColors.textPrimary,
                                                   ),
@@ -382,15 +396,13 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 6,
+                                                  horizontal: 7,
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: isSelf
-                                                      ? const Color(0xFFE8F5E9)
-                                                      : AppColors.accentSoft
-                                                          .withValues(
-                                                              alpha: 0.12),
+                                                      ? const Color(0xFFDCFCE7)
+                                                      : const Color(0xFFE0F2FE),
                                                   borderRadius:
                                                       BorderRadius.circular(6),
                                                 ),
@@ -401,8 +413,9 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                                                     fontWeight: FontWeight.w700,
                                                     color: isSelf
                                                         ? const Color(
-                                                            0xFF2E7D32)
-                                                        : AppColors.accentSoft,
+                                                            0xFF166534)
+                                                        : const Color(
+                                                            0xFF0284C7),
                                                   ),
                                                 ),
                                               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -6,30 +7,26 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
+import '../../doctors/data/doctor_repository.dart';
+import '../data/booking_repository.dart';
 import '../domain/booking.dart';
 import '../widgets/booking_success_sheet.dart';
 import '../widgets/edit_booking_sheet.dart';
-import '../../../core/theme/app_motion.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/booking_repository.dart';
-
-/// Final review before the booking is created.
+/// Final review screen before the booking is confirmed and sent to backend.
+/// Designed with rich color variations, clear information hierarchy, and no time/hour display.
 class BookingSummaryScreen extends ConsumerStatefulWidget {
   const BookingSummaryScreen({super.key, required this.booking});
 
   final Booking booking;
 
   @override
-  ConsumerState<BookingSummaryScreen> createState() => _BookingSummaryScreenState();
+  ConsumerState<BookingSummaryScreen> createState() =>
+      _BookingSummaryScreenState();
 }
 
 class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
   bool _agreedToTerms = false;
-  bool _isExpanded = true;
   bool _isSubmitting = false;
 
   Future<void> _edit() async {
@@ -42,33 +39,75 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
 
     if (choice == null || !mounted) return;
 
-    // Each choice rewinds to the step that owns that piece of the booking.
     switch (choice) {
       case EditBookingChoice.doctor:
-        context.go(AppRoutes.doctors);
+        // Navigasi kembali ke pencarian dokter
+        context.push(
+          widget.booking.kind == BookingKind.videoCall
+              ? AppRoutes.videoCallSearch
+              : AppRoutes.appointmentSearch,
+        );
       case EditBookingChoice.schedule:
-        context.pop();
-        context.pop();
+        // Kembali ke pemilihan tanggal
+        if (Navigator.of(context).canPop()) {
+          context.pop(); // pop summary -> patient
+          if (Navigator.of(context).canPop()) {
+            context.pop(); // pop patient -> schedule
+          }
+        } else {
+          context.push(AppRoutes.bookingSchedule, extra: widget.booking);
+        }
       case EditBookingChoice.patient:
-        context.pop();
+        // Kembali ke pemilihan pasien
+        if (Navigator.of(context).canPop()) {
+          context.pop(); // pop summary -> patient
+        } else {
+          context.push(AppRoutes.bookingPatient, extra: widget.booking);
+        }
     }
+  }
+
+  Future<void> _addAnotherBooking() async {
+    await context.push(
+      widget.booking.kind == BookingKind.videoCall
+          ? AppRoutes.videoCallSearch
+          : AppRoutes.appointmentSearch,
+      extra: true, // isAddingAnother flag
+    );
   }
 
   Future<void> _submit() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Setujui Syarat & Ketentuan untuk melanjutkan.'),
+          content: Text('Silakan setujui Syarat & Ketentuan untuk melanjutkan.'),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
     setState(() => _isSubmitting = true);
-    
+
     try {
-      final bookingCode = await ref.read(bookingRepositoryProvider).create(widget.booking);
-      
+      // Validate required fields locally before hitting the server to give
+      // the user a clearer error message than a raw API response.
+      final b = widget.booking;
+      if (b.unitCode == null || b.unitCode!.isEmpty) {
+        throw Exception(
+          'Kode unit layanan tidak ditemukan. Coba pilih ulang jadwal dokter.',
+        );
+      }
+      if (b.operationalTimeCode == null || b.operationalTimeCode!.isEmpty) {
+        throw Exception(
+          'Kode jadwal operasional tidak ditemukan. Coba pilih ulang tanggal.',
+        );
+      }
+
+      final bookingCode =
+          await ref.read(bookingRepositoryProvider).create(widget.booking);
+
       if (!mounted) return;
       setState(() => _isSubmitting = false);
 
@@ -76,8 +115,6 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
         context: context,
         isDismissible: false,
         enableDrag: false,
-        // Without this the sheet is capped at half the screen, which clips the
-        // success mark and the two actions below it.
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => BookingSuccessSheet(bookingCode: bookingCode),
@@ -95,6 +132,8 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal membuat janji temu: ${e.toString()}'),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -102,312 +141,761 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final doctor = widget.booking.doctorId != null
+        ? ref.watch(doctorByIdProvider(widget.booking.doctorId!))
+        : null;
+
+    final isVideoCall = widget.booking.kind == BookingKind.videoCall;
+
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ScreenHeader(title: 'Ringkasan Janji Temu'),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl,
-                    AppSpacing.md,
-                    AppSpacing.xxl,
-                    AppSpacing.xxl,
+      backgroundColor: AppColors.accentSoft,
+      body: Column(
+        children: [
+          // Top Header (consistent with Schedule & Patient screens)
+          Container(
+            color: AppColors.accentSoft,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.sm,
+              AppSpacing.xxl,
+              AppSpacing.lg,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                        onPressed: () => context.pop(),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        'Ringkasan Janji Temu',
+                        style: AppTypography.headingMd.copyWith(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
-                  children: [
-                    const _SectionLabel('LOKASI'),
-                    _DarkBar(
-                      icon: Icons.location_on,
-                      text: 'Ciputra Hospital Surabaya',
+                ],
+              ),
+            ),
+          ),
+
+          // Main Continuous White Content Area
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  // Scrollable Content
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xxl,
+                        AppSpacing.lg,
+                        AppSpacing.xxl,
+                        AppSpacing.lg,
+                      ),
+                      children: [
+                        // Location Card with rich blue/teal styling
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color.fromARGB(255, 139, 139, 139),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF0D9488),
+                                      Color(0xFF14B8A6),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF0D9488)
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.local_hospital_rounded,
+                                  size: 22,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'LOKASI PELAYANAN',
+                                          style: AppTypography.caption.copyWith(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.5,
+                                            color: const Color(0xFF0F766E),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFDCFCE7),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: const Text(
+                                            'Surabaya Barat',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF166534),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Ciputra Hospital Surabaya',
+                                      style: AppTypography.inputText.copyWith(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.md),
+
+                        // Main Booking Summary Card
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.border,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header: Method Badge + Edit Button
+                              Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.md,
+                                  10,
+                                  AppSpacing.sm,
+                                  10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isVideoCall
+                                      ? const Color(0xFFECFDF5)
+                                      : const Color(0xFFF0FDFA),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(20),
+                                  ),
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: isVideoCall
+                                          ? const Color(0xFFA7F3D0)
+                                          : const Color(0xFF99F6E4),
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: isVideoCall
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFF0D9488),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isVideoCall
+                                            ? Icons.videocam_rounded
+                                            : Icons.medical_services_rounded,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      isVideoCall
+                                          ? 'Video Call Dokter'
+                                          : 'Janji Temu Rumah Sakit',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: isVideoCall
+                                            ? const Color(0xFF065F46)
+                                            : const Color(0xFF115E59),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    // Styled Ubah Button
+                                    InkWell(
+                                      key: const Key('summaryEdit'),
+                                      onTap: _edit,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: AppColors.accentSoft
+                                                .withValues(alpha: 0.4),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.edit_outlined,
+                                              size: 13,
+                                              color: AppColors.accentSoft,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Ubah',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.accentSoft,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.all(AppSpacing.lg),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Patient Row with Colorful Avatar
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Color(0xFF4F46E5),
+                                                Color(0xFF6366F1),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              (widget.booking.patientName
+                                                          ?.isNotEmpty ==
+                                                      true)
+                                                  ? widget.booking
+                                                      .patientName![0]
+                                                      .toUpperCase()
+                                                  : 'P',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                widget.booking.patientName ??
+                                                    'Pasien',
+                                                style: AppTypography.inputText
+                                                    .copyWith(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 7,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF1F5F9),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  (widget.booking
+                                                              .patientMedicalRecordNumber
+                                                              ?.isNotEmpty ==
+                                                          true)
+                                                      ? 'No. RM: ${widget.booking.patientMedicalRecordNumber}'
+                                                      : 'Pasien Terdaftar',
+                                                  style: const TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: AppSpacing.md),
+                                    const Divider(
+                                      height: 1,
+                                      color: AppColors.border,
+                                    ),
+                                    const SizedBox(height: AppSpacing.md),
+
+                                    // Doctor & Specialty Row
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 52,
+                                          height: 52,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: AppColors.white,
+                                            border: Border.all(
+                                              color: const Color(0xFF14B8A6),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: ClipOval(
+                                            child: doctor?.photoAsset == null
+                                                ? const Icon(
+                                                    Icons.person_rounded,
+                                                    size: 28,
+                                                    color:
+                                                        AppColors.textTertiary,
+                                                  )
+                                                : Image.asset(
+                                                    doctor!.photoAsset!,
+                                                    width: 52,
+                                                    height: 52,
+                                                    fit: BoxFit.cover,
+                                                    alignment:
+                                                        Alignment.topCenter,
+                                                    errorBuilder:
+                                                        (_, _, _) => const Icon(
+                                                      Icons.person_rounded,
+                                                      size: 28,
+                                                      color: AppColors
+                                                          .textTertiary,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                widget.booking.doctorName ??
+                                                    '-',
+                                                style: AppTypography.inputText
+                                                    .copyWith(
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFE0F2FE),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  widget.booking.specialty ??
+                                                      'Spesialis',
+                                                  style: const TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Color(0xFF0284C7),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: AppSpacing.md),
+                                    const Divider(
+                                      height: 1,
+                                      color: AppColors.border,
+                                    ),
+                                    const SizedBox(height: AppSpacing.md),
+
+                                    // 2-Column Info Grid: [Tanggal] & [Metode Pembayaran] (Replaces Jam)
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Column 1: Tanggal (Warm Amber Card)
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFFFBEB),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: const Color(0xFFFDE68A),
+                                                width: 1.2,
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .calendar_today_rounded,
+                                                      size: 14,
+                                                      color: Color(0xFFD97706),
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    Text(
+                                                      'Tanggal',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            Color(0xFF92400E),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 5),
+                                                Text(
+                                                  widget.booking.date != null
+                                                      ? DateFormat(
+                                                          'd MMM yyyy',
+                                                          'id_ID',
+                                                        ).format(
+                                                          widget.booking.date!,
+                                                        )
+                                                      : '-',
+                                                  style: const TextStyle(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 10),
+
+                                        // Column 2: Metode Pembayaran (Emerald Card - Replaces Jam)
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFECFDF5),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: const Color(0xFFA7F3D0),
+                                                width: 1.2,
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .account_balance_wallet_rounded,
+                                                      size: 14,
+                                                      color: Color(0xFF059669),
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    Text(
+                                                      'Pembayaran',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            Color(0xFF065F46),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 5),
+                                                Text(
+                                                  widget.booking.company !=
+                                                              null &&
+                                                          widget
+                                                              .booking
+                                                              .company!
+                                                              .isNotEmpty
+                                                      ? widget.booking.company!
+                                                      : (widget.booking
+                                                              .paymentMethod ??
+                                                          'Pribadi (Umum)'),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // Add Another Booking Button with fresh teal theme
+                        InkWell(
+                          onTap: _addAnotherBooking,
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFF14B8A6),
+                                width: 1.3,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF0D9488),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.add,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Tambah ${widget.booking.kind.label}',
+                                  style: AppTypography.inputText.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0F766E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Center(
+                          child: Text(
+                            'Anda dapat membuat lebih dari 1 janji temu sebelum konfirmasi.',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    _SectionLabel(widget.booking.kind.label.toUpperCase()),
-                    _BookingCard(
-                      booking: widget.booking,
-                      isExpanded: _isExpanded,
-                      onToggle: () =>
-                          setState(() => _isExpanded = !_isExpanded),
-                      onEdit: _edit,
+                  ),
+
+                  // Bottom Confirmation Panel (Integrated inside same white sheet)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xxl,
+                      AppSpacing.sm,
+                      AppSpacing.xxl,
+                      AppSpacing.lg,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    AppButton(
-                      label: '+ Tambah ${widget.booking.kind.label}',
-                      expand: true,
-                      background: AppColors.accentSoft,
-                      onPressed: () => context.go(AppRoutes.doctors),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Anda dapat membuat lebih dari 1 '
-                      '${widget.booking.kind.label}',
-                      style: AppTypography.bodySm.copyWith(
-                        fontSize: 12,
-                        color: AppColors.textPrimary.withValues(alpha: 0.8),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      border: Border(
+                        top: BorderSide(
+                          color: AppColors.border.withValues(alpha: 0.6),
+                          width: 1,
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xxl,
-                  0,
-                  AppSpacing.xxl,
-                  AppSpacing.xl,
-                ),
-                child: Column(
-                  children: [
-                    _TermsCheckbox(
-                      value: _agreedToTerms,
-                      onChanged: (value) =>
-                          setState(() => _agreedToTerms = value),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TermsCheckbox(
+                            value: _agreedToTerms,
+                            onChanged: (val) =>
+                                setState(() => _agreedToTerms = val),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          // Confirm Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accentSoft,
+                                foregroundColor: Colors.white,
+                                elevation: 2,
+                                shadowColor: AppColors.accentSoft
+                                    .withValues(alpha: 0.4),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _isSubmitting ? null : _submit,
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.2,
+                                      ),
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Konfirmasi Janji Temu',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        SizedBox(width: 6),
+                                        Icon(
+                                          Icons.arrow_forward_rounded,
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppButton(
-                      label: 'Konfirmasi',
-                      expand: true,
-                      isLoading: _isSubmitting,
-                      background: AppColors.accentSoft,
-                      onPressed: _submit,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Text(
-        text,
-        style: AppTypography.bodySm.copyWith(
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _DarkBar extends StatelessWidget {
-  const _DarkBar({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.white),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.white,
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The collapsible slate card summarising one booking.
-class _BookingCard extends StatelessWidget {
-  const _BookingCard({
-    required this.booking,
-    required this.isExpanded,
-    required this.onToggle,
-    required this.onEdit,
-  });
-
-  final Booking booking;
-  final bool isExpanded;
-  final VoidCallback onToggle;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.accentSoft,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            key: const Key('summaryToggle'),
-            onTap: onToggle,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.account_circle_outlined,
-                  size: 21,
-                  color: AppColors.white,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    booking.patientName ?? '-',
-                    style: AppTypography.bodySm.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0,
-                  duration: AppMotion.fast,
-                  child: const Icon(
-                    Icons.expand_more,
-                    color: AppColors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isExpanded) ...[
-            const Divider(color: AppColors.white, height: AppSpacing.xl),
-            Row(
-              children: [
-                Icon(
-                  booking.kind == BookingKind.videoCall
-                      ? Icons.videocam
-                      : Icons.medical_information,
-                  size: 24,
-                  color: AppColors.white,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    '${booking.kind.label} 1',
-                    style: AppTypography.bodySm.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  key: const Key('summaryEdit'),
-                  tooltip: 'Ubah',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit, size: 20),
-                  color: AppColors.white,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _Field(label: 'Dokter', value: booking.doctorName),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                booking.specialty ?? '',
-                style: AppTypography.bodySm.copyWith(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _Field(
-                    label: 'Tanggal',
-                    value: booking.date == null
-                        ? null
-                        : DateFormat(
-                            'EEEE, d MMMM yyyy',
-                            'id_ID',
-                          ).format(booking.date!),
-                  ),
-                ),
-                Expanded(
-                  child: _Field(label: 'Waktu', value: booking.slot?.label),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _Field(label: 'Jenis Jaminan', value: booking.paymentMethod),
-            if (booking.company != null)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.sm),
-                child: _Field(
-                  label: 'Asuransi/Perusahaan',
-                  value: booking.company,
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.value});
-
-  final String label;
-  final String? value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.bodySm.copyWith(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: AppColors.white,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value ?? '-',
-          style: AppTypography.bodySm.copyWith(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.white,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -423,38 +911,48 @@ class _TermsCheckbox extends StatelessWidget {
     return InkWell(
       key: const Key('summaryTerms'),
       onTap: () => onChanged(!value),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              value ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 18,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: AppTypography.bodySm.copyWith(
-                  fontSize: 12,
-                  height: 1.4,
-                  color: AppColors.textPrimary.withValues(alpha: 0.8),
-                ),
-                children: const [
-                  TextSpan(text: 'Dengan ini, saya setuju untuk mengikuti '),
-                  TextSpan(
-                    text: 'Syarat & Ketentuan',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  TextSpan(text: ' yang berlaku'),
-                ],
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(
+                value
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 20,
+                color: value ? AppColors.accentSoft : AppColors.textTertiary,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: AppTypography.bodySm.copyWith(
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: AppColors.textSecondary,
+                  ),
+                  children: const [
+                    TextSpan(text: 'Saya telah memeriksa dan menyetujui '),
+                    TextSpan(
+                      text: 'Syarat & Ketentuan',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    TextSpan(text: ' yang berlaku.'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

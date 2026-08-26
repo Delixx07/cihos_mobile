@@ -147,14 +147,21 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.accentSoft.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF0D9488),
+                            Color(0xFF14B8A6),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.person_add_alt_1_rounded,
-                        color: AppColors.accentSoft,
+                        color: Colors.white,
                         size: 20,
                       ),
                     ),
@@ -167,7 +174,8 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                             'Tambah Pasien Baru',
                             style: AppTypography.headingMd.copyWith(
                               fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           Text(
@@ -181,7 +189,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: const Icon(Icons.close_rounded, size: 22),
                       color: AppColors.textSecondary,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
@@ -191,7 +199,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
 
                 // Nama Pasien
                 Text(
-                  'Nama Pasien *',
+                  'Nama Lengkap Pasien *',
                   style: AppTypography.bodySm.copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -201,22 +209,23 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  style: AppTypography.inputText,
+                  style: AppTypography.inputText.copyWith(fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Contoh: Ahmad Fauzi',
                     hintStyle: AppTypography.inputText.copyWith(
                       color: AppColors.textTertiary,
+                      fontSize: 13.5,
                     ),
                     prefixIcon: const Icon(
-                      Icons.person_outline_rounded,
+                      Icons.person_rounded,
                       size: 20,
-                      color: AppColors.textSecondary,
+                      color: Color(0xFF0D9488),
                     ),
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: 14,
+                      vertical: 13,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -250,18 +259,18 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                 const SizedBox(height: AppSpacing.xs),
                 DropdownButtonFormField<String>(
                   value: _relation,
-                  style: AppTypography.inputText,
+                  style: AppTypography.inputText.copyWith(fontSize: 14),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(
                       Icons.family_restroom_rounded,
                       size: 20,
-                      color: AppColors.textSecondary,
+                      color: Color(0xFF4F46E5),
                     ),
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: 14,
+                      vertical: 13,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -307,22 +316,23 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(16),
                   ],
-                  style: AppTypography.inputText,
+                  style: AppTypography.inputText.copyWith(fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Masukkan No. RM atau NIK 16 digit',
                     hintStyle: AppTypography.inputText.copyWith(
                       color: AppColors.textTertiary,
+                      fontSize: 13.5,
                     ),
                     prefixIcon: const Icon(
-                      Icons.badge_outlined,
+                      Icons.badge_rounded,
                       size: 20,
-                      color: AppColors.textSecondary,
+                      color: Color(0xFF0284C7),
                     ),
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: 14,
+                      vertical: 13,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -367,7 +377,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.md,
-                                vertical: 14,
+                                vertical: 13,
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.surface,
@@ -379,7 +389,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                                   const Icon(
                                     Icons.calendar_today_rounded,
                                     size: 18,
-                                    color: AppColors.textSecondary,
+                                    color: Color(0xFFD97706),
                                   ),
                                   const SizedBox(width: AppSpacing.sm),
                                   Expanded(
@@ -392,6 +402,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                                         color: _birthDate == null
                                             ? AppColors.textTertiary
                                             : AppColors.textPrimary,
+                                        fontSize: 13,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -419,13 +430,18 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                           const SizedBox(height: AppSpacing.xs),
                           DropdownButtonFormField<String>(
                             value: _gender,
-                            style: AppTypography.inputText,
+                            style: AppTypography.inputText.copyWith(fontSize: 13.5),
                             decoration: InputDecoration(
+                              prefixIcon: const Icon(
+                                Icons.wc_rounded,
+                                size: 20,
+                                color: Color(0xFF059669),
+                              ),
                               filled: true,
                               fillColor: AppColors.surface,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.md,
-                                vertical: 14,
+                                vertical: 13,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius:
@@ -485,22 +501,23 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(15),
                   ],
-                  style: AppTypography.inputText,
+                  style: AppTypography.inputText.copyWith(fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Contoh: 081234567890',
                     hintStyle: AppTypography.inputText.copyWith(
                       color: AppColors.textTertiary,
+                      fontSize: 13.5,
                     ),
                     prefixIcon: const Icon(
-                      Icons.phone_outlined,
+                      Icons.phone_iphone_rounded,
                       size: 20,
-                      color: AppColors.textSecondary,
+                      color: Color(0xFF7C3AED),
                     ),
                     filled: true,
                     fillColor: AppColors.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: 14,
+                      vertical: 13,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.sm),

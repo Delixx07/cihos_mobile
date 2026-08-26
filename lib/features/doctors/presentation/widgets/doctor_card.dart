@@ -6,7 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../booking/domain/booking.dart';
 import '../../domain/doctor.dart';
 
-/// Modern doctor card for search and catalog screens.
+/// Modern doctor card for search and catalog screens with rich color accents.
 class DoctorCard extends StatelessWidget {
   const DoctorCard({
     super.key,
@@ -23,25 +23,28 @@ class DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (actionIcon, actionLabel) = switch (kind) {
+    final (actionIcon, actionLabel, actionBgColor) = switch (kind) {
       BookingKind.appointment => (
-        Icons.medical_services_outlined,
+        Icons.medical_services_rounded,
         'Janji Temu',
+        AppColors.accentSoft,
       ),
       BookingKind.videoCall => (
         Icons.videocam_rounded,
         'Video Call',
+        const Color(0xFF059669),
       ),
       null => (
-        Icons.calendar_month_outlined,
-        'Jadwal',
+        Icons.calendar_month_rounded,
+        'Lihat Jadwal',
+        AppColors.accentSoft,
       ),
     };
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
@@ -58,22 +61,32 @@ class DoctorCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Circle Avatar on the LEFT (Full fill & cut)
+              // Circle Avatar with vibrant border ring
               Container(
-                width: 64,
-                height: 64,
+                width: 66,
+                height: 66,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.surface,
-                  border: Border.all(color: AppColors.border, width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFF14B8A6),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF14B8A6).withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: ClipOval(
                   child: doctor.photoAsset == null
                       ? const _PhotoPlaceholder()
                       : Image.asset(
                           doctor.photoAsset!,
-                          width: 64,
-                          height: 64,
+                          width: 66,
+                          height: 66,
                           fit: BoxFit.cover,
                           alignment: Alignment.topCenter,
                           errorBuilder: (context, error, stackTrace) =>
@@ -91,38 +104,38 @@ class DoctorCard extends StatelessWidget {
                       doctor.name,
                       style: AppTypography.inputText.copyWith(
                         fontWeight: FontWeight.w800,
-                        fontSize: 15.5,
+                        fontSize: 15,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 5),
-                    // Specialty Chip
+                    // Specialty Chip (Medical sky blue)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.accentSoft.withValues(alpha: 0.08),
+                        color: const Color(0xFFE0F2FE),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         doctor.specialty,
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.accentSoft,
+                        style: const TextStyle(
+                          color: Color(0xFF0284C7),
                           fontWeight: FontWeight.w700,
                           fontSize: 11.5,
                         ),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    // Hospital line
+                    // Hospital line with soft green/teal icon
                     Row(
                       children: [
                         const Icon(
-                          Icons.location_on_outlined,
+                          Icons.location_on_rounded,
                           size: 14,
-                          color: AppColors.textTertiary,
+                          color: Color(0xFF0D9488),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -130,7 +143,7 @@ class DoctorCard extends StatelessWidget {
                             doctor.hospital,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textTertiary,
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
                               fontSize: 12,
                             ),
@@ -146,7 +159,7 @@ class DoctorCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1, color: AppColors.border),
           const SizedBox(height: AppSpacing.sm),
-          // Actions
+          // Actions Row
           Row(
             children: [
               // Lihat Profil Button
@@ -154,30 +167,30 @@ class DoctorCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onProfileTap,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    side: BorderSide(
-                      color: AppColors.accentSoft.withValues(alpha: 0.5),
-                      width: 1,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    side: const BorderSide(
+                      color: AppColors.border,
+                      width: 1.2,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline_rounded,
                         size: 15,
-                        color: AppColors.accentSoft,
+                        color: AppColors.textSecondary,
                       ),
-                      const SizedBox(width: 5),
+                      SizedBox(width: 5),
                       Text(
                         'Profil',
-                        style: AppTypography.bodySm.copyWith(
+                        style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.accentSoft,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -191,9 +204,10 @@ class DoctorCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onBookTap,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentSoft,
+                    backgroundColor: actionBgColor,
                     foregroundColor: AppColors.white,
-                    elevation: 0,
+                    elevation: 1,
+                    shadowColor: actionBgColor.withValues(alpha: 0.3),
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -210,9 +224,9 @@ class DoctorCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         actionLabel,
-                        style: AppTypography.bodySm.copyWith(
+                        style: const TextStyle(
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.white,
                         ),
                       ),

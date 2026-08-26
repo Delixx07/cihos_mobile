@@ -351,17 +351,30 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                       padding: const EdgeInsets.all(AppSpacing.md),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: AppColors.accentSoft,
-                            child: Text(
-                              _patient?.name.isNotEmpty == true
-                                  ? _patient!.name[0].toUpperCase()
-                                  : 'P',
-                              style: const TextStyle(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 18,
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFF4F46E5),
+                                  Color(0xFF6366F1),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _patient?.name.isNotEmpty == true
+                                    ? _patient!.name[0].toUpperCase()
+                                    : 'P',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
                               ),
                             ),
                           ),
@@ -393,17 +406,16 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.accentSoft
-                                              .withValues(alpha: 0.12),
+                                          color: const Color(0xFFDCFCE7),
                                           borderRadius:
                                               BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           _patient!.familyRelation!,
                                           style: const TextStyle(
-                                            fontSize: 10,
+                                            fontSize: 10.5,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.accentSoft,
+                                            color: Color(0xFF166534),
                                           ),
                                         ),
                                       ),
@@ -472,21 +484,15 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                       fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Pilih metode penjaminan untuk pendaftaran janji temu ini',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
                   const SizedBox(height: AppSpacing.md),
 
                   // Radio Card: Pribadi (Umum)
                   _PaymentOptionCard(
                     title: 'Pribadi (Umum)',
                     subtitle: 'Pembayaran mandiri',
-                    icon: Icons.account_balance_wallet_outlined,
+                    icon: Icons.account_balance_wallet_rounded,
+                    accentColor: const Color(0xFF0284C7),
+                    selectedBgColor: const Color(0xFFF0F9FF),
                     isSelected: _paymentMethod == 'Pribadi',
                     onTap: () => setState(() {
                       _paymentMethod = 'Pribadi';
@@ -498,8 +504,10 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                   // Radio Card: Asuransi / Perusahaan
                   _PaymentOptionCard(
                     title: 'Asuransi / Perusahaan',
-                    subtitle: 'Klaim penjaminan via asuransi',
-                    icon: Icons.health_and_safety_outlined,
+                    subtitle: 'Klaim penjaminan via asuransi rekanan',
+                    icon: Icons.health_and_safety_rounded,
+                    accentColor: const Color(0xFFD97706),
+                    selectedBgColor: const Color(0xFFFFFBEB),
                     isSelected: _paymentMethod == 'Asuransi/Perusahaan',
                     onTap: () => setState(() {
                       _paymentMethod = 'Asuransi/Perusahaan';
@@ -646,7 +654,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
   }
 }
 
-/// Modern Card for Payment Options (Pribadi vs Asuransi)
+/// Modern Card for Payment Options (Pribadi vs Asuransi) with colorful accents
 class _PaymentOptionCard extends StatelessWidget {
   const _PaymentOptionCard({
     required this.title,
@@ -654,6 +662,8 @@ class _PaymentOptionCard extends StatelessWidget {
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.accentColor = AppColors.accentSoft,
+    this.selectedBgColor,
   });
 
   final String title;
@@ -661,21 +671,25 @@ class _PaymentOptionCard extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color accentColor;
+  final Color? selectedBgColor;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBg = isSelected
+        ? (selectedBgColor ?? accentColor.withValues(alpha: 0.08))
+        : AppColors.surface;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.accentSoft.withValues(alpha: 0.08)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          color: effectiveBg,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.accentSoft : AppColors.border,
+            color: isSelected ? accentColor : AppColors.border,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -685,7 +699,7 @@ class _PaymentOptionCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.accentSoft
+                    ? accentColor
                     : AppColors.textSecondary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -723,7 +737,7 @@ class _PaymentOptionCard extends StatelessWidget {
               isSelected
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: isSelected ? AppColors.accentSoft : AppColors.textTertiary,
+              color: isSelected ? accentColor : AppColors.textTertiary,
               size: 20,
             ),
           ],

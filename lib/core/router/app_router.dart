@@ -170,8 +170,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Finding and choosing a doctor.
       GoRoute(
         path: AppRoutes.doctors,
-        pageBuilder: (context, state) =>
-            _sharedAxis(state, DoctorListScreen(initialUnitCode: state.extra as String?)),
+        pageBuilder: (context, state) => _sharedAxis(
+          state,
+          DoctorListScreen(
+            initialUnitCode:
+                state.extra is String ? state.extra as String : null,
+          ),
+        ),
       ),
       // Booking flow. The draft rides along with the navigation rather than
       // living in global state, so an abandoned booking cannot leak into the
@@ -180,14 +185,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.appointmentSearch,
         pageBuilder: (context, state) => _sharedAxis(
           state,
-          const DoctorListScreen(kind: BookingKind.appointment),
+          DoctorListScreen(
+            kind: BookingKind.appointment,
+            isAddingAnother: state.extra == true,
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.videoCallSearch,
         pageBuilder: (context, state) => _sharedAxis(
           state,
-          const DoctorListScreen(kind: BookingKind.videoCall),
+          DoctorListScreen(
+            kind: BookingKind.videoCall,
+            isAddingAnother: state.extra == true,
+          ),
         ),
       ),
       GoRoute(

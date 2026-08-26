@@ -28,10 +28,12 @@ class DoctorListScreen extends ConsumerStatefulWidget {
     super.key,
     this.kind,
     this.initialUnitCode,
+    this.isAddingAnother = false,
   });
 
   final BookingKind? kind;
   final String? initialUnitCode;
+  final bool? isAddingAnother;
 
   @override
   ConsumerState<DoctorListScreen> createState() => _DoctorListScreenState();
@@ -116,6 +118,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
           kind: widget.kind!,
           doctorId: doctor.id,
           doctorName: doctor.name,
+          paramedicCode: doctor.code,
           specialty: _selectedClinic?.displayName ?? doctor.specialty,
           unitCode: _selectedClinic?.code ?? doctor.unitCode,
         ),
@@ -183,6 +186,65 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ScreenHeader(title: screenTitle),
+              if (widget.isAddingAnother == true) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    0,
+                    AppSpacing.xxl,
+                    AppSpacing.sm,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentSoft.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.accentSoft.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.add_task_rounded,
+                          size: 18,
+                          color: AppColors.accentSoft,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Tambah Janji Temu Tambahan',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accentSoft,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => context.pop(),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            foregroundColor: AppColors.danger,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.close_rounded, size: 16),
+                          label: const Text(
+                            'Batal Tambah',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               // Search & Filter Row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),

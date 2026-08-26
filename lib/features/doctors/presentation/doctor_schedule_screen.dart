@@ -54,6 +54,7 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
         kind: method,
         doctorId: doctor.id,
         doctorName: doctor.name,
+        paramedicCode: doctor.code,
         specialty: doctor.specialty,
         unitCode: doctor.unitCode,
       ),
