@@ -231,7 +231,7 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// The clean QR panel showing only QR and "KLIK DISINI".
+/// The clean borderless QR panel.
 class _QrPanel extends StatelessWidget {
   const _QrPanel({required this.onTap});
 
@@ -239,48 +239,12 @@ class _QrPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.accentSoft,
-      borderRadius: BorderRadius.circular(14),
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: 90,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: 4,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.accentSoft,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accentSoft.withValues(alpha: 0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // White QR background box
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Illustrations.qrCode(size: 72),
-              ),
-              
-            ],
-          ),
-        ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Illustrations.qrCode(size: 85),
       ),
     );
   }
