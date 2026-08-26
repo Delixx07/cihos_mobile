@@ -1,4 +1,4 @@
-﻿import 'package:cihos_mobile/core/widgets/app_button.dart';
+import 'package:cihos_mobile/core/widgets/app_button.dart';
 import 'package:cihos_mobile/features/auth/presentation/login_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/register_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/welcome_screen.dart';
@@ -143,8 +143,6 @@ Future<void> _pickEdwinInFinder(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('finderDoctor')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('dr. Edwin Hadinata, Sp.PD'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Tampilkan Hasil Pencarian'));
   await tester.pumpAndSettle();
 }
 
@@ -978,8 +976,6 @@ void main() {
 
     await tester.tap(find.text('Penyakit Dalam').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tampilkan Hasil Pencarian'));
-    await tester.pumpAndSettle();
 
     expect(find.text('Penyakit Dalam'), findsOneWidget);
   });
@@ -992,8 +988,6 @@ void main() {
     await tester.tap(find.byKey(const Key('specialtyRow')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Penyakit Dalam').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tampilkan Hasil Pencarian'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Selanjutnya, Pilih Dokter'));

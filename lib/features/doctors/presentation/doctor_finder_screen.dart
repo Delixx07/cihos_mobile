@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_back_button.dart';
+import '../../../core/widgets/async_view.dart';
 import '../../../core/widgets/illustrations.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
@@ -16,6 +17,7 @@ import '../../booking/widgets/specialty_picker_sheet.dart';
 import '../data/catalog_repository.dart';
 import '../domain/clinic.dart';
 import '../domain/doctor.dart';
+import '../domain/practice_schedule.dart';
 import 'widgets/doctor_picker_sheet.dart';
 import '../../../core/theme/app_elevation.dart';
 
@@ -112,11 +114,25 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
   }
 
   Future<void> _pickDate() async {
+    if (_doctorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih dokter terlebih dahulu untuk melihat jadwal.'),
+        ),
+      );
+      return;
+    }
+
     final picked = await showModalBottomSheet<DateTime>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _DatePickerSheet(selected: _date),
+      builder: (_) => _DatePickerSheet(
+        doctorId: _doctorId!,
+        unitCode: _selectedClinic?.code,
+        doctorName: _doctorName,
+        selected: _date,
+      ),
     );
 
     if (picked != null) setState(() => _date = picked);
@@ -473,57 +489,269 @@ class _CriteriaRow extends StatelessWidget {
   }
 }
 
-/// A sheet wrapping the practice calendar, with clear and confirm actions.
-class _DatePickerSheet extends StatefulWidget {
-  const _DatePickerSheet({required this.selected});
+/// A sheet wrapping the practice calendar showing the doctor's upcoming schedule.
+class _DatePickerSheet extends ConsumerStatefulWidget {
+  const _DatePickerSheet({
+    required this.doctorId,
+    this.unitCode,
+    this.doctorName,
+    required this.selected,
+  });
 
+  final String doctorId;
+  final String? unitCode;
+  final String? doctorName;
   final DateTime? selected;
 
   @override
-  State<_DatePickerSheet> createState() => _DatePickerSheetState();
+  ConsumerState<_DatePickerSheet> createState() => _DatePickerSheetState();
 }
 
-class _DatePickerSheetState extends State<_DatePickerSheet> {
+class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
   late DateTime? _date = widget.selected;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PracticeCalendar(
-            kind: BookingKind.appointment,
-            selected: _date,
-            onSelected: (value) => setState(() => _date = value),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Hapus',
-                  style: AppTypography.button.copyWith(
-                    color: AppColors.white,
+    final query = UpcomingScheduleQuery(
+      doctorId: widget.doctorId,
+      unitCode: widget.unitCode,
+      days: 21,
+      withSlots: 0,
+    );
+    final upcomingAsync = ref.watch(upcomingSchedulesProvider(query));
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                0,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pilih Jadwal Dokter',
+                          style: AppTypography.headingMd.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (widget.doctorName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.doctorName!,
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Tutup',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, size: 20),
+                    color: AppColors.textPrimary,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Expanded(
+              child: AsyncView(
+                value: upcomingAsync,
+                onRetry: () => ref.invalidate(upcomingSchedulesProvider(query)),
+                isEmpty: (schedules) => schedules.isEmpty,
+                emptyTitle: 'Tidak ada jadwal praktek',
+                emptyMessage:
+                    'Dokter ini belum memiliki jadwal praktek dalam 21 hari ke depan.',
+                builder: (schedules) {
+                  final practisingDates = schedules
+                      .map((s) => DateTime(s.date.year, s.date.month, s.date.day))
+                      .toSet();
+
+                  final selectedSchedule = _date == null
+                      ? null
+                      : schedules.cast<UpcomingScheduleDate?>().firstWhere(
+                            (s) =>
+                                s != null &&
+                                s.date.year == _date!.year &&
+                                s.date.month == _date!.month &&
+                                s.date.day == _date!.day,
+                            orElse: () => null,
+                          );
+
+                  return ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xl,
+                      AppSpacing.xs,
+                      AppSpacing.xl,
+                      AppSpacing.sm,
+                    ),
+                    children: [
+                      PracticeCalendar(
+                        kind: BookingKind.appointment,
+                        selected: _date,
+                        practisingDates: practisingDates,
+                        onSelected: (value) {
+                          setState(() => _date = value);
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (_date != null)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.mint.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.accentSoft,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.accentSoft.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_today_rounded,
+                                  color: AppColors.accentSoft,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Tanggal Dipilih:',
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    Text(
+                                      DateFormat(
+                                        'EEEE, d MMMM yyyy',
+                                        'id_ID',
+                                      ).format(_date!),
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    if (selectedSchedule != null &&
+                                        selectedSchedule.timeLabel.isNotEmpty)
+                                      Text(
+                                        'Jam Praktek: ${selectedSchedule.timeLabel}',
+                                        style: AppTypography.bodySm.copyWith(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.link,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                size: 18,
+                                color: AppColors.textTertiary,
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Pilih salah satu tanggal praktek pada kalender di atas.',
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _date != null ? AppColors.accentSoft : AppColors.border,
+                    elevation: _date != null ? 2 : 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _date != null
+                      ? () => Navigator.of(context).pop(_date)
+                      : null,
+                  child: Text(
+                    'Pilih Tanggal',
+                    style: AppTypography.bodySm.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _date != null
+                          ? AppColors.white
+                          : AppColors.textPrimary.withValues(alpha: 0.4),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(_date),
-                child: Text(
-                  'Pilih',
-                  style: AppTypography.button.copyWith(
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

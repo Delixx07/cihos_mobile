@@ -71,6 +71,39 @@ class CatalogRepository {
     return _listOf(response['schedules'], PracticeSchedule.fromJson);
   }
 
+  /// Upcoming schedules for a doctor within [days] (default 21).
+  /// GET /app/schedule-upcoming?paramedic_id=...&unit=...&days=21&with_slots=0
+  Future<List<UpcomingScheduleDate>> upcomingSchedules({
+    required String doctorId,
+    String? unitCode,
+    int days = 21,
+    int withSlots = 0,
+  }) async {
+    final response = await _client.get(
+      '/app/schedule-upcoming',
+      query: {
+        'paramedic_id': doctorId,
+        if (unitCode != null && unitCode.isNotEmpty) 'unit': unitCode,
+        'days': days,
+        'with_slots': withSlots,
+      },
+      authenticated: true,
+    );
+
+    final rawList = response['schedules'] ??
+        response['data'] ??
+        response['dates'] ??
+        response['upcoming'];
+
+    if (rawList is List) {
+      return rawList.whereType<Map>().map((item) {
+        return UpcomingScheduleDate.fromJson(item.cast<String, dynamic>());
+      }).toList();
+    }
+
+    return const [];
+  }
+
   /// Queue numbers still open for [doctorId] at [unitCode] on [date].
   Future<DaySlots> slots({
     required String doctorId,
@@ -180,5 +213,41 @@ final slotsProvider = FutureProvider.family<DaySlots, SlotQuery>(
         doctorId: query.doctorId,
         unitCode: query.unitCode,
         date: query.date,
+      ),
+);
+
+/// Query for upcoming schedules within a number of days (default 21).
+class UpcomingScheduleQuery {
+  const UpcomingScheduleQuery({
+    required this.doctorId,
+    this.unitCode,
+    this.days = 21,
+    this.withSlots = 0,
+  });
+
+  final String doctorId;
+  final String? unitCode;
+  final int days;
+  final int withSlots;
+
+  @override
+  bool operator ==(Object other) =>
+      other is UpcomingScheduleQuery &&
+      other.doctorId == doctorId &&
+      other.unitCode == unitCode &&
+      other.days == days &&
+      other.withSlots == withSlots;
+
+  @override
+  int get hashCode => Object.hash(doctorId, unitCode, days, withSlots);
+}
+
+final upcomingSchedulesProvider =
+    FutureProvider.family<List<UpcomingScheduleDate>, UpcomingScheduleQuery>(
+  (ref, query) => ref.watch(catalogRepositoryProvider).upcomingSchedules(
+        doctorId: query.doctorId,
+        unitCode: query.unitCode,
+        days: query.days,
+        withSlots: query.withSlots,
       ),
 );

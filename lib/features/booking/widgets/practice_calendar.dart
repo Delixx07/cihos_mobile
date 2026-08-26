@@ -14,12 +14,17 @@ class PracticeCalendar extends StatefulWidget {
     required this.kind,
     required this.selected,
     required this.onSelected,
+    this.practisingDates,
   });
 
   /// Decides how far ahead days stay bookable.
   final BookingKind kind;
   final DateTime? selected;
   final ValueChanged<DateTime> onSelected;
+
+  /// Explicit set of available practising dates from the backend.
+  /// If provided, only these exact dates will be marked as practising / bookable.
+  final Set<DateTime>? practisingDates;
 
   @override
   State<PracticeCalendar> createState() => _PracticeCalendarState();
@@ -65,6 +70,7 @@ class _PracticeCalendarState extends State<PracticeCalendar> {
               month: _visibleMonth,
               kind: widget.kind,
               selected: widget.selected,
+              practisingDates: widget.practisingDates,
               onSelected: widget.onSelected,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -166,12 +172,14 @@ class _DayGrid extends StatelessWidget {
     required this.kind,
     required this.selected,
     required this.onSelected,
+    this.practisingDates,
   });
 
   final DateTime month;
   final BookingKind kind;
   final DateTime? selected;
   final ValueChanged<DateTime> onSelected;
+  final Set<DateTime>? practisingDates;
 
   @override
   Widget build(BuildContext context) {
@@ -207,9 +215,11 @@ class _DayGrid extends StatelessWidget {
     }
 
     final day = DateTime(month.year, month.month, dayOffset + 1);
-    final isPractising =
-        BookingOptions.isPractisingDay(day) &&
-        BookingOptions.isBookable(day, kind);
+    final isPractising = practisingDates != null
+        ? practisingDates!.any((d) =>
+            d.year == day.year && d.month == day.month && d.day == day.day)
+        : (BookingOptions.isPractisingDay(day) &&
+            BookingOptions.isBookable(day, kind));
     final isSelected =
         selected != null &&
         selected!.year == day.year &&

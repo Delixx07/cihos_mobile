@@ -103,6 +103,25 @@ class FakeCatalogRepository implements CatalogRepository {
   }
 
   @override
+  Future<List<UpcomingScheduleDate>> upcomingSchedules({
+    required String doctorId,
+    String? unitCode,
+    int days = 21,
+    int withSlots = 0,
+  }) async {
+    _guard();
+    final now = DateTime.now();
+    return [
+      UpcomingScheduleDate(
+        date: now.add(const Duration(days: 1)),
+        unitCode: unitCode ?? 'SU-016',
+        unitName: 'INTERNAL MEDICINE',
+        timeLabel: '12:00 - 12:15',
+      ),
+    ];
+  }
+
+  @override
   Future<DaySlots> slots({
     required String doctorId,
     required String unitCode,

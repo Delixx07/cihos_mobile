@@ -44,7 +44,7 @@ final doctorsProvider = Provider<List<Doctor>>((ref) {
 final doctorByIdProvider = Provider.family<Doctor?, String>((ref, id) {
   final doctors = ref.watch(doctorsProvider);
   for (final doctor in doctors) {
-    if (doctor.id == id) return doctor;
+    if (doctor.id == id || doctor.id == 'd$id' || id == 'd${doctor.id}') return doctor;
   }
   return null;
 });

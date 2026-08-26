@@ -130,3 +130,53 @@ class DaySlots {
 
   bool get isEmpty => slots.isEmpty;
 }
+
+/// A specific upcoming practice date for a doctor.
+class UpcomingScheduleDate {
+  const UpcomingScheduleDate({
+    required this.date,
+    this.unitCode = '',
+    this.unitName = '',
+    this.timeLabel = '',
+    this.operationalTimeCode = '',
+    this.roomCode,
+    this.raw = const {},
+  });
+
+  final DateTime date;
+  final String unitCode;
+  final String unitName;
+  final String timeLabel;
+  final String operationalTimeCode;
+  final String? roomCode;
+  final Map<String, dynamic> raw;
+
+  factory UpcomingScheduleDate.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedDate;
+    final rawDate = json['date'] ?? json['practice_date'] ?? json['schedule_date'];
+    if (rawDate != null) {
+      parsedDate = DateTime.tryParse(rawDate.toString());
+    }
+
+    final time = json['operational_time_name'] as String? ??
+        json['time_label'] as String? ??
+        json['operational_time'] as String? ??
+        json['time'] as String? ??
+        '';
+
+    return UpcomingScheduleDate(
+      date: parsedDate ?? DateTime.now(),
+      unitCode: json['service_unit_code'] as String? ??
+          json['unit_code'] as String? ??
+          json['unit'] as String? ??
+          '',
+      unitName: json['service_unit_name'] as String? ??
+          json['unit_name'] as String? ??
+          '',
+      timeLabel: time,
+      operationalTimeCode: json['operational_time_code'] as String? ?? '',
+      roomCode: json['room_code'] as String?,
+      raw: json,
+    );
+  }
+}
