@@ -307,8 +307,8 @@ CustomTransitionPage<void> _sharedAxis(GoRouterState state, Widget child) {
 
       return SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(-AppMotion.pageSlide, 0),
-          end: Offset.zero,
+          begin: Offset.zero,
+          end: const Offset(-AppMotion.pageSlide, 0),
         ).animate(leaving),
         child: FadeTransition(
           // Dim the page underneath instead of leaving it fully lit.

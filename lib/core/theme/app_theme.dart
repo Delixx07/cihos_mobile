@@ -22,6 +22,8 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
+      canvasColor: AppColors.background,
+      cardColor: AppColors.white,
       textTheme: TextTheme(
         displayLarge: AppTypography.headingLg,
         headlineLarge: AppTypography.headingLg,

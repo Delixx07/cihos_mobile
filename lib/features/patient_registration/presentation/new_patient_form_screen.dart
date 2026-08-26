@@ -7,11 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
 import '../domain/patient_draft.dart';
-import '../widgets/underline_field.dart';
-import '../../../core/theme/app_elevation.dart';
 
 /// Step 2b — the full intake form for someone with no record here yet.
 class NewPatientFormScreen extends StatefulWidget {
@@ -61,7 +57,6 @@ class _NewPatientFormScreenState extends State<NewPatientFormScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) {
-      // Validation errors sit above the fold on a form this long.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lengkapi data yang bertanda *.')),
       );
@@ -102,122 +97,280 @@ class _NewPatientFormScreenState extends State<NewPatientFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ScreenHeader(title: 'Pendaftaran Pasien'),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xxl,
-                      AppSpacing.lg,
-                      AppSpacing.xxl,
-                      AppSpacing.xxl,
-                    ),
-                    children: [
-                      const _SectionTitle('Kartu ID'),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'Pendaftaran pasien usia diatas 1 tahun, wajib '
-                        'memasukkan nomor NIK Pasien di Kartu Keluarga '
-                        '(<17 tahun) / KTP (>17 Tahun)',
-                        style: AppTypography.inputText,
+      backgroundColor: AppColors.accentSoft,
+      body: Column(
+        children: [
+          // Top Header
+          Container(
+            color: AppColors.accentSoft,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.sm,
+              AppSpacing.xxl,
+              AppSpacing.xl,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: AppSpacing.xl),
-                      UnderlineField(
-                        label: 'Nama Lengkap*',
-                        hint: 'Masukkan nama sesuai kartu identitas',
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    onPressed: () => context.pop(),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    'Pendaftaran Pasien Baru',
+                    style: AppTypography.headingMd.copyWith(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // White Content Panel
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    AppSpacing.xl,
+                    AppSpacing.xxl,
+                    AppSpacing.xxl,
+                  ),
+                  children: [
+                    // Section 1: Kartu ID
+                    _FormSectionHeader(
+                      title: 'Kartu Identitas (ID)',
+                      icon: Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: AppColors.accentSoft,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              'Pendaftaran pasien usia diatas 1 tahun wajib memasukkan nomor NIK Pasien di Kartu Keluarga (<17 tahun) / KTP (>17 Tahun).',
+                              style: AppTypography.caption.copyWith(
+                                fontSize: 11,
+                                height: 1.35,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Nama Lengkap
+                    _FieldWrapper(
+                      label: 'Nama Lengkap *',
+                      child: TextFormField(
                         controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        style: AppTypography.inputText,
+                        decoration: _inputDecoration('Masukkan nama sesuai kartu identitas'),
                         validator: _required,
                       ),
-                      UnderlineDropdown(
-                        label: 'Jenis ID Pasien*',
-                        hint: 'Pilih ID Pasien',
-                        value: _idType,
-                        options: PatientOptions.idTypes,
-                        onChanged: (value) => setState(() => _idType = value),
+                    ),
+
+                    // Jenis ID Pasien
+                    _FieldWrapper(
+                      label: 'Jenis ID Pasien *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _idType,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Jenis ID Pasien'),
+                        items: PatientOptions.idTypes.map((t) {
+                          return DropdownMenuItem(value: t, child: Text(t));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _idType = val),
                         validator: _requiredChoice,
                       ),
-                      UnderlineField(
-                        label: 'Nomor ID Pasien*',
-                        hint: 'Nomor ID Pasien',
+                    ),
+
+                    // Nomor ID Pasien
+                    _FieldWrapper(
+                      label: 'Nomor ID Pasien *',
+                      child: TextFormField(
                         controller: _idNumberController,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(16),
                         ],
+                        style: AppTypography.inputText,
+                        decoration: _inputDecoration('Masukkan Nomor ID Pasien'),
                         validator: _required,
                       ),
-                      UnderlineDropdown(
-                        label: 'Kewarganegaraan*',
-                        hint: 'Pilih Kewarganegaraan',
-                        value: _nationality,
-                        options: PatientOptions.nationalities,
-                        onChanged: (value) =>
-                            setState(() => _nationality = value),
-                        validator: _requiredChoice,
-                      ),
+                    ),
 
-                      const _SectionTitle('INFORMASI TAMBAHAN'),
-                      const SizedBox(height: AppSpacing.lg),
-                      UnderlineDropdown(
-                        label: 'Status Pernikahan*',
-                        hint: 'Pilih Status Pernikahan',
-                        value: _maritalStatus,
-                        options: PatientOptions.maritalStatuses,
-                        onChanged: (value) =>
-                            setState(() => _maritalStatus = value),
+                    // Kewarganegaraan
+                    _FieldWrapper(
+                      label: 'Kewarganegaraan *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _nationality,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Kewarganegaraan'),
+                        items: PatientOptions.nationalities.map((n) {
+                          return DropdownMenuItem(value: n, child: Text(n));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _nationality = val),
                         validator: _requiredChoice,
                       ),
-                      UnderlineDropdown(
-                        label: 'Agama*',
-                        hint: 'Pilih Agama',
-                        value: _religion,
-                        options: PatientOptions.religions,
-                        onChanged: (value) => setState(() => _religion = value),
-                        validator: _requiredChoice,
-                      ),
-                      UnderlineDropdown(
-                        label: 'Pendidikan Terakhir*',
-                        hint: 'Pilih Pendidikan Terakhir',
-                        value: _education,
-                        options: PatientOptions.educations,
-                        onChanged: (value) =>
-                            setState(() => _education = value),
-                        validator: _requiredChoice,
-                      ),
-                      UnderlineDropdown(
-                        label: 'Pekerjaan*',
-                        hint: 'Pilih Pekerjaan',
-                        value: _occupation,
-                        options: PatientOptions.occupations,
-                        onChanged: (value) =>
-                            setState(() => _occupation = value),
-                        validator: _requiredChoice,
-                      ),
+                    ),
 
-                      const _SectionTitle('INFORMASI KONTAK'),
-                      const SizedBox(height: AppSpacing.lg),
-                      UnderlineField(
-                        label: 'Nomor HP*',
-                        hint: 'Masukkan no. HP',
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Section 2: Informasi Tambahan
+                    _FormSectionHeader(
+                      title: 'Informasi Tambahan',
+                      icon: Icons.person_outline_rounded,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Status Pernikahan
+                    _FieldWrapper(
+                      label: 'Status Pernikahan *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _maritalStatus,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Status Pernikahan'),
+                        items: PatientOptions.maritalStatuses.map((s) {
+                          return DropdownMenuItem(value: s, child: Text(s));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _maritalStatus = val),
+                        validator: _requiredChoice,
+                      ),
+                    ),
+
+                    // Agama
+                    _FieldWrapper(
+                      label: 'Agama *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _religion,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Agama'),
+                        items: PatientOptions.religions.map((r) {
+                          return DropdownMenuItem(value: r, child: Text(r));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _religion = val),
+                        validator: _requiredChoice,
+                      ),
+                    ),
+
+                    // Pendidikan Terakhir
+                    _FieldWrapper(
+                      label: 'Pendidikan Terakhir *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _education,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Pendidikan Terakhir'),
+                        items: PatientOptions.educations.map((e) {
+                          return DropdownMenuItem(value: e, child: Text(e));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _education = val),
+                        validator: _requiredChoice,
+                      ),
+                    ),
+
+                    // Pekerjaan
+                    _FieldWrapper(
+                      label: 'Pekerjaan *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _occupation,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Pekerjaan'),
+                        items: PatientOptions.occupations.map((o) {
+                          return DropdownMenuItem(value: o, child: Text(o));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _occupation = val),
+                        validator: _requiredChoice,
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Section 3: Informasi Kontak
+                    _FormSectionHeader(
+                      title: 'Informasi Kontak',
+                      icon: Icons.contact_phone_outlined,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Nomor HP
+                    _FieldWrapper(
+                      label: 'Nomor HP *',
+                      child: TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(15),
                         ],
+                        style: AppTypography.inputText,
+                        decoration: _inputDecoration('Masukkan nomor handphone aktif'),
                         validator: _required,
                       ),
-                      UnderlineField(
-                        label: 'Email*',
-                        hint: 'Masukkan alamat e-mail Anda',
+                    ),
+
+                    // Email
+                    _FieldWrapper(
+                      label: 'Email *',
+                      child: TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        style: AppTypography.inputText,
+                        decoration: _inputDecoration('Masukkan alamat email'),
                         validator: (value) {
                           final email = value?.trim() ?? '';
                           if (email.isEmpty) return 'Wajib diisi';
@@ -227,144 +380,242 @@ class _NewPatientFormScreenState extends State<NewPatientFormScreen> {
                           return null;
                         },
                       ),
-                      UnderlineField(
-                        label: 'Alamat*',
-                        hint: 'Masukkan alamat rumah Anda',
+                    ),
+
+                    // Alamat
+                    _FieldWrapper(
+                      label: 'Alamat Rumah *',
+                      child: TextFormField(
                         controller: _addressController,
                         maxLines: 2,
+                        style: AppTypography.inputText,
+                        decoration: _inputDecoration('Masukkan alamat rumah lengkap'),
                         validator: _required,
                       ),
-                      UnderlineDropdown(
-                        label: 'Provinsi*',
-                        hint: 'Pilih Provinsi',
-                        value: _province,
-                        options: PatientOptions.provinces,
-                        onChanged: (value) => setState(() => _province = value),
-                        validator: _requiredChoice,
-                      ),
-                      UnderlineDropdown(
-                        label: 'Kota*',
-                        hint: 'Pilih Kota',
-                        value: _city,
-                        options: PatientOptions.cities,
-                        onChanged: (value) => setState(() => _city = value),
-                        validator: _requiredChoice,
-                      ),
-                      UnderlineDropdown(
-                        label: 'Kelurahan*',
-                        hint: 'Pilih Kelurahan',
-                        value: _village,
-                        options: PatientOptions.villages,
-                        onChanged: (value) => setState(() => _village = value),
-                        validator: _requiredChoice,
-                      ),
+                    ),
 
-                      const _WarningCard(),
-                      const SizedBox(height: AppSpacing.xl),
-                      _Consent(
-                        value: _agreedToTerms,
-                        onChanged: (value) =>
-                            setState(() => _agreedToTerms = value),
-                        text:
-                            'Dengan ini, saya menyatakan bahwa data diatas '
-                            'adalah benar dan saya menyetujui pembuatan data '
-                            'pasien sesuai dengan Syarat & Ketentuan yang '
-                            'berlaku',
+                    // Provinsi
+                    _FieldWrapper(
+                      label: 'Provinsi *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _province,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Provinsi'),
+                        items: PatientOptions.provinces.map((p) {
+                          return DropdownMenuItem(value: p, child: Text(p));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _province = val),
+                        validator: _requiredChoice,
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      _Consent(
-                        value: _wantsWhatsApp,
-                        onChanged: (value) =>
-                            setState(() => _wantsWhatsApp = value),
-                        text:
-                            'Saya bersedia mendapatkan informasi terbaru dari '
-                            'Ciputra Hospital melalui WA',
+                    ),
+
+                    // Kota
+                    _FieldWrapper(
+                      label: 'Kota *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _city,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Kota'),
+                        items: PatientOptions.cities.map((c) {
+                          return DropdownMenuItem(value: c, child: Text(c));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _city = val),
+                        validator: _requiredChoice,
                       ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      AppButton(
-                        label: 'Lanjut',
-                        expand: true,
-                        onPressed: _submit,
+                    ),
+
+                    // Kelurahan
+                    _FieldWrapper(
+                      label: 'Kelurahan *',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _village,
+                        style: AppTypography.inputText.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: _inputDecoration('Pilih Kelurahan'),
+                        items: PatientOptions.villages.map((v) {
+                          return DropdownMenuItem(value: v, child: Text(v));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _village = val),
+                        validator: _requiredChoice,
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Warning Notice
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            size: 20,
+                            color: AppColors.danger,
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Text(
+                              'Perubahan data pada halaman ini tidak mengubah data rekam medis saat ini. Akan tetapi akan digunakan pada saat pembuatan nomor rekam medis baru.',
+                              style: AppTypography.bodySm.copyWith(
+                                fontSize: 12,
+                                height: 1.3,
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Consent 1
+                    _ConsentRow(
+                      value: _agreedToTerms,
+                      onChanged: (val) => setState(() => _agreedToTerms = val),
+                      text:
+                          'Dengan ini, saya menyatakan bahwa data diatas adalah benar dan saya menyetujui pembuatan data pasien sesuai dengan Syarat & Ketentuan yang berlaku',
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Consent 2
+                    _ConsentRow(
+                      value: _wantsWhatsApp,
+                      onChanged: (val) => setState(() => _wantsWhatsApp = val),
+                      text:
+                          'Saya bersedia mendapatkan informasi terbaru dari Ciputra Hospital melalui WA',
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        color: AppColors.white,
+        padding: EdgeInsets.only(
+          left: AppSpacing.xxl,
+          right: AppSpacing.xxl,
+          top: AppSpacing.sm,
+          bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
+        ),
+        child: AppButton(
+          label: 'Lanjut',
+          expand: true,
+          background: AppColors.accentSoft,
+          onPressed: _submit,
+        ),
+      ),
+    );
+  }
+
+  static InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTypography.inputText.copyWith(
+        color: AppColors.textTertiary,
+        fontSize: 13,
+      ),
+      filled: true,
+      fillColor: AppColors.surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: const BorderSide(
+          color: AppColors.accentSoft,
+          width: 1.5,
         ),
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+class _FormSectionHeader extends StatelessWidget {
+  const _FormSectionHeader({required this.title, required this.icon});
 
-  final String text;
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.accentSoft.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: AppColors.accentSoft),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          title,
+          style: AppTypography.inputText.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.accentSoft,
+            fontSize: 15,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FieldWrapper extends StatelessWidget {
+  const _FieldWrapper({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.md),
-      child: Text(
-        text,
-        style: AppTypography.inputText.copyWith(
-          fontWeight: FontWeight.w700,
-          color: AppColors.link,
-        ),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.bodySm.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          child,
+        ],
       ),
     );
   }
 }
 
-/// The red notice about what editing here does and does not change.
-class _WarningCard extends StatelessWidget {
-  const _WarningCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        boxShadow: AppElevation.level2,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 21,
-              color: Color(0xFFDE3333),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                'Perubahan data pada halaman ini tidak mengubah data rekam '
-                'medis saat ini. Akan tetapi akan digunakan pada saat '
-                'pembuatan nomor rekam medis baru.',
-                style: AppTypography.bodySm.copyWith(
-                  fontSize: 13,
-                  height: 1.27,
-                  color: const Color(0xFFDE3333),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Consent extends StatelessWidget {
-  const _Consent({
+class _ConsentRow extends StatelessWidget {
+  const _ConsentRow({
     required this.value,
     required this.onChanged,
     required this.text,
@@ -378,29 +629,32 @@ class _Consent extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => onChanged(!value),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              value ? Icons.check_circle : Icons.circle_outlined,
-              size: 16,
-              color: AppColors.textPrimary,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              value
+                  ? Icons.check_box_rounded
+                  : Icons.check_box_outline_blank_rounded,
+              size: 20,
+              color: value ? AppColors.accentSoft : AppColors.textTertiary,
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 13,
-                height: 1.4,
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                text,
+                style: AppTypography.bodySm.copyWith(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

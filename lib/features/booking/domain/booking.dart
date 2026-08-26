@@ -54,10 +54,90 @@ class BookingPatient {
   const BookingPatient({
     required this.name,
     required this.medicalRecordNumber,
+    this.familyRelation,
+    this.nik,
+    this.phone,
+    this.gender,
+    this.birthDate,
   });
 
   final String name;
   final String medicalRecordNumber;
+  final String? familyRelation;
+  final String? nik;
+  final String? phone;
+  final String? gender;
+  final DateTime? birthDate;
+
+  String get displayName {
+    if (familyRelation != null && familyRelation!.isNotEmpty) {
+      if (name.contains('(')) return name;
+      return '$name ($familyRelation)';
+    }
+    return name;
+  }
+
+  factory BookingPatient.fromJson(Map<String, dynamic> json) => BookingPatient(
+    name: json['name'] as String? ?? '',
+    medicalRecordNumber:
+        json['medicalRecordNumber'] as String? ??
+        json['medical_no'] as String? ??
+        json['no_rm'] as String? ??
+        '',
+    familyRelation:
+        json['familyRelation'] as String? ??
+        json['relation'] as String? ??
+        json['family_relation'] as String?,
+    nik: json['nik'] as String? ?? json['id_number'] as String?,
+    phone: json['phone'] as String?,
+    gender: json['gender'] as String?,
+    birthDate: json['birthDate'] != null
+        ? DateTime.tryParse(json['birthDate'] as String)
+        : (json['birth_date'] != null
+            ? DateTime.tryParse(json['birth_date'] as String)
+            : null),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'medicalRecordNumber': medicalRecordNumber,
+    if (familyRelation != null) 'familyRelation': familyRelation,
+    if (nik != null) 'nik': nik,
+    if (phone != null) 'phone': phone,
+    if (gender != null) 'gender': gender,
+    if (birthDate != null) 'birthDate': birthDate!.toIso8601String(),
+  };
+
+  BookingPatient copyWith({
+    String? name,
+    String? medicalRecordNumber,
+    String? familyRelation,
+    String? nik,
+    String? phone,
+    String? gender,
+    DateTime? birthDate,
+  }) {
+    return BookingPatient(
+      name: name ?? this.name,
+      medicalRecordNumber: medicalRecordNumber ?? this.medicalRecordNumber,
+      familyRelation: familyRelation ?? this.familyRelation,
+      nik: nik ?? this.nik,
+      phone: phone ?? this.phone,
+      gender: gender ?? this.gender,
+      birthDate: birthDate ?? this.birthDate,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BookingPatient &&
+          runtimeType == other.runtimeType &&
+          medicalRecordNumber == other.medicalRecordNumber &&
+          name == other.name;
+
+  @override
+  int get hashCode => medicalRecordNumber.hashCode ^ name.hashCode;
 }
 
 /// A bookable slot in a doctor's day.

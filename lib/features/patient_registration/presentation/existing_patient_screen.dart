@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
 import '../domain/patient_draft.dart';
-import '../widgets/underline_field.dart';
 
 /// Step 2a — look up someone who is already a patient here.
 class ExistingPatientScreen extends StatefulWidget {
@@ -34,6 +32,33 @@ class _ExistingPatientScreenState extends State<ExistingPatientScreen> {
     super.dispose();
   }
 
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 25, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Pilih Tanggal Lahir Pasien',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.accentSoft,
+              onPrimary: AppColors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _birthDate = picked);
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
@@ -42,8 +67,7 @@ class _ExistingPatientScreenState extends State<ExistingPatientScreen> {
       familyRelation: _relation,
       birthDate: _birthDate,
       gender: _gender,
-      // The lookup would fill these in from the record; stand in for now.
-      name: 'Nadila',
+      name: 'Pasien Terdaftar',
       idType: PatientOptions.idTypes.first,
       idNumber: _recordController.text.trim(),
       nationality: PatientOptions.nationalities.first,
@@ -57,131 +81,364 @@ class _ExistingPatientScreenState extends State<ExistingPatientScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ScreenHeader(title: 'Pendaftaran Pasien'),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xxl,
-                      AppSpacing.lg,
-                      AppSpacing.xxl,
-                      AppSpacing.xxl,
-                    ),
-                    children: [
-                      UnderlineField(
-                        label: 'No. Rekam Medis atau NIK Pasien*',
-                        hint: 'Masukkan No. Rekam Medis/NIK Pasien',
-                        controller: _recordController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(16),
-                        ],
-                        helper:
-                            'Nomor Rekam Medis tertera pada kartu Pasien/hasil '
-                            'pemeriksaan/bukti transaksi RS. Nomor NIK tertera '
-                            'di Kartu Keluarga (<17 tahun) / KTP (>17 Tahun)',
-                        validator: (value) =>
-                            (value?.trim().isEmpty ?? true)
-                            ? 'Nomor wajib diisi'
-                            : null,
+      backgroundColor: AppColors.accentSoft,
+      body: Column(
+        children: [
+          // Top Header
+          Container(
+            color: AppColors.accentSoft,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.sm,
+              AppSpacing.xxl,
+              AppSpacing.xl,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
                       ),
-                      UnderlineDropdown(
-                        label: 'Hubungan Keluarga*',
-                        hint: 'Pilih Hubungan Keluarga',
-                        value: _relation,
-                        options: PatientOptions.familyRelations,
-                        onChanged: (value) => setState(() => _relation = value),
-                        validator: (value) =>
-                            value == null ? 'Hubungan wajib dipilih' : null,
-                      ),
-                      UnderlineDateField(
-                        label: 'Tanggal Lahir*',
-                        hint: 'Pilih Tanggal Lahir',
-                        value: _birthDate,
-                        onChanged: (value) =>
-                            setState(() => _birthDate = value),
-                        validator: (value) =>
-                            value == null ? 'Tanggal lahir wajib diisi' : null,
-                      ),
-                      _GenderPicker(
-                        value: _gender,
-                        onChanged: (value) => setState(() => _gender = value),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xxl,
-                  0,
-                  AppSpacing.xxl,
-                  AppSpacing.xl,
-                ),
-                child: AppButton(
-                  label: 'Lanjut',
-                  expand: true,
-                  onPressed: _submit,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The two radio options for sex, laid out in a row as in the design.
-class _GenderPicker extends StatelessWidget {
-  const _GenderPicker({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Jenis Kelamin*',
-          style: AppTypography.inputText.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            for (final option in PatientOptions.genders)
-              Expanded(
-                child: InkWell(
-                  onTap: () => onChanged(option),
-                  child: Row(
-                    children: [
-                      Icon(
-                        option == value
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
                         size: 16,
+                      ),
+                    ),
+                    onPressed: () => context.pop(),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    'Pasien Terdaftar',
+                    style: AppTypography.headingMd.copyWith(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // White Content Area
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    AppSpacing.xl,
+                    AppSpacing.xxl,
+                    AppSpacing.xxl,
+                  ),
+                  children: [
+                    Text(
+                      'Pencarian Pasien Lama',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Masukkan data pasien yang sudah terdaftar sebelumnya',
+                      style: AppTypography.headingSm.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        option,
-                        style: AppTypography.bodySm.copyWith(fontSize: 14),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // No. Rekam Medis / NIK
+                    Text(
+                      'No. Rekam Medis atau NIK Pasien *',
+                      style: AppTypography.bodySm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    TextFormField(
+                      controller: _recordController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(16),
+                      ],
+                      style: AppTypography.inputText,
+                      decoration: InputDecoration(
+                        hintText: 'Masukkan No. Rekam Medis/NIK Pasien',
+                        hintStyle: AppTypography.inputText.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.badge_outlined,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.accentSoft,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      validator: (value) =>
+                          (value?.trim().isEmpty ?? true)
+                              ? 'Nomor wajib diisi'
+                              : null,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Nomor Rekam Medis tertera pada kartu Pasien/hasil pemeriksaan/bukti transaksi RS. Nomor NIK tertera di Kartu Keluarga (<17 tahun) / KTP (>17 Tahun).',
+                      style: AppTypography.caption.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textTertiary,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Hubungan Keluarga
+                    Text(
+                      'Hubungan Keluarga *',
+                      style: AppTypography.bodySm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    DropdownButtonFormField<String>(
+                      initialValue: _relation,
+                      style: AppTypography.inputText.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Pilih Hubungan Keluarga',
+                        hintStyle: AppTypography.inputText.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.family_restroom_rounded,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.accentSoft,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      items: PatientOptions.familyRelations.map((rel) {
+                        return DropdownMenuItem(
+                          value: rel,
+                          child: Text(rel),
+                        );
+                      }).toList(),
+                      onChanged: (value) => setState(() => _relation = value),
+                      validator: (value) =>
+                          value == null ? 'Hubungan wajib dipilih' : null,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Tanggal Lahir
+                    Text(
+                      'Tanggal Lahir *',
+                      style: AppTypography.bodySm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    InkWell(
+                      onTap: _pickBirthDate,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Text(
+                                _birthDate == null
+                                    ? 'Pilih Tanggal Lahir'
+                                    : DateFormat('d MMMM yyyy', 'id_ID')
+                                        .format(_birthDate!),
+                                style: AppTypography.inputText.copyWith(
+                                  color: _birthDate == null
+                                      ? AppColors.textTertiary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_birthDate == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 12),
+                        child: Text(
+                          '*Tanggal lahir wajib dipilih saat verifikasi',
+                          style: AppTypography.caption.copyWith(
+                            fontSize: 10,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Jenis Kelamin
+                    Text(
+                      'Jenis Kelamin *',
+                      style: AppTypography.bodySm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        for (final option in PatientOptions.genders)
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _gender = option),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                              child: Container(
+                                margin: EdgeInsets.only(
+                                  right: option == PatientOptions.genders.first
+                                      ? 8
+                                      : 0,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _gender == option
+                                      ? AppColors.accentSoft
+                                          .withValues(alpha: 0.08)
+                                      : AppColors.surface,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
+                                  border: Border.all(
+                                    color: _gender == option
+                                        ? AppColors.accentSoft
+                                        : AppColors.border,
+                                    width: _gender == option ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _gender == option
+                                          ? Icons.radio_button_checked_rounded
+                                          : Icons
+                                              .radio_button_unchecked_rounded,
+                                      size: 18,
+                                      color: _gender == option
+                                          ? AppColors.accentSoft
+                                          : AppColors.textTertiary,
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Text(
+                                      option,
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontWeight: _gender == option
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-          ],
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        color: AppColors.white,
+        padding: EdgeInsets.only(
+          left: AppSpacing.xxl,
+          right: AppSpacing.xxl,
+          top: AppSpacing.sm,
+          bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.md,
         ),
-      ],
+        child: AppButton(
+          label: 'Lanjut',
+          expand: true,
+          background: AppColors.accentSoft,
+          onPressed: _submit,
+        ),
+      ),
     );
   }
 }

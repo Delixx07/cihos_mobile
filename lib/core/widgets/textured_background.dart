@@ -17,20 +17,26 @@ class TexturedBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: AppColors.background,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Opacity(
-            opacity: 0.46,
-            child: Image.asset(
-              _texturePath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.46,
+              child: Image.asset(
+                _texturePath,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
             ),
           ),
-          child,
+          Positioned.fill(child: child),
         ],
       ),
     );
