@@ -11,9 +11,11 @@ import '../domain/user.dart';
 /// Owns the bearer token: it is written on a successful sign-in and cleared on
 /// sign-out, so nothing above this layer has to think about it.
 class AuthRepository {
-  const AuthRepository({required ApiClient client, required TokenStore tokens})
-    : _client = client,
-      _tokens = tokens;
+  const AuthRepository({
+    required ApiClient client,
+    required TokenStore tokens,
+  })  : _client = client,
+        _tokens = tokens;
 
   final ApiClient _client;
   final TokenStore _tokens;
@@ -56,7 +58,14 @@ class AuthRepository {
           'gender': gender == Gender.male ? 'Laki-Laki' : 'Perempuan',
       },
     );
-    return _persist(response, fallbackNik: nik.trim());
+    return _persist(
+      response,
+      fallbackNik: nik.trim(),
+      fallbackName: fullName.trim(),
+      fallbackPhone: phone.trim(),
+      fallbackBirthDate: birthDate,
+      fallbackGender: gender,
+    );
   }
 
   /// Returns the signed-in patient, or null when there is no valid session.
@@ -77,6 +86,10 @@ class AuthRepository {
         nik: (user.nik != null && user.nik!.isNotEmpty)
             ? user.nik
             : localUser?.nik,
+        fullName: user.fullName.isNotEmpty ? user.fullName : localUser?.fullName,
+        phone: user.phone.isNotEmpty ? user.phone : localUser?.phone,
+        birthDate: user.birthDate ?? localUser?.birthDate,
+        gender: user.gender ?? localUser?.gender,
       );
       await _tokens.writeUser(mergedUser);
       return mergedUser;
@@ -102,8 +115,7 @@ class AuthRepository {
     try {
       await _client.post('/app/logout', authenticated: true);
     } on ApiException {
-      // The local session must end even when the call fails — the user asked
-      // to sign out, and an expired token would fail here anyway.
+      // The local session must end even when the call fails.
     } finally {
       await _tokens.clear();
     }
@@ -112,6 +124,10 @@ class AuthRepository {
   Future<AppUser> _persist(
     Map<String, dynamic> response, {
     String? fallbackNik,
+    String? fallbackName,
+    String? fallbackPhone,
+    DateTime? fallbackBirthDate,
+    Gender? fallbackGender,
   }) async {
     final token =
         response['token'] as String? ??
@@ -130,11 +146,13 @@ class AuthRepository {
     }
 
     var user = AppUser.fromJson(rawUser);
-    if ((user.nik == null || user.nik!.isEmpty) &&
-        fallbackNik != null &&
-        fallbackNik.isNotEmpty) {
-      user = user.copyWith(nik: fallbackNik);
-    }
+    user = user.copyWith(
+      fullName: user.fullName.isNotEmpty ? user.fullName : fallbackName,
+      nik: (user.nik != null && user.nik!.isNotEmpty) ? user.nik : fallbackNik,
+      phone: user.phone.isNotEmpty ? user.phone : fallbackPhone,
+      birthDate: user.birthDate ?? fallbackBirthDate,
+      gender: user.gender ?? fallbackGender,
+    );
 
     await _tokens.writeUser(user);
     return user;

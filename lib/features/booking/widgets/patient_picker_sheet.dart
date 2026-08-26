@@ -6,12 +6,11 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
 import '../data/patient_repository.dart';
 import '../domain/booking.dart';
 
-/// The modern searchable sheet listing every patient on the account.
-/// Pops the chosen patient, or null when dismissed.
+/// Clean & modern searchable sheet for selecting or managing patients.
+/// Keyboard-safe with DraggableScrollableSheet and instant 1-tap selection.
 class PatientPickerSheet extends ConsumerStatefulWidget {
   const PatientPickerSheet({super.key, this.selected});
 
@@ -23,7 +22,6 @@ class PatientPickerSheet extends ConsumerStatefulWidget {
 
 class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
   final _searchController = TextEditingController();
-
   late BookingPatient? _selected = widget.selected;
   String _query = '';
 
@@ -44,48 +42,39 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(16),
         ),
-        title: Row(
+        title: const Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.danger.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.delete_outline_rounded,
-                color: AppColors.danger,
-                size: 22,
-              ),
+            Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.danger,
+              size: 24,
             ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: Text(
-                'Hapus Pasien?',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+            SizedBox(width: 10),
+            Text(
+              'Hapus Pasien?',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
         ),
         content: Text(
-          'Apakah Anda yakin ingin menghapus data pasien "${patient.displayName}" dari daftar akun Anda?',
+          'Hapus data pasien "${patient.displayName}" dari daftar akun Anda?',
           style: AppTypography.bodySm.copyWith(
-            fontSize: 13,
+            fontSize: 13.5,
             color: AppColors.textSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
+            child: const Text(
               'Batal',
-              style: AppTypography.inputText.copyWith(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary,
               ),
@@ -95,10 +84,10 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
               foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-              ),
               elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(
@@ -122,8 +111,9 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Pasien "${patient.name}" berhasil dihapus.'),
+            content: Text('Data "${patient.name}" berhasil dihapus.'),
             duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -133,360 +123,386 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final allPatients = ref.watch(registeredPatientsProvider);
-    final matches = allPatients
-        .where(
-          (p) =>
-              p.name.toLowerCase().contains(_query.toLowerCase()) ||
-              p.medicalRecordNumber.toLowerCase().contains(_query.toLowerCase()) ||
-              (p.familyRelation?.toLowerCase().contains(_query.toLowerCase()) ??
-                  false),
-        )
-        .toList();
+    final matches = allPatients.where((p) {
+      final q = _query.toLowerCase().trim();
+      if (q.isEmpty) return true;
+      final matchName = p.name.toLowerCase().contains(q);
+      final matchMrn = p.medicalRecordNumber.toLowerCase().contains(q);
+      final matchNik = (p.nik ?? '').toLowerCase().contains(q);
+      final matchRel = (p.familyRelation ?? '').toLowerCase().contains(q);
+      return matchName || matchMrn || matchNik || matchRel;
+    }).toList();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xxl,
-        AppSpacing.lg,
-        AppSpacing.xxl,
-        AppSpacing.xl,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag Handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.82,
+      minChildSize: 0.45,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Drag Handle
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.accentSoft.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.people_alt_rounded,
-                    color: AppColors.accentSoft,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Pilih Pasien',
-                        style: AppTypography.headingMd.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Pilih pasien yang akan didaftarkan',
-                        style: AppTypography.bodySm.copyWith(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Tutup',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, size: 20),
-                  color: AppColors.textSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Search Field
-            TextField(
-              controller: _searchController,
-              onChanged: (value) => setState(() => _query = value),
-              style: AppTypography.inputText,
-              decoration: InputDecoration(
-                hintText: 'Cari nama atau No. Rekam Medis',
-                hintStyle: AppTypography.inputText.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                filled: true,
-                fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  borderSide: const BorderSide(
-                    color: AppColors.accentSoft,
-                    width: 1.5,
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
 
-            // List of Patients
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              // Sheet Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Pilih Pasien',
+                      style: AppTypography.headingMd.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Tutup',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, size: 22),
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
               ),
-              child: matches.isEmpty
-                  ? Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.xl,
-                        horizontal: AppSpacing.lg,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.person_search_rounded,
-                            size: 40,
-                            color: AppColors.textTertiary.withValues(alpha: 0.7),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            allPatients.isEmpty
-                                ? 'Belum Ada Pasien Terdaftar'
-                                : 'Pasien Tidak Ditemukan',
-                            style: AppTypography.bodySm.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            allPatients.isEmpty
-                                ? 'Silakan tambahkan data pasien terlebih dahulu.'
-                                : 'Coba kata kunci pencarian yang lain.',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: matches.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final patient = matches[index];
-                        final isSelected = _selected?.medicalRecordNumber ==
-                                patient.medicalRecordNumber &&
-                            _selected?.name == patient.name;
 
-                        return InkWell(
-                          onTap: () => setState(() => _selected = patient),
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          child: Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.accentSoft.withValues(alpha: 0.08)
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(AppRadius.sm),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.accentSoft
-                                    : AppColors.border,
-                                width: isSelected ? 1.5 : 1,
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: 4,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _query = value),
+                  style: AppTypography.inputText.copyWith(fontSize: 14.5),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama atau No. Rekam Medis...',
+                    hintStyle: AppTypography.bodySm.copyWith(
+                      color: AppColors.textTertiary,
+                      fontSize: 13.5,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: AppColors.accentSoft,
+                    ),
+                    suffixIcon: _query.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: AppColors.textTertiary,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _query = '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 11,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.accentSoft,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Scrollable Patient List
+              Expanded(
+                child: matches.isEmpty
+                    ? Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.person_search_rounded,
+                                size: 48,
+                                color:
+                                    AppColors.textTertiary.withValues(alpha: 0.6),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: isSelected
+                              const SizedBox(height: 10),
+                              Text(
+                                allPatients.isEmpty
+                                    ? 'Belum Ada Pasien Terdaftar'
+                                    : 'Pasien Tidak Ditemukan',
+                                style: AppTypography.bodySm.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14.5,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                allPatients.isEmpty
+                                    ? 'Silakan tambahkan data pasien baru di bawah.'
+                                    : 'Coba kata kunci pencarian yang lain.',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.bodySm.copyWith(
+                                  fontSize: 12.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.xl,
+                          4,
+                          AppSpacing.xl,
+                          AppSpacing.md,
+                        ),
+                        itemCount: matches.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final patient = matches[index];
+                          final isSelected = _selected?.medicalRecordNumber ==
+                                  patient.medicalRecordNumber &&
+                              _selected?.name == patient.name;
+
+                          final relation = patient.familyRelation ?? 'Pasien';
+                          final isSelf = relation.toLowerCase().contains('diri') ||
+                              relation.toLowerCase().contains('saya');
+
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() => _selected = patient);
+                                Navigator.of(context).pop(patient);
+                              },
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: isSelected
                                       ? AppColors.accentSoft
-                                      : AppColors.lavender.withValues(alpha: 0.3),
-                                  child: Text(
-                                    patient.name.isNotEmpty
-                                        ? patient.name[0].toUpperCase()
-                                        : 'P',
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? AppColors.white
-                                          : AppColors.accentSoft,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
+                                          .withValues(alpha: 0.08)
+                                      : AppColors.surface,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.accentSoft
+                                        : AppColors.border,
+                                    width: isSelected ? 1.5 : 1,
                                   ),
                                 ),
-                                const SizedBox(width: AppSpacing.md),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
+                                child: Row(
+                                  children: [
+                                    // Avatar
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: isSelected
+                                          ? AppColors.accentSoft
+                                          : AppColors.accentSoft
+                                              .withValues(alpha: 0.12),
+                                      child: Text(
+                                        patient.name.isNotEmpty
+                                            ? patient.name[0].toUpperCase()
+                                            : 'P',
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? AppColors.white
+                                              : AppColors.accentSoft,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    // Patient Details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Flexible(
-                                            child: Text(
-                                              patient.name,
-                                              style: AppTypography.inputText
-                                                  .copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          if (patient.familyRelation != null &&
-                                              patient.familyRelation!.isNotEmpty) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.accentSoft
-                                                    .withValues(alpha: 0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                patient.familyRelation!,
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.accentSoft,
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  patient.name,
+                                                  style: AppTypography.inputText
+                                                      .copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14.5,
+                                                    color: AppColors.textPrimary,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: isSelf
+                                                      ? const Color(0xFFE8F5E9)
+                                                      : AppColors.accentSoft
+                                                          .withValues(
+                                                              alpha: 0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  relation,
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isSelf
+                                                        ? const Color(
+                                                            0xFF2E7D32)
+                                                        : AppColors.accentSoft,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            patient.medicalRecordNumber.isNotEmpty
+                                                ? 'No. RM: ${patient.medicalRecordNumber}'
+                                                : (patient.nik != null &&
+                                                        patient.nik!.isNotEmpty
+                                                    ? 'NIK: ${patient.nik}'
+                                                    : 'Pasien Baru'),
+                                            style:
+                                                AppTypography.bodySm.copyWith(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
                                             ),
-                                          ],
+                                          ),
                                         ],
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'No. RM: ${patient.medicalRecordNumber}',
-                                        style: AppTypography.bodySm.copyWith(
-                                          fontSize: 12,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline_rounded,
-                                        size: 20,
-                                        color: AppColors.danger,
-                                      ),
-                                      tooltip: 'Hapus Pasien',
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: () =>
-                                          _confirmDeletePatient(patient),
                                     ),
-                                    if (isSelected)
-                                      const Padding(
-                                        padding: EdgeInsets.only(left: 4),
-                                        child: Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 22,
-                                          color: AppColors.accentSoft,
-                                        ),
-                                      ),
+                                    // Action buttons
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (!isSelf)
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              size: 19,
+                                              color: AppColors.danger,
+                                            ),
+                                            tooltip: 'Hapus Pasien',
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            onPressed: () =>
+                                                _confirmDeletePatient(patient),
+                                          ),
+                                        if (isSelected) ...[
+                                          const SizedBox(width: 8),
+                                          const Icon(
+                                            Icons.check_circle_rounded,
+                                            size: 22,
+                                            color: AppColors.accentSoft,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: AppSpacing.md),
+                          );
+                        },
+                      ),
+              ),
 
-            // Action Buttons
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(44),
-                side: const BorderSide(color: AppColors.accentSoft),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+              // Bottom Button: Tambah Pasien Baru
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.xs,
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: AppColors.accentSoft,
+                        width: 1.2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.person_add_outlined,
+                      color: AppColors.accentSoft,
+                      size: 18,
+                    ),
+                    label: Text(
+                      'Tambah Pasien Baru',
+                      style: AppTypography.inputText.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        color: AppColors.accentSoft,
+                      ),
+                    ),
+                    onPressed: _openAddPatient,
+                  ),
                 ),
               ),
-              icon: const Icon(
-                Icons.add_rounded,
-                color: AppColors.accentSoft,
-                size: 20,
-              ),
-              label: Text(
-                'Tambah Pasien Baru',
-                style: AppTypography.inputText.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accentSoft,
-                ),
-              ),
-              onPressed: _openAddPatient,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Pilih Pasien Ini',
-              expand: true,
-              background: AppColors.accentSoft,
-              onPressed: _selected == null
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Pilih pasien terlebih dahulu.'),
-                        ),
-                      );
-                    }
-                  : () => Navigator.of(context).pop(_selected),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

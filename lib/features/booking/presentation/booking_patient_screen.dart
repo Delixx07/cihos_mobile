@@ -270,36 +270,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                           color: AppColors.textPrimary,
                           fontSize: 16,
                         ),
-                      ),
-                      if (patients.isNotEmpty)
-                        InkWell(
-                          onTap: _openAddPatient,
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.add_circle_outline_rounded,
-                                  size: 16,
-                                  color: AppColors.accentSoft,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Tambah Pasien',
-                                  style: AppTypography.caption.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.accentSoft,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      )
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
