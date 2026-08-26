@@ -26,11 +26,13 @@ class BookingScheduleScreen extends ConsumerStatefulWidget {
 
 class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
   late DateTime? _date = widget.booking.date;
-  // Holds the matched UpcomingScheduleDate so _confirm() can read its codes.
-  // Stores the UpcomingScheduleDate whose date matches the calendar selection.
+  // Caches the matched UpcomingScheduleDate when the user picks a calendar date.
   UpcomingScheduleDate? _selectedScheduleCache;
 
-  void _confirm(List<UpcomingScheduleDate>? upcomingList) {
+  void _confirm({
+    required List<UpcomingScheduleDate>? upcomingList,
+    required List<PracticeSchedule> weeklySchedules,
+  }) {
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih tanggal terlebih dahulu.')),
@@ -49,16 +51,44 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
           orElse: () => null,
         );
 
-    // Only override if the resolved value is non-empty — never wipe with null.
-    final resolvedUnitCode = (schedule?.unitCode.isNotEmpty == true)
+    // Resolve unitCode: prefer upcoming entry → weekly schedule → booking original.
+    String? resolvedUnitCode = (schedule?.unitCode.isNotEmpty == true)
         ? schedule!.unitCode
-        : widget.booking.unitCode; // keep original from doctor selection
+        : null;
+
+    // Resolve operationalTimeCode: prefer upcoming entry → weekly schedule.
+    String? resolvedOpTimeCode = (schedule?.operationalTimeCode.isNotEmpty == true)
+        ? schedule!.operationalTimeCode
+        : null;
+
+    // If either field is still empty, fall back to the weekly practice schedule
+    // matched by day-of-week (ISO weekday: Mon=1 … Sun=7).
+    if ((resolvedUnitCode == null || resolvedOpTimeCode == null) &&
+        _date != null &&
+        weeklySchedules.isNotEmpty) {
+      final dayOfWeek = _date!.weekday; // 1=Mon … 7=Sun
+      final weeklyMatch = weeklySchedules.cast<PracticeSchedule?>().firstWhere(
+        (s) => s != null && s.dayNumber == dayOfWeek,
+        orElse: () => null,
+      );
+      if (weeklyMatch != null) {
+        resolvedUnitCode ??= weeklyMatch.unitCode.isNotEmpty
+            ? weeklyMatch.unitCode
+            : null;
+        resolvedOpTimeCode ??= weeklyMatch.operationalTimeCode.isNotEmpty
+            ? weeklyMatch.operationalTimeCode
+            : null;
+      }
+    }
+
+    // Final fallback: keep original value from the booking object.
+    resolvedUnitCode ??= widget.booking.unitCode;
 
     context.push(
       AppRoutes.bookingPatient,
       extra: widget.booking.copyWith(
         date: _date,
-        operationalTimeCode: schedule?.operationalTimeCode,
+        operationalTimeCode: resolvedOpTimeCode,
         unitCode: resolvedUnitCode,
       ),
     );
@@ -116,6 +146,14 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
     final availableDates = upcomingAsync?.valueOrNull != null
         ? (practisingDates ?? const <DateTime>{})
         : const <DateTime>{};
+
+    // Fetch weekly practice schedules as a fallback source for
+    // operationalTimeCode and unitCode, since /app/schedule-upcoming
+    // sometimes omits these fields. /taptalk/schedule reliably includes them.
+    final weeklySchedulesAsync = widget.booking.doctorId != null
+        ? ref.watch(doctorSchedulesProvider(widget.booking.doctorId!))
+        : null;
+    final weeklySchedules = weeklySchedulesAsync?.valueOrNull ?? const [];
 
     return Scaffold(
       backgroundColor: AppColors.accentSoft,
@@ -467,7 +505,10 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
           label: 'Lanjutkan',
           expand: true,
           background: AppColors.accentSoft,
-          onPressed: () => _confirm(upcomingAsync?.valueOrNull),
+          onPressed: () => _confirm(
+            upcomingList: upcomingAsync?.valueOrNull,
+            weeklySchedules: weeklySchedules,
+          ),
         ),
       ),
     );

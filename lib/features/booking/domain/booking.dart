@@ -181,6 +181,7 @@ class Booking {
     this.operationalTimeCode,
     this.patientName,
     this.patientMedicalRecordNumber,
+    this.patientNik,
     this.isNewPatient = false,
     this.paymentMethod,
     this.company,
@@ -200,6 +201,7 @@ class Booking {
 
   final String? patientName;
   final String? patientMedicalRecordNumber;
+  final String? patientNik;
   final bool isNewPatient;
 
   /// "Pribadi" or "Asuransi/Perusahaan".
@@ -225,6 +227,7 @@ class Booking {
     String? operationalTimeCode,
     String? patientName,
     String? patientMedicalRecordNumber,
+    String? patientNik,
     bool? isNewPatient,
     String? paymentMethod,
     String? company,
@@ -244,6 +247,7 @@ class Booking {
       operationalTimeCode: clearSlot ? null : (operationalTimeCode ?? this.operationalTimeCode),
       patientName: patientName ?? this.patientName,
       patientMedicalRecordNumber: patientMedicalRecordNumber ?? this.patientMedicalRecordNumber,
+      patientNik: patientNik ?? this.patientNik,
       isNewPatient: isNewPatient ?? this.isNewPatient,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       company: company ?? this.company,

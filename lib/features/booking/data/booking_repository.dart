@@ -44,9 +44,24 @@ class BookingRepository {
       'Session': booking.session ?? 1,
       'StartDate': startDate,
       'slot_no': booking.slotNumber ?? 1,
+      
+      // Patient Identifiers
+      // If the MRN is a temporary app ID (starts with APP-), send empty string 
+      // so Medinfras doesn't reject it, and rely on NIK instead.
+      'MedicalNo': (booking.patientMedicalRecordNumber?.startsWith('APP-') == true) 
+          ? '' 
+          : (booking.patientMedicalRecordNumber ?? ''),
+      'PatientName': booking.patientName ?? '',
+      'IDNumber': booking.patientNik ?? '',
+      'NIK': booking.patientNik ?? '',
+      'IsNewPatient': booking.isNewPatient ? '1' : '0',
+
       // Patient relation / guarantor
       'RelationToPatient': relationToPatient,
     };
+
+    // ignore: avoid_print
+    print('[BookingRepository] POST /app/appointments payload: $payload');
 
     final response = await _client.post(
       '/app/appointments',

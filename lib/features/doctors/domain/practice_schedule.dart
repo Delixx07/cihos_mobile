@@ -183,7 +183,13 @@ class UpcomingScheduleDate {
       }
     }
 
+    final schedulesList = json['schedules'] as List?;
+    final firstSchedule = schedulesList?.isNotEmpty == true && schedulesList!.first is Map
+        ? schedulesList.first as Map
+        : const {};
+
     final time = json['operational_time_name'] as String? ??
+        firstSchedule['operational_time_name'] as String? ??
         json['time_label'] as String? ??
         json['operational_time'] as String? ??
         json['time'] as String? ??
@@ -193,15 +199,20 @@ class UpcomingScheduleDate {
     return UpcomingScheduleDate(
       date: parsedDate ?? DateTime.fromMillisecondsSinceEpoch(0),
       unitCode: json['service_unit_code'] as String? ??
+          firstSchedule['service_unit_code'] as String? ??
           json['unit_code'] as String? ??
           json['unit'] as String? ??
           '',
       unitName: json['service_unit_name'] as String? ??
+          firstSchedule['service_unit_name'] as String? ??
           json['unit_name'] as String? ??
           '',
       timeLabel: time,
-      operationalTimeCode: json['operational_time_code'] as String? ?? '',
-      roomCode: json['room_code'] as String?,
+      operationalTimeCode: json['operational_time_code'] as String? ??
+          firstSchedule['operational_time_code'] as String? ??
+          '',
+      roomCode: json['room_code'] as String? ??
+          firstSchedule['room_code'] as String?,
       raw: json,
     );
   }

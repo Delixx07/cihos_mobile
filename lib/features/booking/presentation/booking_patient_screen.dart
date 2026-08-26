@@ -83,6 +83,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
       extra: widget.booking.copyWith(
         patientName: _patient!.name,
         patientMedicalRecordNumber: _patient!.medicalRecordNumber,
+        patientNik: _patient!.nik,
         paymentMethod: _paymentMethod,
         company: _company,
       ),
