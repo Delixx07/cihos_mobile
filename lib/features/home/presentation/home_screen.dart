@@ -8,7 +8,6 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/textured_background.dart';
-import '../../auth/application/auth_controller.dart';
 import '../domain/health_article.dart';
 import 'widgets/article_card.dart';
 import 'widgets/consultation_card.dart';
@@ -100,26 +99,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user;
-    final userName = user?.fullName.trim().isNotEmpty == true
-        ? user!.fullName.trim()
-        : 'Pasien';
-
     final upcomingList = ref.watch(upcomingAppointmentsProvider);
-    final appointmentPatients = upcomingList
+    final now = DateTime.now();
+    final activeUpcomingList = upcomingList
+        .where((a) => a.endsAt.isAfter(now))
+        .toList();
+
+    final appointmentPatients = activeUpcomingList
         .map((a) => a.patientName)
         .where((n) => n.trim().isNotEmpty && n.toLowerCase() != 'pasien')
         .toSet()
         .toList();
 
     final activeAppointment = _patientFilter == null
-        ? upcomingList.firstOrNull
-        : (upcomingList
+        ? activeUpcomingList.firstOrNull
+        : (activeUpcomingList
                 .where((a) =>
                     a.patientName.toLowerCase() ==
                     _patientFilter!.toLowerCase())
                 .firstOrNull ??
-            upcomingList.firstOrNull);
+            activeUpcomingList.firstOrNull);
 
     return Scaffold(
       bottomNavigationBar: const AppBottomNav(current: AppTab.home),
@@ -149,39 +148,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     QueueMonitorCard(
                       onTap: () => context.push(AppRoutes.queueMonitor),
                     ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2),
+                    if (activeAppointment != null) ...[
+                      const SizedBox(height: AppSpacing.xxl),
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Konsultasi Anda',
-                          style: AppTypography.headingMd.copyWith(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Konsultasi Anda',
+                            style: AppTypography.headingMd.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    if (appointmentPatients.length > 1) ...[
-                      _PatientFilter(
-                        patients: appointmentPatients,
-                        selected: _patientFilter,
-                        onChanged: (value) =>
-                            setState(() => _patientFilter = value),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.md),
-                    ],
-                    if (activeAppointment != null)
+                      if (appointmentPatients.length > 1) ...[
+                        _PatientFilter(
+                          patients: appointmentPatients,
+                          selected: _patientFilter,
+                          onChanged: (value) =>
+                              setState(() => _patientFilter = value),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
                       ConsultationCard(
                         patientName: activeAppointment.patientName,
                         scheduledAt: activeAppointment.startsAt,
@@ -194,19 +193,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           '${AppRoutes.appointments}/${activeAppointment.id.isNotEmpty ? activeAppointment.id : activeAppointment.bookingCode}',
                           extra: activeAppointment,
                         ),
-                      )
-                    else
-                      ConsultationCard(
-                        patientName: userName,
-                        scheduledAt: DateTime.now(),
-                        endsAt: DateTime.now().add(const Duration(minutes: 15)),
-                        bookingCode: '-',
-                        doctorName: 'Belum Ada Jadwal Temu',
-                        specialty: 'Pilih dokter untuk membuat janji temu',
-                        hospital: 'Ciputra Hospital Surabaya',
-                        onDetailTap: () =>
-                            context.push(AppRoutes.appointmentSearch),
                       ),
+                    ],
                     const SizedBox(height: AppSpacing.xxxl),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

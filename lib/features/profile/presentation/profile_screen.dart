@@ -9,7 +9,6 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/social_media_buttons.dart';
-import '../../../core/widgets/textured_background.dart';
 import '../../auth/application/auth_controller.dart';
 import 'edit_profile_screen.dart';
 import 'widgets/change_password_sheet.dart';
@@ -25,6 +24,135 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _pushNotificationsEnabled = true;
 
+  void _showSocialMediaSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Media Sosial Resmi',
+                style: AppTypography.headingMd.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Terhubung dengan Ciputra Hospital Surabaya melalui kanal resmi kami:',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySm.copyWith(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _SocialMediaCard(
+                    title: 'WhatsApp',
+                    subtitle: 'Customer Care',
+                    button: WhatsAppIconButton(size: 36),
+                  ),
+                  SizedBox(width: AppSpacing.lg),
+                  _SocialMediaCard(
+                    title: 'Instagram',
+                    subtitle: '@ciputrahospital',
+                    button: InstagramIconButton(size: 36),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacySheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Kebijakan Privasi & Ketentuan',
+                style: AppTypography.headingMd.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Expanded(
+                child: ListView(
+                  children: [
+                    Text(
+                      '1. Perlindungan Data Rekam Medis\n'
+                      'Ciputra Hospital Surabaya berkomitmen menjaga kerahasiaan seluruh informasi medis dan data pribadi pasien sesuai dengan peraturan perundang-undangan yang berlaku di Indonesia.\n\n'
+                      '2. Keamanan Akun\n'
+                      'Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi dan aktivitas yang dilakukan melalui akun terdaftar.\n\n'
+                      '3. Penggunaan Data\n'
+                      'Data kontak hanya digunakan untuk konfirmasi janji temu dokter, pembaruan jadwal klinik, hasil pemeriksaan laboratorium/radiologi, dan informasi layanan kesehatan penting.\n\n'
+                      '4. Hak Pasien\n'
+                      'Pasien memiliki hak untuk mengakses ringkasan riwayat medis serta memperbarui informasi profil kapan saja melalui aplikasi.',
+                      style: AppTypography.bodySm.copyWith(
+                        fontSize: 13.5,
+                        height: 1.6,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
@@ -34,99 +162,232 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final photoUrl = user?.photoUrl;
 
     return Scaffold(
+      backgroundColor: AppColors.accentSoft,
       bottomNavigationBar: const AppBottomNav(current: AppTab.profile),
-      body: TexturedBackground(
-        child: SafeArea(
-          bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl,
-              AppSpacing.lg,
-              AppSpacing.xxl,
-              AppSpacing.xxxl,
-            ),
-            children: [
-              const SizedBox(height: 8),
-              // Screen Title matching Sehat-mu
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Profil',
-                    style: AppTypography.headingLg.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // User Info Header Card
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accentSoft.withValues(alpha: 0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(color: AppColors.border, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    // Avatar Thumbnail
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.surface,
-                        border: Border.all(color: AppColors.border, width: 1),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ClipOval(child: _buildAvatar(photoUrl)),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selamat Datang',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
-                              color: AppColors.textTertiary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            fullName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.titleMd.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+      body: Column(
+        children: [
+          // Header with #464960 (AppColors.accentSoft) & harmonious slate gradient curve
+          Container(
+            width: double.infinity,
+            color: AppColors.accentSoft,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Top-right organic curved accent
+                Positioned(
+                  top: -70,
+                  right: -60,
+                  child: Container(
+                    width: 260,
+                    height: 260,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF5C5E70), // AppColors.accentLight
+                          const Color(0xFF464960), // #464960 (AppColors.accentSoft)
                         ],
                       ),
                     ),
-                    IconButton(
-                      tooltip: 'Keluar Akun',
-                      icon: const Icon(
-                        Icons.logout,
-                        color: AppColors.accentSoft,
-                        size: 22,
-                      ),
-                      onPressed: () {
+                  ),
+                ),
+
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Top Bar: Back Button (Left) & Gear/Settings Button for Edit Profile (Right)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              tooltip: 'Kembali',
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                } else {
+                                  context.go(AppRoutes.home);
+                                }
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'Edit Profil',
+                              icon: const Icon(
+                                Icons.settings_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const EditProfileScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 2),
+
+                        // Center Avatar with thick white border
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const EditProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 92,
+                              height: 92,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: _buildAvatar(photoUrl),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // User Name
+                        Text(
+                          fullName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          user?.email != null && user!.email.isNotEmpty
+                              ? user.email
+                              : 'Pasien Ciputra Hospital',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Main White Card Content
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    offset: Offset(0, -6),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(32)),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                  children: [
+                    // Group 1: Sosial Media, Notifikasi, Janji Temu Saya
+                    _ProfileMenuRow(
+                      icon: Icons.share_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Sosial Media',
+                      onTap: () => _showSocialMediaSheet(context),
+                    ),
+                    _ProfileSwitchRow(
+                      icon: Icons.notifications_active_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Notifikasi',
+                      value: _pushNotificationsEnabled,
+                      onChanged: (val) {
+                        setState(() => _pushNotificationsEnabled = val);
+                      },
+                    ),
+                    _ProfileMenuRow(
+                      icon: Icons.calendar_month_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Janji Temu Saya',
+                      onTap: () => context.go(AppRoutes.appointments),
+                    ),
+
+                    const SizedBox(height: 8),
+                    const Divider(height: 20, thickness: 1, color: AppColors.divider),
+                    const SizedBox(height: 8),
+
+                    // Group 2: Privasi, Keamanan, Bantuan
+                    _ProfileMenuRow(
+                      icon: Icons.privacy_tip_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Privasi',
+                      onTap: () => _showPrivacySheet(context),
+                    ),
+                    _ProfileMenuRow(
+                      icon: Icons.shield_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Keamanan',
+                      onTap: () => ChangePasswordSheet.show(context),
+                    ),
+                    _ProfileMenuRow(
+                      icon: Icons.help_outline_rounded,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Bantuan',
+                      onTap: () => FaqSheet.show(context),
+                    ),
+
+                    const SizedBox(height: 8),
+                    const Divider(height: 20, thickness: 1, color: AppColors.divider),
+                    const SizedBox(height: 8),
+
+                    // Group 3: Logout (Red accent)
+                    _ProfileMenuRow(
+                      icon: Icons.logout_rounded,
+                      iconColor: AppColors.danger,
+                      title: 'Log out',
+                      titleColor: AppColors.danger,
+                      tooltip: 'Keluar',
+                      onTap: () {
                         ref.read(authControllerProvider.notifier).signOut();
                         context.go(AppRoutes.onboarding);
                       },
@@ -134,91 +395,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Section Label "General"
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: AppSpacing.sm),
-                child: Text(
-                  'General',
-                  style: AppTypography.caption.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textTertiary,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-
-              // Unified Grouped Settings Container
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    _SettingsItem(
-                      icon: Icons.person_rounded,
-                      title: 'Profil & Akun',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const EditProfileScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const _SettingsDivider(),
-                    _SettingsItem(
-                      icon: Icons.lock_outline_rounded,
-                      title: 'Ubah Kata Sandi',
-                      onTap: () => ChangePasswordSheet.show(context),
-                    ),
-                    const _SettingsDivider(),
-                    _SettingsItem(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Tanya Jawab (FAQ)',
-                      onTap: () => FaqSheet.show(context),
-                    ),
-                    const _SettingsDivider(),
-                    _SettingsSwitchItem(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Notifikasi Aplikasi',
-                      value: _pushNotificationsEnabled,
-                      onChanged: (val) {
-                        setState(() => _pushNotificationsEnabled = val);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // Social Media Quick Actions (Bottom Right)
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    WhatsAppIconButton(size: 30),
-                    SizedBox(width: AppSpacing.sm),
-                    InstagramIconButton(size: 30),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -238,7 +417,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
           errorBuilder: (_, _, _) =>
-              const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
+              const Icon(Icons.person, size: 48, color: AppColors.textTertiary),
         );
       }
     }
@@ -247,21 +426,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       fit: BoxFit.cover,
       alignment: Alignment.topCenter,
       errorBuilder: (_, _, _) =>
-          const Icon(Icons.person, size: 28, color: AppColors.textTertiary),
+          const Icon(Icons.person, size: 48, color: AppColors.textTertiary),
     );
   }
 }
 
-class _SettingsItem extends StatelessWidget {
-  const _SettingsItem({
+class _ProfileMenuRow extends StatelessWidget {
+  const _ProfileMenuRow({
     required this.icon,
+    required this.iconColor,
     required this.title,
     required this.onTap,
+    this.titleColor,
+    this.tooltip,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String title;
   final VoidCallback onTap;
+  final Color? titleColor;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -269,29 +454,107 @@ class _SettingsItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Tooltip(
+          message: tooltip ?? title,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: titleColor ?? AppColors.textPrimary,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: titleColor?.withValues(alpha: 0.5) ??
+                      const Color(0xFFCBD5E1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSwitchRow extends StatelessWidget {
+  const _ProfileSwitchRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: 16,
+            horizontal: 8,
+            vertical: 7,
           ),
           child: Row(
             children: [
-              Icon(icon, color: const Color(0xFF64748B), size: 22),
-              const SizedBox(width: AppSpacing.md),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   title,
-                  style: AppTypography.bodySm.copyWith(
+                  style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
+                    letterSpacing: -0.1,
                   ),
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFF94A3B8),
-                size: 22,
+              Switch(
+                value: value,
+                activeThumbColor: const Color(0xFF10B981),
+                activeTrackColor: const Color(0xFFA7F3D0),
+                onChanged: onChanged,
               ),
             ],
           ),
@@ -301,63 +564,50 @@ class _SettingsItem extends StatelessWidget {
   }
 }
 
-class _SettingsSwitchItem extends StatelessWidget {
-  const _SettingsSwitchItem({
-    required this.icon,
+class _SocialMediaCard extends StatelessWidget {
+  const _SocialMediaCard({
     required this.title,
-    required this.value,
-    required this.onChanged,
+    required this.subtitle,
+    required this.button,
   });
 
-  final IconData icon;
   final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  final String subtitle;
+  final Widget button;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: 8,
+    return Container(
+      width: 130,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF64748B), size: 22),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              title,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+          button,
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.textPrimary,
             ),
           ),
-          Switch(
-            value: value,
-            activeThumbColor: const Color(0xFF4CAF50),
-            activeTrackColor: const Color(0xFFB9E4C9),
-            onChanged: onChanged,
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textTertiary,
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  const _SettingsDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(
-      height: 1,
-      thickness: 1,
-      indent: 56,
-      endIndent: 16,
-      color: Color(0xFFF1F5F9),
     );
   }
 }

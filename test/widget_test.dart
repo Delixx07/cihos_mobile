@@ -270,7 +270,7 @@ void main() {
     await _signIn(tester);
 
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Konsultasi Anda'), findsOneWidget);
+    expect(find.text('Konsultasi Anda'), findsNothing);
   });
 
   testWidgets('sign-in links through to sign-up', (tester) async {
@@ -380,7 +380,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ProfileScreen), findsOneWidget);
-    expect(find.text('Edit Profil'), findsOneWidget);
+    expect(find.text('Sosial Media'), findsOneWidget);
+    expect(find.byTooltip('Edit Profil'), findsOneWidget);
   });
 
   testWidgets('signing out from profile returns to onboarding', (tester) async {
