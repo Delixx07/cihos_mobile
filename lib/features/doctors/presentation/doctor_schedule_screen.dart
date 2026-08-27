@@ -462,14 +462,15 @@ class _DoctorCard extends StatelessWidget {
                       fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _MetaLine(
-                    icon: Icons.medical_services_outlined,
-                    text: doctor.specialty,
-                  ),
-                  _MetaLine(
-                    icon: Icons.location_on_outlined,
-                    text: doctor.hospital,
+                  const SizedBox(height: 4),
+                  Text(
+                    doctor.specialty.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0284C7),
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ],
               ),
@@ -644,36 +645,6 @@ class _InfoSection extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _MetaLine extends StatelessWidget {
-  const _MetaLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 13, color: AppColors.textPrimary),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 13,
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
-              ),
-            ),
-          ),
         ],
       ),
     );

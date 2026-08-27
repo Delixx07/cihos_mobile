@@ -165,12 +165,14 @@ class _DoctorPickerSheetState extends ConsumerState<DoctorPickerSheet> {
                                           : FontWeight.w500,
                                     ),
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    doctor.specialty,
-                                    style: AppTypography.bodySm.copyWith(
+                                    doctor.specialty.toUpperCase(),
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.textPrimary
-                                          .withValues(alpha: 0.7),
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0284C7),
+                                      letterSpacing: 0.3,
                                     ),
                                   ),
                                 ],

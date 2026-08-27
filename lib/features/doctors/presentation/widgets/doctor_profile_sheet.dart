@@ -163,9 +163,16 @@ class _Header extends StatelessWidget {
                 doctor.name,
                 style: AppTypography.titleMd.copyWith(fontSize: 15),
               ),
-              const SizedBox(height: AppSpacing.md),
-              _MetaLine(icon: Icons.medical_services, text: doctor.specialty),
-              _MetaLine(icon: Icons.location_on, text: doctor.hospital),
+              const SizedBox(height: 4),
+              Text(
+                doctor.specialty.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0284C7),
+                  letterSpacing: 0.3,
+                ),
+              ),
             ],
           ),
         ),
@@ -182,36 +189,6 @@ class _PhotoPlaceholder extends StatelessWidget {
     return const ColoredBox(
       color: AppColors.border,
       child: Icon(Icons.person, size: 56, color: AppColors.textTertiary),
-    );
-  }
-}
-
-class _MetaLine extends StatelessWidget {
-  const _MetaLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 11, color: AppColors.textPrimary),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              text,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary.withValues(alpha: 0.8),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

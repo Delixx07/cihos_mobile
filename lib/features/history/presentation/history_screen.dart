@@ -156,15 +156,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
                 child: Container(
-                  height: 46,
                   decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border, width: 1),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 8,
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
                     ],
@@ -172,38 +169,74 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) => setState(() => _query = val.trim()),
+                    textAlignVertical: TextAlignVertical.center,
                     style: AppTypography.bodySm.copyWith(
                       fontSize: 14,
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.white,
                       hintText: 'Cari nama dokter atau spesialis...',
                       hintStyle: AppTypography.bodySm.copyWith(
                         fontSize: 13,
                         color: AppColors.textTertiary,
                       ),
                       prefixIcon: const Icon(
-                        Icons.search,
+                        Icons.search_rounded,
                         color: AppColors.textTertiary,
                         size: 20,
+                      ),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
                       ),
                       suffixIcon: _query.isNotEmpty
                           ? IconButton(
                               icon: const Icon(
-                                Icons.clear,
+                                Icons.clear_rounded,
                                 size: 18,
                                 color: AppColors.textTertiary,
                               ),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _query = '');
                               },
                             )
                           : null,
-                      border: InputBorder.none,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      suffixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: const BorderSide(
+                          color: AppColors.border,
+                          width: 1,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: const BorderSide(
+                          color: AppColors.border,
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
                 ),

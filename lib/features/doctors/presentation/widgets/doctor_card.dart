@@ -108,48 +108,15 @@ class DoctorCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    // Specialty Chip (Medical sky blue)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                    const SizedBox(height: 4),
+                    Text(
+                      doctor.specialty.toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF0284C7),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        letterSpacing: 0.3,
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2FE),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        doctor.specialty,
-                        style: const TextStyle(
-                          color: Color(0xFF0284C7),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    // Hospital line with soft green/teal icon
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          size: 14,
-                          color: Color(0xFF0D9488),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            doctor.hospital,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),

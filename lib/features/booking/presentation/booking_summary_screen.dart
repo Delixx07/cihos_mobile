@@ -576,26 +576,15 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 3,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFE0F2FE),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  widget.booking.specialty ??
-                                                      'Spesialis',
-                                                  style: const TextStyle(
-                                                    fontSize: 11.5,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF0284C7),
-                                                  ),
+                                              Text(
+                                                (widget.booking.specialty ??
+                                                        'Spesialis')
+                                                    .toUpperCase(),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF0284C7),
+                                                  letterSpacing: 0.3,
                                                 ),
                                               ),
                                             ],

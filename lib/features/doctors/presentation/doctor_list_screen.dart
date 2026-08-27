@@ -197,7 +197,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: 6,
+                      vertical: 2,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.accentSoft.withValues(alpha: 0.1),
@@ -216,7 +216,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                         const SizedBox(width: 8),
                         const Expanded(
                           child: Text(
-                            'Tambah Janji Temu Tambahan',
+                            'Tambah Janji Temu',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,

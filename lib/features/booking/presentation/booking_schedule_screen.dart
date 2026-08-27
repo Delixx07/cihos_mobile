@@ -243,11 +243,12 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.booking.specialty ?? '',
+                              (widget.booking.specialty ?? '').toUpperCase(),
                               style: AppTypography.bodySm.copyWith(
                                 color: AppColors.lavender,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
