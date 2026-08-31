@@ -16,6 +16,9 @@ import '../../features/doctors/presentation/doctor_finder_screen.dart';
 import '../../features/doctors/presentation/doctor_list_screen.dart';
 import '../../features/doctors/presentation/doctor_schedule_screen.dart';
 import '../../features/emergency/presentation/emergency_screen.dart';
+import '../../features/health_news/data/health_news_repository.dart';
+import '../../features/health_news/domain/health_article.dart';
+import '../../features/health_news/presentation/health_article_detail_screen.dart';
 import '../../features/health_news/presentation/health_news_screen.dart';
 import '../../features/history/presentation/history_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
@@ -164,6 +167,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.healthNews,
         pageBuilder: (context, state) =>
             _sharedAxis(state, const HealthNewsScreen()),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              HealthArticle? article;
+              if (state.extra is HealthArticle) {
+                article = state.extra as HealthArticle;
+              }
+              if (article == null) {
+                final container = ProviderScope.containerOf(context);
+                final articles = container.read(healthArticlesProvider);
+                article = articles.firstWhere(
+                  (a) => a.id == id,
+                  orElse: () => HealthArticle(
+                    id: id,
+                    title: 'Artikel Kesehatan',
+                    date: DateTime.now(),
+                    imageAsset: 'assets/images/info kesehatan/runner 3.png',
+                  ),
+                );
+              }
+              return HealthArticleDetailScreen(article: article);
+            },
+          ),
+        ],
       ),
 
       // Finding and choosing a doctor.

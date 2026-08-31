@@ -28,8 +28,14 @@ class HospitalLogo extends StatelessWidget {
   /// Inline in a header or app bar.
   const HospitalLogo.small({super.key})
     : width = null,
-      _widthFactor = 0.30,
-      _maxWidth = 140;
+      _widthFactor = 0.38,
+      _maxWidth = 160;
+
+  /// Specifically for home screen header — prominent, clear, and balanced.
+  const HospitalLogo.home({super.key})
+    : width = null,
+      _widthFactor = 0.46,
+      _maxWidth = 190;
 
   /// An explicit width, when the caller needs to pin the footprint.
   final double? width;

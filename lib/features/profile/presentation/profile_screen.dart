@@ -162,14 +162,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final photoUrl = user?.photoUrl;
 
     return Scaffold(
-      backgroundColor: AppColors.accentSoft,
+      backgroundColor: AppColors.primaryDark,
       bottomNavigationBar: const AppBottomNav(current: AppTab.profile),
       body: Column(
         children: [
-          // Header with #464960 (AppColors.accentSoft) & harmonious slate gradient curve
+          // Header with linear gradient (0% #003366 to 100% #0047AB)
           Container(
             width: double.infinity,
-            color: AppColors.accentSoft,
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -186,8 +188,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          const Color(0xFF5C5E70), // AppColors.accentLight
-                          const Color(0xFF464960), // #464960 (AppColors.accentSoft)
+                          AppColors.primaryLight.withValues(alpha: 0.5),
+                          AppColors.primaryDark.withValues(alpha: 0.2),
                         ],
                       ),
                     ),

@@ -75,6 +75,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/sehat-mu/
+    - assets/images/info kesehatan/
     - assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see

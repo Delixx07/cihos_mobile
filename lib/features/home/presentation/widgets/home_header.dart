@@ -27,7 +27,7 @@ class HomeHeader extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const HospitalLogo.small(),
+            const HospitalLogo.home(),
             const Spacer(),
             _BellButton(
               unread: unread,

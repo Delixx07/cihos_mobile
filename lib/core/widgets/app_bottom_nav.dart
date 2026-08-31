@@ -119,7 +119,7 @@ class _NavItem extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isActive ? AppColors.accentSoft : Colors.transparent,
+              gradient: isActive ? AppColors.primaryGradient : null,
             ),
             child: Center(
               child: Icon(
@@ -127,7 +127,7 @@ class _NavItem extends StatelessWidget {
                 size: isActive ? 20 : 22,
                 color: isActive
                     ? AppColors.white
-                    : AppColors.accentSoft.withValues(alpha: 0.65),
+                    : AppColors.primaryDark.withValues(alpha: 0.65),
               ),
             ),
           ),
@@ -140,8 +140,8 @@ class _NavItem extends StatelessWidget {
               height: 1.2,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
               color: isActive
-                  ? AppColors.accentSoft
-                  : AppColors.accentSoft.withValues(alpha: 0.65),
+                  ? AppColors.primaryDark
+                  : AppColors.primaryDark.withValues(alpha: 0.65),
             ),
           ),
         ],

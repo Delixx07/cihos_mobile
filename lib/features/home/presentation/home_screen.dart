@@ -75,25 +75,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       id: 'a1',
       title: 'Indonesia Running Series 2025 Berlangsung di 4 Kota!',
       date: DateTime(2025, 2, 23),
-      imageAsset: 'assets/images/runner.png',
+      category: 'Event & Olahraga',
+      author: 'dr. Antonius Wijaya, Sp.KO',
+      authorRole: 'Spesialis Kedokteran Olahraga',
+      readTime: '4 menit baca',
+      imageAsset: 'assets/images/info kesehatan/runner 3.png',
+      summary:
+          'Ajang lari bergengsi Indonesia Running Series 2025 siap digelar di 4 kota besar dengan dukungan tim medis dan pos hidrasi standar internasional.',
+      tags: const ['Lari', 'Olahraga', 'Event 2025', 'Kardiovaskular'],
+      content: const [
+        'Ajang lari berskala nasional "Indonesia Running Series 2025" resmi diumumkan dan akan digelar di 4 kota metropolitan utama: Jakarta, Surabaya, Bandung, dan Bali. Mengusung tema "Run for Life & Health", ribuan pelari dari berbagai kategori—mulai dari 5K, 10K, Half Marathon (21K), hingga Full Marathon (42K)—diharapkan turut meramaikan kompetisi ini.',
+        'Kesiapan fisik dan pemeriksaan medis berkala merupakan faktor mutlak sebelum mengikuti kompetisi lari jarak jauh. Berdasarkan studi sports medicine, pelari yang melakukan persiapan terstruktur minimal 8-12 minggu sebelumnya memiliki risiko cedera otot dan dehidrasi berat hingga 65% lebih rendah dibandingkan mereka yang tidak mempersiapkan diri.',
+        'Tips Menjaga Kondisi Tubuh untuk Pelari:\n• Hydration Strategy: Pastikan mengonsumsi air dan elektrolit sebelum, saat, dan sesudah latihan.\n• Dynamic Stretching: Lakukan pemanasan dinamis 10–15 menit sebelum berlari untuk meningkatkan elastisitas otot.\n• Pacing Control: Mulai dengan ritme stabil sesuai denyut jantung target (Heart Rate Zone 2-3).\n• Post-Run Recovery: Berikan waktu istirahat yang cukup untuk regenerasi serat otot dan kompensasi energi glikogen.',
+        'Ciputra Hospital turut berpartisipasi menghadirkan Medical Recovery Booth, Tim Medis Siaga, serta layanan pemeriksaan Cardiopulmonary Exercise Testing (CPET) untuk memastikan kebugaran para pelari tetap optimal dan aman sebelum berkompetisi.',
+      ],
     ),
     HealthArticle(
-      id: 'a2',
+      id: 'o4',
       title: 'Eating Clean, Cara Simpel Untuk Lebih Sehat',
       date: DateTime(2025, 2, 1),
-      imageAsset: 'assets/images/eating-clean.jpg',
+      category: 'Gaya Hidup',
+      author: 'dr. Siti Rahma, Sp.GK',
+      readTime: '3 menit baca',
+      imageAsset: 'assets/images/gmcu.jpg',
+      summary:
+          'Prinsip pola makan eating clean berfokus pada bahan makanan segar alami utuh tanpa banyak proses pengawetan.',
+      tags: const ['Eating Clean', 'Gaya Hidup', 'Sehat'],
+      content: const [
+        'Mengurangi konsumsi ultra-processed food, minyak jenuh, dan gula tambahan membawa dampak positif langsung terhadap vitalitas dan fungsi pencernaan.',
+      ],
     ),
     HealthArticle(
-      id: 'a3',
+      id: 'r1',
       title: '7 Manfaat Minum Teh Tawar, Si Pahit yang Kaya Nutrisi',
       date: DateTime(2025, 2, 1),
-      imageAsset: 'assets/images/teh-tawar.jpg',
+      category: 'Gaya Hidup',
+      author: 'dr. Edwin Hadinata, Sp.PD',
+      readTime: '3 menit baca',
+      imageAsset: 'assets/images/mcu.png',
+      summary:
+          'Teh tawar tanpa gula mengandung antioksidan polifenol tinggi yang melindungi pembuluh darah dan meningkatkan metabolisme.',
+      tags: const ['Teh Tawar', 'Antioksidan', 'Metabolisme'],
+      content: const [
+        'Kandungan katekin dalam teh hijau dan teh hitam murni tanpa pemanis membantu menetralkan radikal bebas serta mendukung kesehatan kardiovaskular.',
+      ],
     ),
     HealthArticle(
-      id: 'a4',
+      id: 'r2',
       title: 'Lokasi Jerawat Jadi Indikasi Masalah Kesehatan, Benarkah?',
       date: DateTime(2025, 2, 1),
-      imageAsset: 'assets/images/jerawat.jpg',
+      category: 'Kulit & Estetika',
+      author: 'dr. Cynthia Dewi, Sp.DVE',
+      readTime: '4 menit baca',
+      imageAsset: 'assets/images/hair skin.png',
+      summary:
+          'Face mapping sering mengaitkan letak jerawat dengan fungsi organ dalam, namun faktor kebersihan dan hormonal tetap menjadi pemicu utama.',
+      tags: const ['Jerawat', 'Kulit', 'Dermatologi'],
+      content: const [
+        'Jerawat di area T-zone sering berkaitan dengan produksi sebum berlebih, sementara area rahang dan dagu kerap dipicu oleh fluktuasi hormon estrogen/progesteron.',
+      ],
     ),
   ];
 
@@ -199,26 +239,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 4,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Info Kesehatan',
-                              style: AppTypography.headingMd.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Info Kesehatan',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.headingMd.copyWith(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         InkWell(
                           key: const Key('moreArticles'),
@@ -230,6 +276,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               vertical: 4,
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   'Lihat Semua',
@@ -257,7 +304,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         scale: 0.98,
                         child: ArticleCard(
                           article: article,
-                          onTap: () => context.push(AppRoutes.healthNews),
+                          onTap: () => context.push(
+                            '${AppRoutes.healthNews}/${article.id}',
+                            extra: article,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),

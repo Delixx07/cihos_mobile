@@ -5,11 +5,8 @@ import '../theme/app_spacing.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_typography.dart';
 
-/// The rounded button used across the app, carrying the drop shadow the design
-/// specifies and dipping slightly under the finger.
-///
-/// Defaults to the 161x44 footprint from the mockups; pass [expand] to let it
-/// fill the available width instead.
+/// The rounded button used across the app, carrying the linear gradient
+/// (0% #003366 to 100% #0047AB) and dipping slightly under the finger.
 class AppButton extends StatefulWidget {
   const AppButton({
     super.key,
@@ -17,8 +14,9 @@ class AppButton extends StatefulWidget {
     required this.onPressed,
     this.expand = false,
     this.isLoading = false,
-    this.background = AppColors.accent,
-    this.foreground = AppColors.surface,
+    this.background,
+    this.gradient = AppColors.primaryGradient,
+    this.foreground = AppColors.white,
     this.borderRadius,
     this.height,
   });
@@ -32,14 +30,16 @@ class AppButton extends StatefulWidget {
     this.isLoading = false,
     this.borderRadius,
     this.height,
-  }) : background = AppColors.surface,
-       foreground = AppColors.accent;
+  }) : background = AppColors.white,
+       gradient = null,
+       foreground = AppColors.primaryDark;
 
   final String label;
   final VoidCallback? onPressed;
   final bool expand;
   final bool isLoading;
-  final Color background;
+  final Color? background;
+  final Gradient? gradient;
   final Color foreground;
   final double? borderRadius;
   final double? height;
@@ -60,8 +60,6 @@ class _AppButtonState extends State<AppButton> {
     final isEnabled = widget.onPressed != null && !widget.isLoading;
 
     return Listener(
-      // Listener observes the gesture without competing for it, so the
-      // button's own tap handling stays intact.
       onPointerDown: isEnabled ? (_) => _setPressed(true) : null,
       onPointerUp: (_) => _setPressed(false),
       onPointerCancel: (_) => _setPressed(false),
@@ -82,11 +80,15 @@ class _AppButtonState extends State<AppButton> {
         opacity: isEnabled ? 1 : 0.7,
         child: DecoratedBox(
           decoration: BoxDecoration(
+            gradient: isEnabled ? widget.gradient : null,
+            color: widget.gradient == null
+                ? (widget.background ?? AppColors.primary)
+                : (isEnabled ? null : AppColors.primaryDark),
             borderRadius: BorderRadius.circular(radius),
             boxShadow: isEnabled && !_isPressed
                 ? const [
                     BoxShadow(
-                      color: Color(0x33000000),
+                      color: Color(0x33003366),
                       offset: Offset(0, 4),
                       blurRadius: 10,
                     ),
@@ -99,8 +101,13 @@ class _AppButtonState extends State<AppButton> {
             child: FilledButton(
               onPressed: isEnabled ? widget.onPressed : null,
               style: FilledButton.styleFrom(
-                backgroundColor: widget.background,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
                 foregroundColor: widget.foreground,
+                disabledBackgroundColor: Colors.transparent,
+                disabledForegroundColor:
+                    widget.foreground.withValues(alpha: 0.6),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(radius),
                 ),

@@ -1,77 +1,90 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for colors, based on the Ciputra Hospital Surabaya mockups.
-///
-/// The slate family ([accent], [accentSoft]) carries most surfaces, exactly as
-/// the designs specify. What the mockups lacked was tonal depth: every panel
-/// sat within a few percent of the same lightness, so nothing looked nearer or
-/// further than anything else. The extra steps below fill that range without
-/// changing the hues the hospital approved.
-///
-/// Semantic colours are tuned for contrast on white: the original green and
-/// amber were too light to read at 12sp, which matters on a screen that tells
-/// patients whether an appointment is confirmed or cancelled.
+/// Design tokens for colors across the application, with the dominant brand
+/// theme defined by the linear gradient:
+/// - 0%: #003366 (Deep Navy Blue)
+/// - 100%: #0047AB (Cobalt / Royal Blue)
 abstract final class AppColors {
-  // Brand — the navy of the Ciputra Hospital wordmark.
-  static const primary = Color(0xFF1B3A6B);
-  static const primaryDark = Color(0xFF12294D);
-  static const primaryLight = Color(0xFF3D5F94);
-  static const primarySurface = Color(0xFFE9EEF6);
+  // Brand Linear Gradient Tokens (0% #003366 -> 100% #0047AB)
+  static const gradientStart = Color(0xFF003366);
+  static const gradientEnd = Color(0xFF0047AB);
 
-  /// The slate used for buttons, the registration card, and body copy.
-  static const accent = Color(0xFF3F4153);
-  static const accentDark = Color(0xFF2E3040);
-  static const accentLight = Color(0xFF5C5E70);
+  static const primaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF003366), Color(0xFF0047AB)],
+  );
 
-  /// A slightly softer slate the later frames use for panels and field fills.
-  static const accentSoft = Color(0xFF464960);
+  static const primaryGradientVertical = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF003366), Color(0xFF0047AB)],
+  );
 
-  /// One step lighter again, for nested surfaces inside a slate panel — a
-  /// selected row, or a card sitting on another card.
-  static const accentMuted = Color(0xFF5A5D75);
+  static const primaryGradientHorizontal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xFF003366), Color(0xFF0047AB)],
+  );
 
-  /// A pale slate wash for resting states and disabled fills on white.
-  static const accentWash = Color(0xFFEEEFF4);
+  // Core Brand Colors
+  static const primary = Color(0xFF0047AB);
+  static const primaryDark = Color(0xFF003366);
+  static const primaryLight = Color(0xFF1E60C6);
+  static const primarySurface = Color(0xFFEBF2FA);
 
-  /// Notification rows.
-  static const mint = Color(0xFFC7E8E8);
+  /// The primary action / accent family mapped to the navy & cobalt palette
+  static const accent = Color(0xFF003366);
+  static const accentDark = Color(0xFF002244);
+  static const accentLight = Color(0xFF0047AB);
 
-  /// The pale lavender the designs pair with [accentSoft] — badge fills and
-  /// label text sitting on the slate panels.
-  static const lavender = Color(0xFFDDDFF3);
+  /// Panel background and field fills
+  static const accentSoft = Color(0xFF003366);
 
-  /// Link text, as on "Tandai semua telah dibaca".
-  static const link = Color(0xFF0077B6);
+  /// Nested surfaces and highlights
+  static const accentMuted = Color(0xFF0047AB);
 
-  /// Bottom navigation bar.
-  static const navBar = Color(0xFFDFE3E9);
+  /// Pale wash for resting states and disabled fills on white
+  static const accentWash = Color(0xFFEBF2FA);
+
+  /// Notification rows and badges
+  static const mint = Color(0xFFCBE5FC);
+
+  /// Pale tint for chips and contrast on dark panels
+  static const lavender = Color(0xFFD4E3FB);
+
+  /// Link text
+  static const link = Color(0xFF0047AB);
+
+  /// Bottom navigation bar
+  static const navBar = Color(0xFFE6EEF8);
 
   // Neutrals
-  static const textPrimary = Color(0xFF3F4153);
-  static const textSecondary = Color(0xFF6B6D7C);
-  static const textTertiary = Color(0xFF9A9AA5);
+  static const textPrimary = Color(0xFF0F1E36);
+  static const textSecondary = Color(0xFF4A5568);
+  static const textTertiary = Color(0xFF8C9BAE);
 
-  /// Text on the dark accent card.
+  /// Text on dark accent cards/headers
   static const onAccent = Color(0xFFFFFFFF);
-  static const onAccentMuted = Color(0xFFD5D2DC);
+  static const onAccentMuted = Color(0xFFD4E3FB);
 
-  static const border = Color(0xFFE2E2E8);
-  static const divider = Color(0xFFEFEFF3);
+  static const border = Color(0xFFDDE6F2);
+  static const divider = Color(0xFFE8EFF8);
   static const white = Color(0xFFFFFFFF);
 
-  /// Page background — a photo sits over this at 46% opacity.
+  /// Page background
   static const background = Color(0xFFFFFFFF);
 
-  /// Input field fill inside the dark card, and the light button face.
-  static const surface = Color(0xFFF6F7F9);
+  /// Input field fill inside cards, and light button face
+  static const surface = Color(0xFFF4F7FC);
 
-  // Semantic — darkened from the mockups so 12sp label text stays legible.
+  // Semantic
   static const success = Color(0xFF11833F);
   static const successSurface = Color(0xFFE4F5EA);
   static const warning = Color(0xFFB26B00);
   static const warningSurface = Color(0xFFFDF1DD);
   static const danger = Color(0xFFB02A1E);
   static const dangerSurface = Color(0xFFFAE7E5);
-  static const info = Color(0xFF1B3A6B);
-  static const infoSurface = Color(0xFFE9EEF6);
+  static const info = Color(0xFF0047AB);
+  static const infoSurface = Color(0xFFEBF2FA);
 }

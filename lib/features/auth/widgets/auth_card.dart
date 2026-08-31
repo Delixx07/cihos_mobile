@@ -109,11 +109,11 @@ class _CardBody extends StatelessWidget {
         bottom: AppSpacing.xxxl,
       ),
       decoration: BoxDecoration(
-        color: AppColors.accent,
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x33000000),
+            color: Color(0x33003366),
             offset: Offset(0, 8),
             blurRadius: 24,
           ),

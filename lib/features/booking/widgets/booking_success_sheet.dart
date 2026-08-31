@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -13,17 +12,6 @@ class BookingSuccessSheet extends StatelessWidget {
   const BookingSuccessSheet({super.key, required this.bookingCode});
 
   final String bookingCode;
-
-  void _copyBookingCode(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: bookingCode));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Kode booking berhasil disalin ke clipboard!'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

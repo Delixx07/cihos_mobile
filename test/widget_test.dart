@@ -2,6 +2,7 @@ import 'package:cihos_mobile/core/widgets/app_button.dart';
 import 'package:cihos_mobile/features/auth/presentation/login_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/register_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/welcome_screen.dart';
+import 'package:cihos_mobile/features/health_news/presentation/health_article_detail_screen.dart';
 import 'package:cihos_mobile/features/health_news/presentation/health_news_screen.dart';
 import 'package:cihos_mobile/features/history/presentation/history_screen.dart';
 import 'package:cihos_mobile/features/home/presentation/home_screen.dart';
@@ -176,7 +177,7 @@ Future<void> _openHealthNews(WidgetTester tester) async {
   // The bottom nav overlaps the link's centre, so clear it first.
   await tester.drag(find.byType(Scrollable).first, const Offset(0, -160));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Artikel Selanjutnya'));
+  await tester.tap(find.byKey(const Key('moreArticles')));
   await tester.pumpAndSettle();
 }
 
@@ -502,7 +503,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PromoScreen), findsOneWidget);
-    expect(find.text('Lihat Semua Promo'), findsOneWidget);
+    expect(find.text('Promo Spesial'), findsOneWidget);
   });
 
   testWidgets('promo search narrows the list', (tester) async {
@@ -1228,8 +1229,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(HistoryScreen), findsOneWidget);
-    expect(find.text('Riwayat Jadwal Temu'), findsOneWidget);
-    expect(find.text('dr. Edwin Hadinata, Sp.PD'), findsOneWidget);
+    expect(find.text('Riwayat'), findsWidgets);
+    expect(find.text('dr. Edwin Hadinata, Sp.PD'), findsWidgets);
     expect(find.text('Selesai'), findsWidgets);
     expect(find.text('Dibatalkan'), findsOneWidget);
   });
@@ -1314,5 +1315,25 @@ void main() {
     expect(find.text('Buat Appointment?'), findsOneWidget);
     expect(find.text('Janji Temu dengan Dokter'), findsOneWidget);
     expect(find.text('Video Call dengan Dokter'), findsOneWidget);
+  });
+
+  testWidgets('tapping an article opens the article detail screen',
+      (tester) async {
+    await _startAtLogin(tester);
+    await _signIn(tester);
+
+    await tester.scrollUntilVisible(
+      find.text('Indonesia Running Series 2025 Berlangsung di 4 Kota!'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(
+      find.text('Indonesia Running Series 2025 Berlangsung di 4 Kota!'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HealthArticleDetailScreen), findsOneWidget);
+    expect(find.text('Event & Olahraga'), findsOneWidget);
+    expect(find.text('dr. Antonius Wijaya, Sp.KO'), findsOneWidget);
   });
 }

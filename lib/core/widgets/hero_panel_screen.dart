@@ -52,7 +52,7 @@ class HeroPanelScreen extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: AppColors.accentSoft,
+                  gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(13),
                   ),
