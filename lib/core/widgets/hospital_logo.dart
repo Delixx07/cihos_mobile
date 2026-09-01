@@ -13,11 +13,11 @@ class HospitalLogo extends StatelessWidget {
     : _widthFactor = null,
       _maxWidth = null;
 
-  /// Splash and onboarding — the mark carries the whole screen.
+  /// Splash and onboarding — the mark carries the whole screen prominently.
   const HospitalLogo.splash({super.key})
     : width = null,
-      _widthFactor = 0.62,
-      _maxWidth = 320;
+      _widthFactor = 0.76,
+      _maxWidth = 340;
 
   /// Above a form: large enough to read as branding, not a favicon.
   const HospitalLogo.medium({super.key})

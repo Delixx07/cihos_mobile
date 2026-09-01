@@ -1,4 +1,5 @@
 import 'package:cihos_mobile/core/widgets/app_button.dart';
+import 'package:cihos_mobile/core/widgets/hospital_logo.dart';
 import 'package:cihos_mobile/features/auth/presentation/login_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/register_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/welcome_screen.dart';
@@ -75,7 +76,7 @@ Future<void> _startAtOnboarding(WidgetTester tester) async {
 /// Goes one step further, tapping through onboarding to the sign-in form.
 Future<void> _startAtLogin(WidgetTester tester) async {
   await _startAtOnboarding(tester);
-  await tester.tap(find.text('Mulai'));
+  await tester.tap(find.text('Masuk').first);
   await tester.pumpAndSettle();
 }
 
@@ -208,7 +209,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(WelcomeScreen), findsOneWidget);
-    expect(find.text('MOBILE APPS'), findsOneWidget);
+    expect(find.byType(HospitalLogo), findsOneWidget);
 
     // Let the splash timer fire so it does not outlive the widget tree.
     await tester.pump(const Duration(seconds: 3));
@@ -219,11 +220,12 @@ void main() {
     await _startAtOnboarding(tester);
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
-    expect(find.text('Kesehatan Anda,\ndalam genggaman'), findsOneWidget);
-    expect(find.text('Mulai'), findsOneWidget);
+    expect(find.text('Selamat Datang!'), findsOneWidget);
+    expect(find.text('Buat Akun'), findsWidgets);
+    expect(find.text('Masuk'), findsWidgets);
   });
 
-  testWidgets('"Mulai" opens the sign-in form', (tester) async {
+  testWidgets('"Masuk" opens the sign-in form', (tester) async {
     await _startAtLogin(tester);
 
     expect(find.byType(LoginScreen), findsOneWidget);
@@ -281,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RegisterScreen), findsOneWidget);
-    expect(find.text('Pendaftaran Pasien Baru'), findsOneWidget);
+    expect(find.text('Daftar'), findsWidgets);
   });
 
   testWidgets('back returns from sign-up to sign-in', (tester) async {
