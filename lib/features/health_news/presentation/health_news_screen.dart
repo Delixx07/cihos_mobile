@@ -13,9 +13,10 @@ import '../../../core/widgets/screen_header.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../../core/widgets/textured_background.dart';
 import '../data/health_news_repository.dart';
+import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
 
-/// The health-news feed: two swipeable shelves over a list of saved reads.
+/// The health-news feed: two swipeable shelves over the user's marked/saved reads.
 class HealthNewsScreen extends ConsumerWidget {
   const HealthNewsScreen({super.key});
 
@@ -23,7 +24,7 @@ class HealthNewsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final latest = ref.watch(articlesByShelfProvider(ArticleShelf.latest));
     final others = ref.watch(articlesByShelfProvider(ArticleShelf.others));
-    final reading = ref.watch(articlesByShelfProvider(ArticleShelf.reading));
+    final savedArticles = ref.watch(savedArticlesProvider);
 
     return Scaffold(
       body: TexturedBackground(
@@ -49,31 +50,140 @@ class HealthNewsScreen extends ConsumerWidget {
                     _Carousel(articles: others),
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // Bacaan Anda Section
-                    const _ShelfTitle('Bacaan Anda'),
-                    const SizedBox(height: AppSpacing.sm),
+                    // Bacaan Saya Section
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xl,
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                          for (final article in reading) ...[
-                            Pressable(
-                              scale: 0.98,
-                              child: _ReadingRow(
-                                article: article,
-                                onTap: () => context.push(
-                                  '${AppRoutes.healthNews}/${article.id}',
-                                  extra: article,
-                                ),
+                          const Expanded(
+                            child: _ShelfTitle(
+                              'Bacaan Saya',
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                          InkWell(
+                            key: const Key('seeAllSavedArticles'),
+                            onTap: () => context.push(AppRoutes.savedArticles),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 4,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Lihat Semua',
+                                    style: AppTypography.bodySm.copyWith(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                          ],
+                          ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (savedArticles.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                        ),
+                        child: Column(
+                          children: [
+                            for (final article in savedArticles) ...[
+                              Pressable(
+                                scale: 0.98,
+                                child: _ReadingRow(
+                                  article: article,
+                                  onTap: () => context.push(
+                                    '${AppRoutes.healthNews}/${article.id}',
+                                    extra: article,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.border,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.accentSoft.withValues(alpha: 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.bookmark_border_rounded,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Belum ada bacaan tersimpan',
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Tandai artikel kesehatan dengan ikon bookmark untuk disimpan di sini.',
+                                      style: AppTypography.caption.copyWith(
+                                        fontSize: 11.5,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -86,15 +196,17 @@ class HealthNewsScreen extends ConsumerWidget {
 }
 
 class _ShelfTitle extends StatelessWidget {
-  const _ShelfTitle(this.text);
+  const _ShelfTitle(this.text, {this.padding});
 
   final String text;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 4,
@@ -105,12 +217,16 @@ class _ShelfTitle extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: AppTypography.headingMd.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.headingMd.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],

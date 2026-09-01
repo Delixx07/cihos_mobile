@@ -5,6 +5,7 @@ import 'package:cihos_mobile/features/auth/presentation/register_screen.dart';
 import 'package:cihos_mobile/features/auth/presentation/welcome_screen.dart';
 import 'package:cihos_mobile/features/health_news/presentation/health_article_detail_screen.dart';
 import 'package:cihos_mobile/features/health_news/presentation/health_news_screen.dart';
+import 'package:cihos_mobile/features/health_news/presentation/saved_articles_screen.dart';
 import 'package:cihos_mobile/features/history/presentation/history_screen.dart';
 import 'package:cihos_mobile/features/home/presentation/home_screen.dart';
 import 'package:cihos_mobile/features/mcu/presentation/mcu_packages_screen.dart';
@@ -1222,7 +1223,39 @@ void main() {
 
     expect(find.byType(HealthNewsScreen), findsOneWidget);
     expect(find.text('Berita Terbaru'), findsOneWidget);
-    expect(find.text('Bacaan Anda'), findsOneWidget);
+    expect(find.text('Bacaan Saya'), findsOneWidget);
+  });
+
+  testWidgets('health news see all links to saved articles screen', (
+    tester,
+  ) async {
+    await _startAtLogin(tester);
+    await _signIn(tester);
+    await _openHealthNews(tester);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('seeAllSavedArticles')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('seeAllSavedArticles')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SavedArticlesScreen), findsOneWidget);
+    expect(find.text('Bacaan Saya'), findsOneWidget);
+  });
+
+  testWidgets('profile links to saved articles screen', (tester) async {
+    await _startAtLogin(tester);
+    await _signIn(tester);
+
+    await tester.tap(find.text('Profil'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bacaan Saya'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SavedArticlesScreen), findsOneWidget);
   });
 
   testWidgets('the news shelves carry their articles', (tester) async {
@@ -1235,6 +1268,34 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('7 Manfaat Minum Teh Tawar'), findsOneWidget);
+  });
+
+  testWidgets('tapping bookmark in article detail toggles saved status', (
+    tester,
+  ) async {
+    await _startAtLogin(tester);
+    await _signIn(tester);
+    await _openHealthNews(tester);
+
+    // Tap the first article card to open detail
+    await tester.tap(find.textContaining('Ketahui 7 Penyebab Badan Meriang'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HealthArticleDetailScreen), findsOneWidget);
+
+    // Tap bookmark button
+    await tester.tap(find.byTooltip('Simpan ke Bacaan Saya'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Hapus dari Bacaan Saya'), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
+
+    // Tap back to news feed
+    await tester.tap(find.byType(IconButton).first);
+    await tester.pumpAndSettle();
+
+    // Verify it appears in Bacaan Saya
+    expect(find.byType(HealthNewsScreen), findsOneWidget);
   });
 
   testWidgets('the wellness tab lists its tools', (tester) async {
