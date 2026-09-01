@@ -82,7 +82,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 showLogo: true,
                 isLargeLogo: true,
                 showIllustration: false,
-                onBackPressed: () => context.go(AppRoutes.onboarding),
+                onBackPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(AppRoutes.onboarding);
+                  }
+                },
               ),
             ),
 
