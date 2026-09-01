@@ -362,6 +362,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: 'Janji Temu Saya',
                       onTap: () => context.go(AppRoutes.appointments),
                     ),
+                    _ProfileMenuRow(
+                      icon: Icons.menu_book_outlined,
+                      iconColor: AppColors.accentSoft,
+                      title: 'Bacaan Saya',
+                      onTap: () => context.push(AppRoutes.savedArticles),
+                    ),
 
                     const SizedBox(height: 8),
                     const Divider(height: 20, thickness: 1, color: AppColors.divider),

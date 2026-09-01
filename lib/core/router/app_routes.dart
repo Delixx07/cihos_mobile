@@ -18,6 +18,7 @@ abstract final class AppRoutes {
   static const queueMonitor = '/queue-monitor';
   static const promo = '/promo';
   static const healthNews = '/health-news';
+  static const savedArticles = '/saved-articles';
   static const doctors = '/doctors';
   static const doctorFinder = '/doctor-finder';
   static const doctorSchedule = '/doctor-schedule';

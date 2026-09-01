@@ -20,6 +20,7 @@ import '../../features/health_news/data/health_news_repository.dart';
 import '../../features/health_news/domain/health_article.dart';
 import '../../features/health_news/presentation/health_article_detail_screen.dart';
 import '../../features/health_news/presentation/health_news_screen.dart';
+import '../../features/health_news/presentation/saved_articles_screen.dart';
 import '../../features/history/presentation/history_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/mcu/presentation/mcu_packages_screen.dart';
@@ -164,6 +165,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.promo,
         pageBuilder: (context, state) =>
             _sharedAxis(state, const PromoScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.savedArticles,
+        pageBuilder: (context, state) =>
+            _sharedAxis(state, const SavedArticlesScreen()),
       ),
       GoRoute(
         path: AppRoutes.healthNews,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -8,47 +9,44 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/social_media_buttons.dart';
+import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
 
 /// Modern, immersive health article detail reader screen.
-class HealthArticleDetailScreen extends StatefulWidget {
+class HealthArticleDetailScreen extends ConsumerWidget {
   const HealthArticleDetailScreen({super.key, required this.article});
 
   final HealthArticle article;
 
-  @override
-  State<HealthArticleDetailScreen> createState() =>
-      _HealthArticleDetailScreenState();
-}
-
-class _HealthArticleDetailScreenState extends State<HealthArticleDetailScreen> {
-  bool _isBookmarked = false;
-
-  void _toggleBookmark() {
-    setState(() => _isBookmarked = !_isBookmarked);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isBookmarked
-              ? 'Artikel disimpan ke bacaan Anda'
-              : 'Artikel dihapus dari bacaan',
+  Future<void> _toggleBookmark(BuildContext context, WidgetRef ref) async {
+    final isNowSaved = await ref
+        .read(savedArticleIdsProvider.notifier)
+        .toggle(article.id);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isNowSaved
+                ? 'Artikel berhasil disimpan ke Bacaan Saya'
+                : 'Artikel dihapus dari Bacaan Saya',
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    }
   }
 
-  void _shareArticle() {
+  void _shareArticle(BuildContext context) {
     AppSocialLinks.openUrl(
-      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${widget.article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
+      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
       context: context,
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final article = widget.article;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isBookmarked = ref.watch(savedArticleIdsProvider).contains(article.id);
     final formattedDate =
         DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(article.date);
 
@@ -86,14 +84,17 @@ class _HealthArticleDetailScreenState extends State<HealthArticleDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
+                  tooltip: isBookmarked
+                      ? 'Hapus dari Bacaan Saya'
+                      : 'Simpan ke Bacaan Saya',
                   icon: Icon(
-                    _isBookmarked
+                    isBookmarked
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
-                    color: _isBookmarked ? Colors.amber : Colors.white,
+                    color: isBookmarked ? Colors.amber : Colors.white,
                     size: 20,
                   ),
-                  onPressed: _toggleBookmark,
+                  onPressed: () => _toggleBookmark(context, ref),
                 ),
               ),
               Container(
@@ -103,12 +104,13 @@ class _HealthArticleDetailScreenState extends State<HealthArticleDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
+                  tooltip: 'Bagikan Artikel',
                   icon: const Icon(
                     Icons.share_rounded,
                     color: Colors.white,
                     size: 18,
                   ),
-                  onPressed: _shareArticle,
+                  onPressed: () => _shareArticle(context),
                 ),
               ),
             ],
