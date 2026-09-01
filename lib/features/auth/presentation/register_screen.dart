@@ -120,7 +120,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 showLogo: true,
                 isLargeLogo: true,
                 showIllustration: false,
-                onBackPressed: () => context.pop(),
+                onBackPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(AppRoutes.onboarding);
+                  }
+                },
               ),
             ),
 
@@ -161,7 +167,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           loginKey: const Key('goToLogin'),
                           onTabChanged: (tab) {
                             if (tab == AuthTabType.login) {
-                              context.pop();
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go(AppRoutes.login);
+                              }
                             }
                           },
                         ),

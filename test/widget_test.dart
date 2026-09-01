@@ -241,6 +241,32 @@ void main() {
     expect(find.byType(RegisterScreen), findsOneWidget);
   });
 
+  testWidgets('back from sign-up opened via onboarding returns to onboarding', (
+    tester,
+  ) async {
+    await _startAtOnboarding(tester);
+    await tester.tap(find.byKey(const Key('onboardingRegister')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Kembali'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+  });
+
+  testWidgets('tab switcher on sign-up opened via onboarding navigates to login', (
+    tester,
+  ) async {
+    await _startAtOnboarding(tester);
+    await tester.tap(find.byKey(const Key('onboardingRegister')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('goToLogin')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+  });
+
   testWidgets('sign-in rejects a malformed email', (tester) async {
     await _startAtLogin(tester);
 
