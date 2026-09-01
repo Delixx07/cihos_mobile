@@ -1246,7 +1246,7 @@ void main() {
     await tester.tap(find.byKey(const Key('rebook_h1')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BookingSearchScreen), findsOneWidget);
+    expect(find.byType(DoctorListScreen), findsOneWidget);
     expect(find.text('Buat Janji Temu'), findsWidgets);
   });
 
@@ -1266,7 +1266,7 @@ void main() {
     await tester.tap(find.byKey(const Key('rebook_h3')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(BookingSearchScreen), findsOneWidget);
+    expect(find.byType(DoctorListScreen), findsOneWidget);
     expect(find.text('Buat Video Call'), findsWidgets);
   });
 

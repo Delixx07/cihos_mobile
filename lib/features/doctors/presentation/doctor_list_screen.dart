@@ -568,14 +568,18 @@ class _Results extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Daftar Dokter',
-                  style: AppTypography.headingMd.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                Flexible(
+                  child: Text(
+                    'Daftar Dokter',
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.headingMd.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   '$totalCount Dokter Ditemukan',
                   style: AppTypography.caption.copyWith(
