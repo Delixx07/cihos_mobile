@@ -36,7 +36,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Edwin Hadinata, Sp.PD',
       authorRole: 'Spesialis Penyakit Dalam',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/medical.png',
+      imageAsset: 'assets/images/artwork/medical.png',
       summary:
           'Sensasi meriang atau menggigil sering kali menjadi tanda sistem kekebalan tubuh sedang aktif melawan patogen atau infeksi.',
       tags: ['Meriang', 'Imunitas', 'Penyakit Dalam'],
@@ -55,7 +55,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Siti Rahma, Sp.GK',
       authorRole: 'Spesialis Gizi Klinik',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/gmcu.jpg',
+      imageAsset: 'assets/images/promo/gmcu.jpg',
       summary:
           'Memilih menu berbuka yang seimbang membantu menstabilkan kadar gula darah dan mengembalikan cairan tubuh setelah berpuasa.',
       tags: ['Puasa', 'Gizi', 'Nutrisi Sehat'],
@@ -73,7 +73,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Maria Angela, Sp.OG',
       authorRole: 'Spesialis Kebidanan & Kandungan',
       readTime: '4 menit baca',
-      imageAsset: 'assets/images/doctor.png',
+      imageAsset: 'assets/images/artwork/doctor.png',
       summary:
           'Kesehatan reproduksi, hormonal, dan kepadatan tulang merupakan pilar penting kesehatan wanita sepanjang usia produktif hingga menopause.',
       tags: ['Wanita', 'Reproduksi', 'Hormon'],
@@ -92,7 +92,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Budi Santoso, Sp.A',
       authorRole: 'Spesialis Anak',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/medicalTeam.png',
+      imageAsset: 'assets/images/artwork/medicalTeam.png',
       summary:
           'Pentingnya komposisi gizi seimbang antara protein hewani, mikronutrien, dan kebersihan pengolahan makanan untuk tumbuh kembang anak.',
       tags: ['Gizi Anak', 'Nutrisi', 'Pertumbuhan'],
@@ -111,7 +111,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Hendra S., Sp.N',
       authorRole: 'Spesialis Neurologi',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/medical.png',
+      imageAsset: 'assets/images/artwork/medical.png',
       summary:
           'Kesemutan (parestesia) pada tangan bisa disebabkan oleh postur tubuh yang salah, tekanan saraf karpal (CTS), atau defisiensi vitamin B kompleks.',
       tags: ['Saraf', 'Kesemutan', 'Neurologi'],
@@ -128,7 +128,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Siti Rahma, Sp.GK',
       authorRole: 'Spesialis Gizi Klinik',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/gmcu.jpg',
+      imageAsset: 'assets/images/promo/gmcu.jpg',
       summary:
           'Karbohidrat kompleks melepaskan energi secara bertahap dan kaya serat sehingga membuat kenyang lebih lama.',
       tags: ['Karbohidrat', 'Diet Sehat', 'Serat'],
@@ -145,7 +145,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Maria Angela, Sp.OG',
       authorRole: 'Spesialis Kebidanan & Kandungan',
       readTime: '4 menit baca',
-      imageAsset: 'assets/images/doctor.png',
+      imageAsset: 'assets/images/artwork/doctor.png',
       summary:
           'Gerakan janin yang teratur, pertambahan berat badan ideal, dan detak jantung janin yang stabil adalah indikator bayi sehat menjelang persalinan.',
       tags: ['Kehamilan', 'Janin', 'Trimester 3'],
@@ -162,7 +162,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Siti Rahma, Sp.GK',
       authorRole: 'Spesialis Gizi Klinik',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/gmcu.jpg',
+      imageAsset: 'assets/images/promo/gmcu.jpg',
       summary:
           'Prinsip pola makan eating clean berfokus pada bahan makanan segar alami utuh tanpa banyak proses pengawetan.',
       tags: ['Eating Clean', 'Gaya Hidup', 'Sehat'],
@@ -181,7 +181,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Edwin Hadinata, Sp.PD',
       authorRole: 'Spesialis Penyakit Dalam',
       readTime: '3 menit baca',
-      imageAsset: 'assets/images/mcu.png',
+      imageAsset: 'assets/images/artwork/mcu.png',
       summary:
           'Teh tawar tanpa gula mengandung antioksidan polifenol tinggi yang melindungi pembuluh darah dan meningkatkan metabolisme.',
       tags: ['Teh Tawar', 'Antioksidan', 'Metabolisme'],
@@ -198,7 +198,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
       author: 'dr. Cynthia Dewi, Sp.DVE',
       authorRole: 'Spesialis Dermatologi & Venereologi',
       readTime: '4 menit baca',
-      imageAsset: 'assets/images/hair skin.png',
+      imageAsset: 'assets/images/promo/hair skin.png',
       summary:
           'Face mapping sering mengaitkan letak jerawat dengan fungsi organ dalam, namun faktor kebersihan dan hormonal tetap menjadi pemicu utama.',
       tags: ['Jerawat', 'Kulit', 'Dermatologi'],

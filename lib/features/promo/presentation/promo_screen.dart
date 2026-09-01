@@ -29,7 +29,7 @@ class _PromoScreenState extends State<PromoScreen> {
       category: 'MRI',
       validity: 'Berlaku s/d 31 Desember 2026',
       keywords: 'mri screening scan radiologi pemeriksaan otak saraf mri',
-      asset: 'assets/images/mri screening.jpg',
+      asset: 'assets/images/promo/mri screening.jpg',
       description:
           'Pemeriksaan Magnetic Resonance Imaging (MRI) resolusi tinggi untuk deteksi dini kelainan saraf, pembuluh darah, dan struktur otak tanpa radiasi.',
     ),
@@ -39,7 +39,7 @@ class _PromoScreenState extends State<PromoScreen> {
       category: 'MCU',
       validity: 'Berlaku s/d 31 Desember 2026',
       keywords: 'general medical check up gmcu mcu kesehatan darah paket',
-      asset: 'assets/images/gmcu.jpg',
+      asset: 'assets/images/promo/gmcu.jpg',
       description:
           'Pemeriksaan kesehatan menyeluruh meliputi tes fungsi hati, ginjal, profil lipid, gula darah, rekam jantung (EKG), dan konsultasi dokter umum.',
     ),
@@ -49,7 +49,7 @@ class _PromoScreenState extends State<PromoScreen> {
       category: 'DWCC',
       validity: 'Berlaku s/d 31 Desember 2026',
       keywords: 'diabetes wound care center dwcc spesialis gula luka',
-      asset: 'assets/images/dwcc.jpg',
+      asset: 'assets/images/promo/dwcc.jpg',
       description:
           'Layanan terpadu perawatan luka diabetes komprehensif bersama tim dokter spesialis dan perawat bersertifikasi modern wound dressing.',
     ),
@@ -59,7 +59,7 @@ class _PromoScreenState extends State<PromoScreen> {
       category: 'Kulit & Rambut',
       validity: 'Berlaku s/d 31 Desember 2026',
       keywords: 'hair skin klinik kulit rambut kecantikan estetika wajah',
-      asset: 'assets/images/hair skin.png',
+      asset: 'assets/images/promo/hair skin.png',
       description:
           'Perawatan kesehatan kulit wajah dan terapi pertumbuhan rambut bersama dokter spesialis dermatologi terpercaya.',
     ),
@@ -186,25 +186,45 @@ class _PromoScreenState extends State<PromoScreen> {
     final matches = _getFilteredPromos();
 
     return Scaffold(
-      backgroundColor: AppColors.primaryDark,
-      body: Column(
+      backgroundColor: AppColors.surface,
+      body: Stack(
         children: [
-          // Modern Dark Header with linear gradient (0% #003366 to 100% #0047AB)
-          Container(
-            decoration: const BoxDecoration(
-              gradient: AppColors.primaryGradient,
+          // Header Linear Gradient (0% #003366 to 100% #0047AB) extending behind the curve
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 320,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF003366), // 0%
+                    Color(0xFF0047AB), // 100%
+                  ],
+                ),
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl,
-              AppSpacing.sm,
-              AppSpacing.xxl,
-              AppSpacing.lg,
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          ),
+
+          // Foreground Content
+          Column(
+            children: [
+              // Header Controls
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    AppSpacing.sm,
+                    AppSpacing.xxl,
+                    AppSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // App Bar Row
                   Row(
                     children: [
@@ -359,8 +379,10 @@ class _PromoScreenState extends State<PromoScreen> {
           ),
         ],
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }
 
 class _PromoItem {

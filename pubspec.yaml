@@ -74,6 +74,10 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/artwork/
+    - assets/images/banner/
+    - assets/images/logo/
+    - assets/images/promo/
     - assets/images/sehat-mu/
     - assets/images/info kesehatan/
     - assets/icons/

@@ -44,7 +44,7 @@ class HospitalLogo extends StatelessWidget {
   final double? _maxWidth;
 
   static const _aspectRatio = 308 / 164;
-  static const _logoPath = 'assets/images/Logo Ciputra Hospital Blue.png';
+  static const _logoPath = 'assets/images/logo/Logo Ciputra Hospital Blue.png';
 
   @override
   Widget build(BuildContext context) {

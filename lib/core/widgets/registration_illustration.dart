@@ -16,7 +16,7 @@ class RegistrationIllustration extends StatelessWidget {
   /// Width over height, from the 270x278 frame in the design.
   static const aspectRatio = 270 / 278;
 
-  static const _illustrationPath = 'assets/images/illust_registration.png';
+  static const _illustrationPath = 'assets/images/artwork/illust_registration.png';
 
   @override
   Widget build(BuildContext context) {

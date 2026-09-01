@@ -63,7 +63,7 @@ class _QueueMonitorScreenState extends State<QueueMonitorScreen>
             right: 0,
             height: screenHeight * 0.45,
             child: Image.asset(
-              'assets/images/cek antrean.jpg',
+              'assets/images/banner/cek antrean.jpg',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 color: AppColors.surface,
@@ -564,33 +564,37 @@ class _Stat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              value,
-              style: AppTypography.headingLg.copyWith(
-                fontSize: 36,
-                height: 1.1,
-                fontWeight: FontWeight.w900,
-                color: valueColor,
-              ),
-            ),
-            if (suffix != null) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  suffix!,
-                  style: AppTypography.bodySm.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary.withValues(alpha: 0.8),
-                  ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: AppTypography.headingLg.copyWith(
+                  fontSize: 36,
+                  height: 1.1,
+                  fontWeight: FontWeight.w900,
+                  color: valueColor,
                 ),
               ),
+              if (suffix != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    suffix!,
+                    style: AppTypography.bodySm.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ],
     );

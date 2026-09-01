@@ -14,37 +14,38 @@ void main() {
 
   // Without these the app has visible holes, so they are hard requirements.
   const required = [
-    'assets/images/Logo Ciputra Hospital Blue.png',
-    'assets/images/illust_registration.png',
+    'assets/images/logo/Logo Ciputra Hospital Blue.png',
+    'assets/images/artwork/illust_registration.png',
     'assets/images/bg_texture.png',
   ];
 
   // Every other path the widgets reference. Each has a fallback, so a missing
   // file degrades rather than breaks.
   const optional = [
-    'assets/images/videoCall.png',
-    'assets/images/medicalTeam.png',
-    'assets/images/medicalAppointment.png',
-    'assets/images/healthReport.png',
-    'assets/images/medical.png',
-    'assets/images/sales.png',
-    'assets/images/promo_1.jpg',
-    'assets/images/promo_2.jpg',
-    'assets/images/promo_3.jpg',
-    'assets/images/promo_4.png',
-    'assets/images/runner.png',
-    'assets/images/eating-clean.jpg',
-    'assets/images/teh-tawar.jpg',
-    'assets/images/jerawat.jpg',
-    'assets/images/qr.png',
-    'assets/images/emergency_hero.jpg.png',
-    'assets/images/avatar.jpg',
-    'assets/images/doctor.png',
-    'assets/images/cek_antri.jpg',
-    'assets/images/dr_edwin.jpg',
-    'assets/images/hasil_radiologi.jpg',
-    'assets/images/hasil_lab.jpg',
-    'assets/images/mcu_illustration.png',
+    'assets/images/artwork/videoCall.png',
+    'assets/images/artwork/medicalTeam.png',
+    'assets/images/artwork/medicalAppointment.png',
+    'assets/images/artwork/healthReport.png',
+    'assets/images/artwork/medical.png',
+    'assets/images/artwork/sales.png',
+    'assets/images/artwork/doctor.png',
+    'assets/images/artwork/cari dokter.png',
+    'assets/images/artwork/mcu.png',
+    'assets/images/banner/cihos1.jpg',
+    'assets/images/banner/cek antrean.jpg',
+    'assets/images/banner/emergency_hero.jpg.png',
+    'assets/images/promo/dwcc.jpg',
+    'assets/images/promo/gmcu.jpg',
+    'assets/images/promo/hair skin.png',
+    'assets/images/promo/mri screening.jpg',
+    'assets/images/info kesehatan/runner 3.png',
+    'assets/images/sehat-mu/asuransi.png',
+    'assets/images/sehat-mu/berhenti merokok.png',
+    'assets/images/sehat-mu/hitung kalori.png',
+    'assets/images/sehat-mu/kalender bmi.png',
+    'assets/images/sehat-mu/kalender haid.png',
+    'assets/images/sehat-mu/pengingat obat.png',
+    'assets/images/sehat-mu/yoga.png',
   ];
 
   for (final path in required) {

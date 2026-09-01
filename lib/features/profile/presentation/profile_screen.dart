@@ -209,10 +209,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           children: [
                             IconButton(
                               tooltip: 'Kembali',
-                              icon: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                                size: 24,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back_ios_new,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
                               onPressed: () {
                                 if (Navigator.of(context).canPop()) {

@@ -7,8 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/async_view.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
 import '../../booking/domain/booking.dart';
 import '../../booking/widgets/specialty_picker_sheet.dart';
 import '../data/catalog_repository.dart';
@@ -180,76 +178,136 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
     final hasActiveFilter = _selectedClinic != null;
 
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
+      backgroundColor: AppColors.surface,
+      body: Stack(
+        children: [
+          // Header Linear Gradient (0% #003366 to 100% #0047AB)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: hasActiveFilter ? 270 : 220,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF003366), // 0%
+                    Color(0xFF0047AB), // 100%
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Foreground Content
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ScreenHeader(title: screenTitle),
-              if (widget.isAddingAnother == true) ...[
-                Padding(
+              SafeArea(
+                bottom: false,
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xxl,
-                    0,
-                    AppSpacing.xxl,
                     AppSpacing.sm,
+                    AppSpacing.xxl,
+                    AppSpacing.md,
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentSoft.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.accentSoft.withValues(alpha: 0.3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // App Bar Row
+                      Row(
+                        children: [
+                          IconButton(
+                            tooltip: 'Kembali',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                            onPressed: () => context.pop(),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Text(
+                              screenTitle,
+                              style: AppTypography.headingMd.copyWith(
+                                color: AppColors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.add_task_rounded,
-                          size: 18,
-                          color: AppColors.accentSoft,
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Tambah Janji Temu',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.accentSoft,
+                      if (widget.isAddingAnother == true) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
                             ),
                           ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => context.pop(),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            foregroundColor: AppColors.danger,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          icon: const Icon(Icons.close_rounded, size: 16),
-                          label: const Text(
-                            'Batal Tambah',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.add_task_rounded,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Tambah Janji Temu',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => context.pop(),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  foregroundColor: const Color(0xFFFFB4AB),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.close_rounded, size: 16),
+                                label: const Text(
+                                  'Batal Tambah',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ],
-              // Search & Filter Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                child: Row(
-                  children: [
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Search & Filter Row
+                      Row(
+                        children: [
                     Expanded(
                       child: _SearchBar(
                         controller: _searchController,
@@ -269,123 +327,129 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                     ),
                   ],
                 ),
-              ),
 
-              // Active Filter Chip Display
-              if (hasActiveFilter) ...[
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentSoft.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.accentSoft.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      // Active Filter Chip Display
+                      if (hasActiveFilter) ...[
+                        const SizedBox(height: 10),
+                        Row(
                           children: [
-                            const Icon(
-                              Icons.local_hospital_outlined,
-                              size: 14,
-                              color: AppColors.accentSoft,
-                            ),
-                            const SizedBox(width: 6),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 180),
-                              child: Text(
-                                _selectedClinic!.displayName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.accentSoft,
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                  width: 1,
                                 ),
                               ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.local_hospital_outlined,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 180),
+                                    child: Text(
+                                      _selectedClinic!.displayName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: _clearFilter,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.25),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: _clearFilter,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentSoft.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 12,
-                                  color: AppColors.accentSoft,
+                            const Spacer(),
+                            TextButton(
+                              onPressed: _clearFilter,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                foregroundColor: const Color(0xFFFFB4AB),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              child: const Text(
+                                'Hapus Filter',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _clearFilter,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          foregroundColor: AppColors.danger,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: const Text(
-                          'Hapus Filter',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
-              ],
+              ),
 
-              const SizedBox(height: AppSpacing.sm),
-
+              // Main Curved Surface Content Panel
               Expanded(
-                child: RefreshIndicator(
-                  color: AppColors.accentSoft,
-                  onRefresh: () async {
-                    ref.invalidate(liveDoctorsProvider(effectiveUnitCode));
-                    await ref.read(
-                      liveDoctorsProvider(effectiveUnitCode).future,
-                    );
-                  },
-                  child: AsyncView(
-                    value: doctorsAsync,
-                    onRetry: () =>
-                        ref.invalidate(liveDoctorsProvider(effectiveUnitCode)),
-                    isEmpty: (_) => matches.isEmpty,
-                    emptyTitle: _query.isEmpty && !hasActiveFilter
-                        ? 'Belum ada dokter tersedia'
-                        : 'Dokter tidak ditemukan',
-                    emptyMessage: hasActiveFilter
-                        ? 'Tidak ada dokter yang tersedia untuk klinik "${_selectedClinic?.displayName}". Coba pilih klinik lain atau hapus filter.'
-                        : (_query.isEmpty
-                            ? 'Silakan coba beberapa saat lagi.'
-                            : 'Tidak ada dokter yang cocok dengan "$_query".'),
-                    builder: (_) => _Results(
-                      matches: matches,
-                      totalCount: matches.length,
-                      kind: widget.kind,
-                      onProfileTap: _openProfile,
-                      onBookTap: _handleBookAction,
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () async {
+                      ref.invalidate(liveDoctorsProvider(effectiveUnitCode));
+                      await ref.read(
+                        liveDoctorsProvider(effectiveUnitCode).future,
+                      );
+                    },
+                    child: AsyncView(
+                      value: doctorsAsync,
+                      onRetry: () =>
+                          ref.invalidate(liveDoctorsProvider(effectiveUnitCode)),
+                      isEmpty: (_) => matches.isEmpty,
+                      emptyTitle: _query.isEmpty && !hasActiveFilter
+                          ? 'Belum ada dokter tersedia'
+                          : 'Dokter tidak ditemukan',
+                      emptyMessage: hasActiveFilter
+                          ? 'Tidak ada dokter yang tersedia untuk klinik "${_selectedClinic?.displayName}". Coba pilih klinik lain atau hapus filter.'
+                          : (_query.isEmpty
+                              ? 'Silakan coba beberapa saat lagi.'
+                              : 'Tidak ada dokter yang cocok dengan "$_query".'),
+                      builder: (_) => _Results(
+                        matches: matches,
+                        totalCount: matches.length,
+                        kind: widget.kind,
+                        onProfileTap: _openProfile,
+                        onBookTap: _handleBookAction,
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
