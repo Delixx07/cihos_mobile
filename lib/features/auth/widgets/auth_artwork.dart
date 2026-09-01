@@ -24,7 +24,7 @@ class AuthArtwork extends StatelessWidget {
   final bool showIllustration;
   final bool isLargeLogo;
 
-  static const _illustrationPath = 'assets/images/illust_registration.png';
+  static const _illustrationPath = 'assets/images/artwork/illust_registration.png';
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +91,9 @@ class AuthArtwork extends StatelessWidget {
                 child: IconButton(
                   tooltip: 'Kembali',
                   icon: const Icon(
-                    Icons.arrow_back_rounded,
+                    Icons.arrow_back_ios_new,
                     color: AppColors.textPrimary,
-                    size: 20,
+                    size: 16,
                   ),
                   onPressed: onBackPressed ?? () => Navigator.of(context).maybePop(),
                 ),

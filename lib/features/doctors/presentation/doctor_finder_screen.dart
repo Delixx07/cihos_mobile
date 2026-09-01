@@ -162,7 +162,7 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 90),
                   child: Image.asset(
-                    'assets/images/doctor.png',
+                    'assets/images/artwork/doctor.png',
                     width: 280,
                     fit: BoxFit.contain,
                   ),
@@ -226,7 +226,14 @@ class _Panel extends StatelessWidget {
         AppSpacing.xxl,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.accentSoft,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF003366), // 0%
+            Color(0xFF0047AB), // 100%
+          ],
+        ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(

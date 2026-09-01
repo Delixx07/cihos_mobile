@@ -18,10 +18,10 @@ class _PromoCarouselState extends State<PromoCarousel> {
   int _page = 0;
 
   static const _slides = [
-    'assets/images/cihos1.jpg',
-    'assets/images/gmcu.jpg',
-    'assets/images/hair skin.png',
-    'assets/images/mri screening.jpg',
+    'assets/images/banner/cihos1.jpg',
+    'assets/images/promo/gmcu.jpg',
+    'assets/images/promo/hair skin.png',
+    'assets/images/promo/mri screening.jpg',
   ];
 
   @override

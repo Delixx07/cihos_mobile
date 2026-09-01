@@ -52,3 +52,6 @@ env.json
 .env
 .env.*
 !.env.example
+
+# Snapshot diffs written by a failing golden test run.
+test/failures/

@@ -177,8 +177,8 @@ class _BookingSearchScreenState extends ConsumerState<BookingSearchScreen> {
                   padding: EdgeInsets.only(top: isVideoCall ? 50 : 90),
                   child: Image.asset(
                     isVideoCall
-                        ? 'assets/images/videoCall.png'
-                        : 'assets/images/cari dokter.png',
+                        ? 'assets/images/artwork/videoCall.png'
+                        : 'assets/images/artwork/cari dokter.png',
                     width: isVideoCall ? 250 : 280,
                     fit: BoxFit.contain,
                   ),
@@ -255,7 +255,14 @@ class _SearchPanel extends StatelessWidget {
         AppSpacing.xxl,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.accentSoft,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF003366), // 0%
+            Color(0xFF0047AB), // 100%
+          ],
+        ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(

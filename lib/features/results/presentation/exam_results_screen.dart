@@ -40,24 +40,46 @@ class _ExamResultsScreenState extends ConsumerState<ExamResultsScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: AppColors.accentSoft,
-      body: Column(
+      backgroundColor: AppColors.surface,
+      body: Stack(
         children: [
-          // Modern Dark Slate Header
-          Container(
-            color: AppColors.accentSoft,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl,
-              AppSpacing.sm,
-              AppSpacing.xxl,
-              AppSpacing.lg,
+          // Header Linear Gradient (0% #003366 to 100% #0047AB) extending behind the curve
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 320,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF003366), // 0%
+                    Color(0xFF0047AB), // 100%
+                  ],
+                ),
+              ),
             ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // App Bar Row
+          ),
+
+          // Foreground Content
+          Column(
+            children: [
+              // Header Controls
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    AppSpacing.sm,
+                    AppSpacing.xxl,
+                    AppSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // App Bar Row
                   Row(
                     children: [
                       IconButton(
@@ -78,12 +100,14 @@ class _ExamResultsScreenState extends ConsumerState<ExamResultsScreen> {
                         onPressed: () => context.pop(),
                       ),
                       const SizedBox(width: AppSpacing.md),
-                      Text(
-                        'Hasil Pemeriksaan',
-                        style: AppTypography.headingMd.copyWith(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Text(
+                          'Hasil Pemeriksaan',
+                          style: AppTypography.headingMd.copyWith(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -153,12 +177,14 @@ class _ExamResultsScreenState extends ConsumerState<ExamResultsScreen> {
                     ),
                 ],
               ),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      ],
+    ),
+  );
+}
 }
 
 /// The modern category filter pill bar.

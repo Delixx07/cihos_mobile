@@ -171,23 +171,45 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
     final isVideoCall = widget.booking.kind == BookingKind.videoCall;
 
     return Scaffold(
-      backgroundColor: AppColors.accentSoft,
-      body: Column(
+      backgroundColor: AppColors.white,
+      body: Stack(
         children: [
-          // Top Header (consistent with Schedule & Patient screens)
-          Container(
-            color: AppColors.accentSoft,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xxl,
-              AppSpacing.sm,
-              AppSpacing.xxl,
-              AppSpacing.lg,
+          // Header Linear Gradient (0% #003366 to 100% #0047AB)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 240,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF003366), // 0%
+                    Color(0xFF0047AB), // 100%
+                  ],
+                ),
+              ),
             ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          ),
+
+          // Foreground Content
+          Column(
+            children: [
+              // Top Header Controls
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxl,
+                    AppSpacing.sm,
+                    AppSpacing.xxl,
+                    AppSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   Row(
                     children: [
                       IconButton(
@@ -908,8 +930,10 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
           ),
         ],
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }
 
 class _TermsCheckbox extends StatelessWidget {

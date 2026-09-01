@@ -29,7 +29,7 @@ class EmergencyScreen extends StatelessWidget {
               right: 0,
               height: screenHeight * 0.50,
               child: Image.asset(
-                'assets/images/emergency_hero.jpg.png',
+                'assets/images/banner/emergency_hero.jpg.png',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   color: AppColors.surface,

@@ -21,7 +21,7 @@ class CihosApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Cihos Mobile',
+      title: 'Ciputra Hospital Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       locale: const Locale('id', 'ID'),
