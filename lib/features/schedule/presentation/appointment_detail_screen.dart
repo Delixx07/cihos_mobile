@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -424,7 +425,8 @@ class AppointmentDetailScreen extends ConsumerWidget {
                   _BottomActionDock(
                     appointment: appointment,
                     onShowFullQr: () => _showFullQrDialog(context, appointment),
-                    onCancelAppointment: () => _confirmCancel(context),
+                    onCancelAppointment: () =>
+                        _confirmCancel(context, ref, appointment),
                   ),
                 ],
               ),
@@ -522,7 +524,11 @@ class AppointmentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmCancel(BuildContext context) async {
+  Future<void> _confirmCancel(
+    BuildContext context,
+    WidgetRef ref,
+    ScheduledAppointment appointment,
+  ) async {
     final reason = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -532,14 +538,59 @@ class AppointmentDetailScreen extends ConsumerWidget {
 
     if (reason == null || !context.mounted) return;
 
+    // Cancelling writes to the hospital system, so the patient waits on the
+    // real result rather than being told it worked before it has.
+    final progress = showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const CancelInProgressSheet(),
+    );
+
+    String? failure;
+    try {
+      await ref
+          .read(scheduleRepositoryProvider)
+          .voidAppointment(
+            appointmentNo: appointment.bookingCode,
+            reason: reason,
+          );
+      // The list still holds the appointment as booked; refetch so the
+      // schedule and history tabs move it across.
+      ref.invalidate(appointmentsProvider);
+    } on ApiException catch (e) {
+      failure = switch (e.code) {
+        'already_registered' =>
+          'Anda sudah check-in untuk janji temu ini, jadi pembatalan tidak '
+              'bisa dilakukan lewat aplikasi. Silakan hubungi rumah sakit.',
+        'already_voided' => 'Janji temu ini sudah dibatalkan sebelumnya.',
+        'not_found' => 'Janji temu ini tidak ditemukan pada akun Anda.',
+        _ => e.message,
+      };
+    } catch (_) {
+      failure = 'Pembatalan gagal diproses. Silakan coba lagi.';
+    }
+
+    // Close the progress sheet before showing the outcome.
+    if (context.mounted) Navigator.of(context).pop();
+    await progress;
+    if (!context.mounted) return;
+
     await showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const CancelSubmittedSheet(),
+      builder: (_) => failure == null
+          ? const CancelSubmittedSheet()
+          : CancelFailedSheet(message: failure),
     );
+
+    // A cancelled appointment no longer belongs on its detail screen.
+    if (failure == null && context.mounted) context.pop();
   }
 }
 

@@ -134,6 +134,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
         patientNik: _patient!.nik,
         patientPhone: _patient!.phone,
         patientBirthDate: _patient!.birthDate,
+        patientRelation: _patient!.familyRelation,
         paymentMethod: _paymentMethod,
         company: _company,
       ),

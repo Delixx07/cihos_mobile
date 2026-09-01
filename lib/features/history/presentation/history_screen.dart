@@ -368,7 +368,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               child: _VisitCard(
                                 visit: filteredVisits[index],
                                 onTap: () => context.push(
-                                  '${AppRoutes.appointments}/${filteredVisits[index].id}',
+                                  AppRoutes.appointmentDetail(
+                                    filteredVisits[index].id,
+                                  ),
                                 ),
                               ),
                             ),

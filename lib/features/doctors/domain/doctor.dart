@@ -57,7 +57,7 @@ class Doctor {
 
   bool supports(ConsultationMethod method) => methods.contains(method);
 
-  /// Builds a doctor from `/api/taptalk/doctors`.
+  /// Builds a doctor from `/api/app/doctors`.
   factory Doctor.fromJson(Map<String, dynamic> json) => Doctor(
     id: json['paramedic_id'].toString(),
     name: (json['name'] as String? ?? '').trim(),

@@ -184,6 +184,7 @@ class Booking {
     this.patientNik,
     this.patientPhone,
     this.patientBirthDate,
+    this.patientRelation,
     this.isNewPatient = false,
     this.paymentMethod,
     this.company,
@@ -206,6 +207,11 @@ class Booking {
   final String? patientNik;
   final String? patientPhone;
   final DateTime? patientBirthDate;
+
+  /// How the account holder relates to the patient, e.g. `Diri Sendiri`,
+  /// `Anak`. Booking maps this onto the API's Pribadi/Keluarga/Orang Lain.
+  final String? patientRelation;
+
   final bool isNewPatient;
 
   /// "Pribadi" or "Asuransi/Perusahaan".
@@ -234,6 +240,7 @@ class Booking {
     String? patientNik,
     String? patientPhone,
     DateTime? patientBirthDate,
+    String? patientRelation,
     bool? isNewPatient,
     String? paymentMethod,
     String? company,
@@ -256,6 +263,7 @@ class Booking {
       patientNik: patientNik ?? this.patientNik,
       patientPhone: patientPhone ?? this.patientPhone,
       patientBirthDate: patientBirthDate ?? this.patientBirthDate,
+      patientRelation: patientRelation ?? this.patientRelation,
       isNewPatient: isNewPatient ?? this.isNewPatient,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       company: company ?? this.company,

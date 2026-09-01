@@ -129,6 +129,73 @@ class DaySlots {
   final List<BookableSlot> slots;
 
   bool get isEmpty => slots.isEmpty;
+
+  /// The day's slots grouped into their practice sessions, earliest first.
+  ///
+  /// Queue numbers restart at 1 in every session, so a doctor with a morning
+  /// and an evening clinic offers two different "No. 1" slots. They only mean
+  /// something alongside the session they belong to, which is why the picker
+  /// must never show them as one flat list.
+  List<SessionSlots> get sessions {
+    final grouped = <int, List<BookableSlot>>{};
+    for (final slot in slots) {
+      grouped.putIfAbsent(slot.session, () => []).add(slot);
+    }
+
+    final result = [
+      for (final entry in grouped.entries)
+        SessionSlots(
+          session: entry.key,
+          start: entry.value.first.start,
+          end: entry.value.first.end,
+          room: entry.value.first.room,
+          slots: entry.value..sort((a, b) => a.number.compareTo(b.number)),
+        ),
+    ];
+    result.sort((a, b) => a.start.compareTo(b.start));
+    return result;
+  }
+}
+
+/// One practice session on a date, with the queue numbers still free in it.
+class SessionSlots {
+  const SessionSlots({
+    required this.session,
+    required this.start,
+    required this.end,
+    required this.slots,
+    this.room,
+  });
+
+  final int session;
+
+  /// `HH:mm`.
+  final String start;
+  final String end;
+  final String? room;
+  final List<BookableSlot> slots;
+
+  String get timeLabel => '$start - $end';
+
+  /// Whether this session's end time has already passed on [day].
+  ///
+  /// Only meaningful for today: a session that finished this morning must not
+  /// be bookable, while the same session on a future date is fine.
+  bool hasEndedOn(DateTime day, DateTime now) {
+    final isToday =
+        day.year == now.year && day.month == now.month && day.day == now.day;
+    if (!isToday) return false;
+
+    final parts = end.split(':');
+    if (parts.length < 2) return false;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return false;
+
+    return now.isAfter(
+      DateTime(day.year, day.month, day.day, hour, minute),
+    );
+  }
 }
 
 /// A specific upcoming practice date for a doctor.

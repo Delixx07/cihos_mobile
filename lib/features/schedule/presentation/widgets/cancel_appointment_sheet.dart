@@ -255,3 +255,100 @@ class _OutlinedAction extends StatelessWidget {
     );
   }
 }
+
+/// Shown while the cancellation is in flight with the hospital system.
+///
+/// Not dismissible: the request is already on its way, and letting the patient
+/// back out here would leave them unsure whether it went through.
+class CancelInProgressSheet extends StatelessWidget {
+  const CancelInProgressSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              'Membatalkan janji temu…',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the hospital system refused the cancellation.
+///
+/// The reason matters here — a patient who has already checked in has to be
+/// told to call the hospital, not to try again.
+class CancelFailedSheet extends StatelessWidget {
+  const CancelFailedSheet({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+        AppSpacing.xxl,
+        AppSpacing.xl,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pembatalan tidak berhasil',
+              textAlign: TextAlign.center,
+              style: AppTypography.headingSm.copyWith(fontSize: 20),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySm.copyWith(fontSize: 15, height: 1.3),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            _OutlinedAction(
+              key: const Key('cancelFailedDismiss'),
+              label: 'Tutup',
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

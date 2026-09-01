@@ -1,0 +1,251 @@
+{
+  "info": {
+    "name": "CIHOS Mobile App API",
+    "description": "API untuk aplikasi mobile Flutter pasien (login sebagai dirinya sendiri). BEDA dari TapTalk/Kiosk: endpoint ini dipakai LANGSUNG oleh pasien via akun yang dia buat sendiri, bukan sistem lain yang bertindak atas nama pasien.\n\nAUTENTIKASI (DUA lapis untuk sebagian besar endpoint):\n1) Header X-Api-Key: {{MOBILE_API_KEY}} — WAJIB di SEMUA endpoint /api/app/*.\n2) Header Authorization: Bearer {{TOKEN}} — token Sanctum, didapat dari response Register/Login. WAJIB untuk semua endpoint KECUALI Register & Login (yang justru dipakai untuk MENDAPATKAN token).\n\nALUR TYPICAL:\n1. Register (sekali) atau Login → dapat `token` dari response, simpan.\n2. Pakai token itu di header Authorization: Bearer <token> untuk semua panggilan berikutnya.\n3. Browse klinik/dokter/jadwal → pilih slot → Book Appointment.\n4. Lihat riwayat lewat List My Appointments; Void kalau mau batalkan (hanya bisa SEBELUM check-in).\n\nCATATAN PENTING soal MedicalNo: akun baru dapat No. Rekam Medis SEMENTARA berformat APP-XXXXXX (bukan MRN asli RS, karena akun disimpan lokal). Begitu Book Appointment PERTAMA berhasil, MEDINFRAS menerbitkan MRN ASLI dan sistem otomatis menggantinya di akun pasien (cek lagi lewat Me) — booking berikutnya sudah dianggap 'pasien lama', tak perlu identitas ulang.\n\nSet BASE & MOBILE_API_KEY di tab Variables. TOKEN diisi manual dari response Register/Login setiap kali testing (Postman tidak auto-save di sini, biar simpel).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE", "value": "http://172.20.0.39/appointment_test/public", "type": "string", "description": "Base URL server appointment_test (perlu /public — beda dari live yang punya alias tanpa /public)." },
+    { "key": "MOBILE_API_KEY", "value": "b18562cd3f6b4ea82284c9da417c1f19", "type": "string", "description": "Nilai MOBILE_API_KEY pada berkas .env server appointment_test. Wajib di SEMUA endpoint /api/app/*." },
+    { "key": "TOKEN", "value": "", "type": "string", "description": "Token Sanctum dari response Register/Login. Isi manual setelah dapat token." }
+  ],
+  "item": [
+    {
+      "name": "1. Autentikasi",
+      "item": [
+        {
+          "name": "Register (buat akun baru)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/register", "host": ["{{BASE}}"], "path": ["api", "app", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nama Pasien\",\n  \"email\": \"pasien@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"nik\": \"3578012345670001\",\n  \"phone\": \"081234567890\",\n  \"dob\": \"1990-01-15\",\n  \"gender\": \"Laki-Laki\"\n}"
+            },
+            "description": "Buat akun pasien baru.\n\nSEMUA FIELD WAJIB kecuali `gender` (opsional):\n- name: nama lengkap pasien.\n- email: WAJIB unik, dipakai untuk login.\n- password + password_confirmation: min 8 karakter, harus sama.\n- nik: WAJIB unik, TEPAT 16 digit angka (KTP). Dipakai sebagai identitas ke MEDINFRAS saat booking pertama — pastikan valid & benar-benar milik pasien.\n- phone: nomor HP aktif.\n- dob: tanggal lahir, format YYYY-MM-DD, harus di masa lalu.\n- gender: bebas teks (mis. \"Laki-Laki\"/\"Perempuan\") — dipetakan otomatis ke kode MEDINFRAS saat booking.\n\nSUKSES (201): { ok:true, token, patient:{ id, medical_no, name, email, phone, dob, gender, is_new_patient } }\n\nmedical_no akan berformat APP-XXXXXX (SEMENTARA) — lihat catatan di deskripsi collection ini.\n\nGAGAL: 401 unauthorized (API key salah) · 422 validation_failed (lihat `errors` per field, termasuk email/nik yang sudah terdaftar)."
+          }, "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/login", "host": ["{{BASE}}"], "path": ["api", "app", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"pasien@example.com\",\n  \"password\": \"password123\"\n}" },
+            "description": "Login pasien yang sudah punya akun. WAJIB: email, password.\n\nSUKSES (200): { ok:true, token, patient:{...} } — sama seperti Register.\n\nGAGAL: 401 invalid_credentials (email ATAU password salah — pesan SENGAJA sama, tidak membocorkan mana yang salah) · 401 no_account (akun lama hasil sync belum punya password — arahkan ke Register) · 422 validation_failed · 429 terlalu banyak percobaan (limit 5x/menit per IP)."
+          }, "response": []
+        },
+        {
+          "name": "Me (cek sesi + profil)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/me", "host": ["{{BASE}}"], "path": ["api", "app", "me"] },
+            "description": "Cek token masih valid + ambil data pasien TERKINI (mis. cek apakah medical_no sudah berubah dari APP-XXXXXX ke MRN asli setelah booking pertama).\n\nTIDAK butuh X-Api-Key, cukup Authorization: Bearer <token>.\n\nSUKSES (200): { ok:true, patient:{...} }\nGAGAL: 401 (token tidak ada/kedaluwarsa/dicabut — arahkan pasien ke Login lagi)."
+          }, "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/logout", "host": ["{{BASE}}"], "path": ["api", "app", "logout"] },
+            "description": "Cabut token yang sedang dipakai (HANYA device ini — device lain yang login tetap aktif).\n\nTIDAK butuh X-Api-Key, cukup Authorization: Bearer <token>.\n\nSUKSES (200): { ok:true, message }."
+          }, "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Data Klinik/Dokter/Jadwal",
+      "item": [
+        {
+          "name": "Get Clinics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/clinics?q=",
+              "host": ["{{BASE}}"], "path": ["api", "app", "clinics"],
+              "query": [{ "key": "q", "value": "", "description": "Filter nama/kode klinik (opsional)." }]
+            },
+            "description": "Daftar unit/klinik layanan. Response: { ok, count, clinics:[{code,name}] }."
+          }, "response": []
+        },
+        {
+          "name": "Get Doctors",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/doctors?unit=SU-015&q=",
+              "host": ["{{BASE}}"], "path": ["api", "app", "doctors"],
+              "query": [
+                { "key": "unit", "value": "SU-015", "description": "Kode unit, filter dokter yang praktik di unit itu (opsional)." },
+                { "key": "q", "value": "", "description": "Filter nama/alias dokter (opsional)." }
+              ]
+            },
+            "description": "Daftar dokter. Response: { ok, count, doctors:[{paramedic_id, paramedic_code, name, specialty, aliases}] }."
+          }, "response": []
+        },
+        {
+          "name": "Get Schedule (+slot bernomor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/schedule?paramedic_id=292&unit=SU-015&date=2026-08-22",
+              "host": ["{{BASE}}"], "path": ["api", "app", "schedule"],
+              "query": [
+                { "key": "paramedic_id", "value": "292", "description": "WAJIB. ID dokter dari Get Doctors." },
+                { "key": "unit", "value": "SU-015", "description": "Kode unit (opsional, filter)." },
+                { "key": "date", "value": "2026-08-22", "description": "Opsional. Kalau diisi, tiap window jadwal disertai daftar slot BERNOMOR yang masih tersedia (`slots:[{no}]`) — nomor inilah yang dikirim sebagai `slot_no` saat Book Appointment. Kalau libur nasional, response `is_holiday:true` & schedules kosong." }
+              ]
+            },
+            "description": "Jadwal praktik dokter. Tanpa `date` → hanya template jadwal mingguan (tanpa nomor slot). Dengan `date` → sudah dihitung slot mana yang available."
+          }, "response": []
+        },
+        {
+          "name": "Get Schedule Upcoming (N hari ke depan)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/schedule-upcoming?paramedic_id=292&days=14&with_slots=0",
+              "host": ["{{BASE}}"], "path": ["api", "app", "schedule-upcoming"],
+              "query": [
+                { "key": "paramedic_id", "value": "292", "description": "WAJIB." },
+                { "key": "unit", "value": "", "description": "Opsional, filter unit." },
+                { "key": "days", "value": "14", "description": "Opsional, default 21, maksimal 365. Jumlah hari ke depan dari hari ini." },
+                { "key": "with_slots", "value": "0", "description": "Opsional, default 0. Set 1 untuk sertakan slot bernomor per tanggal (LEBIH BERAT — pakai hanya kalau perlu tampilkan langsung tanpa panggil Get Schedule lagi)." }
+              ]
+            },
+            "description": "Jadwal dokter sudah dipetakan ke tanggal konkret (untuk kalender pemilihan tanggal di app), termasuk penanda hari libur nasional."
+          }, "response": []
+        },
+        {
+          "name": "Get Available Slots (ringkas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/slots?date=2026-08-22&paramedic_id=292&unit_code=SU-015",
+              "host": ["{{BASE}}"], "path": ["api", "app", "slots"],
+              "query": [
+                { "key": "date", "value": "2026-08-22", "description": "WAJIB." },
+                { "key": "paramedic_id", "value": "292", "description": "WAJIB." },
+                { "key": "unit_code", "value": "SU-015", "description": "WAJIB." },
+                { "key": "session", "value": "", "description": "Opsional, filter sesi tertentu." }
+              ]
+            },
+            "description": "Versi ringkas slot tersedia per sesi (dipakai bersama TapTalk/Kiosk) — alternatif Get Schedule bila hanya butuh daftar slot tanpa detail jadwal lengkap. Response: { ok, date, doctor, unit_code, sessions:[{session,start,end,room,slot_total,available:[{no}]}] }."
+          }, "response": []
+        },
+        {
+          "name": "Get Holidays",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{BASE}}/api/app/holidays?upcoming=5",
+              "host": ["{{BASE}}"], "path": ["api", "app", "holidays"],
+              "query": [
+                { "key": "date", "value": "", "description": "Opsional. Cek satu tanggal spesifik → { is_holiday, name }." },
+                { "key": "year", "value": "", "description": "Opsional. Semua libur di tahun itu." },
+                { "key": "from", "value": "", "description": "Opsional, dipakai bareng `to` untuk rentang tanggal." },
+                { "key": "to", "value": "", "description": "Opsional." },
+                { "key": "upcoming", "value": "5", "description": "Opsional (default bila query lain kosong). N libur berikutnya dari hari ini." }
+              ]
+            },
+            "description": "Libur nasional (RS tutup) — untuk menonaktifkan tanggal itu di kalender pemilihan."
+          }, "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Appointment Saya",
+      "item": [
+        {
+          "name": "List Riwayat Appointment Saya",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/appointments", "host": ["{{BASE}}"], "path": ["api", "app", "appointments"] },
+            "description": "Semua appointment milik pasien yang login (lama & baru, termasuk yang sudah Cancelled), terbaru dulu.\n\nSUKSES (200): { ok, count, appointments:[{ appointment_no, registration_no, ticket_no, date, time, doctor, specialty, clinic_code, status, token, created_at }] }\n\nstatus: \"Booked\" (belum check-in) | \"Registered\" (sudah check-in) | \"Cancelled\".\nticket_no: nomor tiket yang SAMA dengan yang tampil di layar TV/dicetak RS (mis. \"BH008\") — null bila belum sempat dihitung.\ntoken: dipakai untuk fitur check-in mandiri via QR (endpoint /api/checkin, di luar dokumen ini) — null setelah check-in/dibatalkan."
+          }, "response": []
+        },
+        {
+          "name": "Book Appointment — Pasien Baru (belum punya MRN asli)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/appointments", "host": ["{{BASE}}"], "path": ["api", "app", "appointments"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ServiceUnitCode\": \"SU-015\",\n  \"ParamedicCode\": \"D240146\",\n  \"ParamedicID\": 292,\n  \"OperationalTimeCode\": \"OT-089\",\n  \"Session\": 1,\n  \"StartDate\": \"20260822\",\n  \"slot_no\": 1,\n  \"RelationToPatient\": \"Pribadi\"\n}"
+            },
+            "description": "Buat janji temu untuk PASIEN SENDIRI (bukan orang lain — identitas otomatis diambil dari akun yang login, TIDAK dikirim di body ini).\n\nWAJIB dikirim (dari hasil Get Schedule/Get Doctors/Get Clinics):\n- ServiceUnitCode: kode unit/klinik.\n- ParamedicCode + ParamedicID: dokter yang dipilih.\n- OperationalTimeCode: dari Get Schedule (`operational_time_code`).\n- Session: nomor sesi dari Get Schedule (`windows[].session`).\n- StartDate: format yyyyMMdd (BUKAN yyyy-MM-dd).\n- slot_no: nomor slot yang dipilih pasien dari Get Schedule (`windows[].slots[].no`) — WAJIB, tidak ada auto-pilih seperti Kiosk.\n\nOPSIONAL:\n- RelationToPatient: \"Pribadi\" (default) | \"Keluarga\" | \"Orang Lain\" — untuk kasus akun dipakai memesankan orang lain (identitas TETAP punya akun, field ini cuma keterangan hubungan).\n\nOTOMATIS DARI AKUN (jangan dikirim, akan diabaikan bila dikirim): PatientName, DateOfBirth, Gender, MobileNo, IdentityNoType, IdentityCardNo, MedicalNo, IsNewPatient.\n\nBila akun BELUM punya MRN asli (medical_no masih APP-XXXXXX), booking ini otomatis diperlakukan sebagai PASIEN BARU ke MEDINFRAS (pakai NIK dari akun) — MRN asli yang diterbitkan akan TERSIMPAN OTOMATIS ke akun (cek lewat Me setelah ini).\n\nSUKSES (201): { ok:true, appointment_no, medical_no, queue_no, queue_label, slot_no, slot_time, session, token, qr_token, patient, medinfras }\n\nGAGAL: 409 duplicate_appointment/holiday/on_leave/slot_taken/slot_reserved · 422 invalid_slot/validation_failed · 502 medinfras_failed."
+          }, "response": []
+        },
+        {
+          "name": "Void (batalkan) Appointment Saya",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/appointments/void", "host": ["{{BASE}}"], "path": ["api", "app", "appointments", "void"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointment_no\": \"OPA/20260822/00038\",\n  \"CancelReason\": \"Berhalangan hadir\"\n}"
+            },
+            "description": "Batalkan appointment MILIK SENDIRI. Hanya bisa membatalkan appointment yang cocok dengan MedicalNo akun yang login (bukan milik pasien lain), dan HANYA SEBELUM check-in.\n\nWAJIB: appointment_no (dari List Riwayat / response Book Appointment).\nOPSIONAL: CancelReason (default \"Pembatalan Perjanjian\").\n\nappointment_no dikirim di BODY (bukan bagian URL) karena formatnya mengandung tanda \"/\" (mis. \"OPA/20260822/00038\").\n\nSUKSES (200): { ok:true, appointment_no, status:\"Cancelled\", reason }\n\nGAGAL: 404 not_found (bukan milik akun ini / tidak ada) · 409 already_voided/already_registered (sudah check-in, tak bisa dibatalkan lewat sini — hubungi RS) · 502 medinfras_failed."
+          }, "response": []
+        }
+      ]
+    }
+  ]
+}

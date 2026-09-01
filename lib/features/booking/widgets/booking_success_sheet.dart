@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../data/booking_repository.dart';
 
 /// Where the patient goes after a booking is created.
 enum BookingSuccessAction { viewHistory, home }
 
 /// Modern and vibrant confirmation sheet shown once the booking has been created.
 class BookingSuccessSheet extends StatelessWidget {
-  const BookingSuccessSheet({super.key, required this.bookingCode});
+  const BookingSuccessSheet({super.key, required this.result});
 
-  final String bookingCode;
+  final BookingResult result;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +105,64 @@ class BookingSuccessSheet extends StatelessWidget {
               ),
 
               const SizedBox(height: AppSpacing.lg),
+
+              // The hospital assigns the queue number, so this is the first
+              // time the patient sees it — give it the most weight on screen.
+              if (result.queueNumber != null || result.slotTime != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Nomor Antrean Anda',
+                        style: AppTypography.bodySm.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF15803D),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        result.queueNumber != null
+                            ? 'No. ${result.queueNumber}'
+                            : (result.queueLabel ?? '-'),
+                        style: AppTypography.headingSm.copyWith(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF15803D),
+                        ),
+                      ),
+                      if (result.slotTime != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Perkiraan dilayani pukul ${result.slotTime}',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.bodySm.copyWith(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF166534),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kode Janji Temu: ${result.appointmentNo}',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySm.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Information Box with Visual Badges
               Container(

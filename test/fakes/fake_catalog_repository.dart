@@ -88,7 +88,11 @@ class FakeCatalogRepository implements CatalogRepository {
   }
 
   @override
-  Future<List<PracticeSchedule>> schedules(String doctorId) async {
+  Future<List<PracticeSchedule>> schedules(
+    String doctorId, {
+    String? unitCode,
+    DateTime? date,
+  }) async {
     _guard();
     return const [
       PracticeSchedule(

@@ -62,11 +62,25 @@ class CatalogRepository {
         : doctorsList.map((d) => d.copyWith(unitCode: unitCode)).toList();
   }
 
-  /// A doctor's weekly practice sessions.
-  Future<List<PracticeSchedule>> schedules(String doctorId) async {
+  /// A doctor's practice sessions.
+  ///
+  /// Without [date] the API answers the weekly template — the shape the
+  /// booking screen leans on for `operational_time_code` and `unit_code`.
+  /// With [date] each window also carries the numbered slots still free that
+  /// day, which is what `slot_no` is taken from when booking.
+  Future<List<PracticeSchedule>> schedules(
+    String doctorId, {
+    String? unitCode,
+    DateTime? date,
+  }) async {
     final response = await _client.get(
-      '/taptalk/schedule',
-      query: {'paramedic_id': doctorId},
+      '/app/schedule',
+      query: {
+        'paramedic_id': doctorId,
+        if (unitCode != null && unitCode.isNotEmpty) 'unit': unitCode,
+        if (date != null) 'date': _isoDate(date),
+      },
+      authenticated: true,
     );
     return _listOf(response['schedules'], PracticeSchedule.fromJson);
   }
@@ -146,19 +160,30 @@ class CatalogRepository {
     required DateTime date,
   }) async {
     final response = await _client.get(
-      '/taptalk/slots',
+      '/app/slots',
       query: {
         'paramedic_id': doctorId,
         'unit_code': unitCode,
         'date': _isoDate(date),
       },
+      authenticated: true,
     );
     return DaySlots.fromJson(response);
   }
 
   /// Dates the hospital is closed, so the calendar can grey them out.
   Future<Map<DateTime, String>> holidays() async {
-    final response = await _client.get('/taptalk/holidays');
+    final response = await _client.get(
+      '/app/holidays',
+      // Without a query the endpoint answers only the next five holidays.
+      // The calendar opens up to 30 days ahead, so ask for a range wide
+      // enough to cover it even when that crosses into the next year.
+      query: {
+        'from': _isoDate(DateTime.now()),
+        'to': _isoDate(DateTime.now().add(const Duration(days: 120))),
+      },
+      authenticated: true,
+    );
     final raw = response['holidays'];
     if (raw is! List) return const {};
 

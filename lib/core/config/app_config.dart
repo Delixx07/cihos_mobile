@@ -18,7 +18,7 @@ abstract final class AppConfig {
   /// Base URL of the Laravel API, without a trailing slash.
   static const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://172.20.0.39/appointment',
+    defaultValue: 'http://172.20.0.39/appointment_test/public',
   );
 
   /// Shared secret sent as `X-Api-Key` on every request.

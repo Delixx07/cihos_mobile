@@ -97,9 +97,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _fadeThrough(state, const ScheduleScreen()),
         routes: [
           GoRoute(
+            // Appointment numbers contain slashes (`OPA/20260901/00009`), so
+            // callers percent-encode the id and it arrives as one segment.
             path: ':id',
             builder: (context, state) => AppointmentDetailScreen(
-              appointmentId: state.pathParameters['id']!,
+              appointmentId: Uri.decodeComponent(state.pathParameters['id']!),
               initialAppointment: state.extra is ScheduledAppointment
                   ? state.extra as ScheduledAppointment
                   : null,

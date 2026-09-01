@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../doctors/data/doctor_repository.dart';
+import '../../schedule/data/schedule_repository.dart';
 import '../data/booking_repository.dart';
 import '../domain/booking.dart';
 import '../widgets/booking_success_sheet.dart';
@@ -101,8 +104,14 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
           'operationalTimeCode=${widget.booking.operationalTimeCode}, '
           'date=${widget.booking.date}');
 
-      final bookingCode =
+      final result =
           await ref.read(bookingRepositoryProvider).create(widget.booking);
+
+      // The new appointment belongs in Jadwal Temu, and a first booking makes
+      // MEDINFRAS issue the account's real MRN in place of its temporary
+      // APP-XXXXXX one — both are only visible after a refetch.
+      ref.invalidate(appointmentsProvider);
+      await ref.read(authControllerProvider.notifier).restoreSession();
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -113,7 +122,7 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
         enableDrag: false,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => BookingSuccessSheet(bookingCode: bookingCode),
+        builder: (_) => BookingSuccessSheet(result: result),
       );
 
       if (!mounted) return;
@@ -125,9 +134,27 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
+      // ApiException messages are already written in Indonesian by the server;
+      // anything else would leak Dart type names at the patient.
+      final message = switch (e) {
+        ApiException(code: 'no_slot_available') =>
+          'Antrean untuk tanggal ini sudah penuh atau jadwal praktiknya sudah '
+              'berakhir. Silakan pilih tanggal lain.',
+        ApiException(code: 'slot_taken' || 'slot_reserved') =>
+          'Antrean baru saja diambil pasien lain. Silakan coba lagi.',
+        ApiException(code: 'duplicate_appointment') =>
+          'Anda sudah memiliki janji temu dengan dokter ini pada tanggal '
+              'tersebut.',
+        ApiException(code: 'holiday') =>
+          'Tanggal tersebut adalah hari libur. Silakan pilih tanggal lain.',
+        ApiException(code: 'on_leave') =>
+          'Dokter sedang tidak praktik pada tanggal tersebut.',
+        final ApiException api => api.message,
+        _ => 'Gagal membuat janji temu. Silakan coba lagi.',
+      };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Gagal membuat janji temu: ${e.toString()}'),
+          content: Text(message),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
         ),

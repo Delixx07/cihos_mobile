@@ -73,6 +73,30 @@ class ScheduleRepository {
       rethrow;
     }
   }
+
+  /// Cancels one of the signed-in patient's own appointments.
+  ///
+  /// Endpoint: POST /api/app/appointments/void
+  ///
+  /// [appointmentNo] goes in the body rather than the URL because its format
+  /// contains slashes (`OPA/20260822/00038`).
+  ///
+  /// Throws [ApiException]; the cases worth telling the patient apart are
+  /// `already_voided` and `already_registered` — once they have checked in the
+  /// hospital has to cancel it for them.
+  Future<void> voidAppointment({
+    required String appointmentNo,
+    String? reason,
+  }) async {
+    await _client.post(
+      '/app/appointments/void',
+      body: {
+        'appointment_no': appointmentNo,
+        if (reason != null && reason.isNotEmpty) 'CancelReason': reason,
+      },
+      authenticated: true,
+    );
+  }
 }
 
 final scheduleRepositoryProvider = Provider<ScheduleRepository>((ref) {

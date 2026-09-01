@@ -36,4 +36,12 @@ abstract final class AppRoutes {
   static const registerExistingPatient = '/patient/existing';
   static const registerNewPatient = '/patient/new';
   static const patientReview = '/patient/review';
+
+  /// Path to one appointment's detail screen.
+  ///
+  /// Appointment numbers carry slashes (`OPA/20260901/00009`), which would
+  /// otherwise be read as extra path segments and match no route. Always build
+  /// this path through here rather than interpolating the id by hand.
+  static String appointmentDetail(String id) =>
+      '$appointments/${Uri.encodeComponent(id)}';
 }

@@ -29,6 +29,13 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
   // Caches the matched UpcomingScheduleDate when the user picks a calendar date.
   UpcomingScheduleDate? _selectedScheduleCache;
 
+  /// Whether the chosen date still has a bookable session left.
+  ///
+  /// The patient does not pick a queue number — the hospital assigns it. This
+  /// only gates "Lanjutkan" so nobody walks into the summary screen for a day
+  /// that is already full or over.
+  bool _hasBookableSession = false;
+
   void _confirm({
     required List<UpcomingScheduleDate>? upcomingList,
     required List<PracticeSchedule> weeklySchedules,
@@ -36,6 +43,16 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih tanggal terlebih dahulu.')),
+      );
+      return;
+    }
+
+    if (!_hasBookableSession) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada jadwal tersisa pada tanggal ini. '
+              'Silakan pilih tanggal lain.'),
+        ),
       );
       return;
     }
@@ -90,6 +107,8 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
         date: _date,
         operationalTimeCode: resolvedOpTimeCode,
         unitCode: resolvedUnitCode,
+        // Session and slot_no are deliberately not set: the hospital assigns
+        // the queue number at booking time. See docs/PROMPT_BACKEND_SLOT_TIME.md
       ),
     );
   }
@@ -149,11 +168,29 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
 
     // Fetch weekly practice schedules as a fallback source for
     // operationalTimeCode and unitCode, since /app/schedule-upcoming
-    // sometimes omits these fields. /taptalk/schedule reliably includes them.
+    // sometimes omits these fields. /app/schedule reliably includes them.
     final weeklySchedulesAsync = widget.booking.doctorId != null
         ? ref.watch(doctorSchedulesProvider(widget.booking.doctorId!))
         : null;
     final weeklySchedules = weeklySchedulesAsync?.valueOrNull ?? const [];
+
+    // The slot lookup needs a unit code. Resolve it the same way _confirm
+    // does — the calendar entry first, then the weekly schedule for that
+    // weekday, then whatever the booking already carried.
+    final weeklyForDate = _date == null
+        ? null
+        : weeklySchedules.cast<PracticeSchedule?>().firstWhere(
+            (s) => s != null && s.dayNumber == _date!.weekday,
+            orElse: () => null,
+          );
+    final resolvedUnitCodeForSlots =
+        (selectedSchedule?.unitCode.isNotEmpty == true
+            ? selectedSchedule!.unitCode
+            : null) ??
+        (weeklyForDate?.unitCode.isNotEmpty == true
+            ? weeklyForDate!.unitCode
+            : null) ??
+        widget.booking.unitCode;
 
     return Scaffold(
       backgroundColor: AppColors.accentSoft,
@@ -371,6 +408,8 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                       setState(() {
                         _date = value;
                         _selectedScheduleCache = matched;
+                        // Availability is per date; re-checked for the new one.
+                        _hasBookableSession = false;
                       });
                     },
                   ),
@@ -478,6 +517,20 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _SessionAvailability(
+                      doctorId: widget.booking.doctorId,
+                      unitCode: resolvedUnitCodeForSlots,
+                      date: _date!,
+                      onAvailability: (available) {
+                        if (_hasBookableSession == available) return;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() => _hasBookableSession = available);
+                          }
+                        });
+                      },
+                    ),
                   ],
                   const SizedBox(height: AppSpacing.lg),
                   Text(
@@ -510,6 +563,191 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
             upcomingList: upcomingAsync?.valueOrNull,
             weeklySchedules: weeklySchedules,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lets the patient take one of the queue numbers still free that day.
+///
+/// The hospital books by queue position inside a practice session, not by a
+/// fifteen-minute appointment, so each option is a number plus the session's
+/// hours. `slot_no` is mandatory when booking and the API picks nothing on the
+/// patient's behalf, which is why this step cannot be skipped.
+/// Shows which practice sessions still have room on the chosen date.
+///
+/// Read-only on purpose: the patient does not choose a queue number — the
+/// hospital assigns it when the booking is made. This exists so the patient
+/// knows the day is actually bookable (and roughly when they will be seen)
+/// before continuing, and so a full or finished day is caught here rather
+/// than after they have filled in the rest of the form.
+class _SessionAvailability extends ConsumerWidget {
+  const _SessionAvailability({
+    required this.doctorId,
+    required this.unitCode,
+    required this.date,
+    required this.onAvailability,
+  });
+
+  final String? doctorId;
+  final String? unitCode;
+  final DateTime date;
+
+  /// Reports whether any session is still bookable, so the screen can enable
+  /// or block "Lanjutkan".
+  final ValueChanged<bool> onAvailability;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (doctorId == null || unitCode == null || unitCode!.isEmpty) {
+      onAvailability(false);
+      return const _Notice(
+        message: 'Klinik dokter belum diketahui, jadi jadwal tidak bisa '
+            'dimuat. Silakan pilih ulang dokter.',
+        color: AppColors.danger,
+      );
+    }
+
+    final slotsAsync = ref.watch(
+      slotsProvider(
+        SlotQuery(doctorId: doctorId!, unitCode: unitCode!, date: date),
+      ),
+    );
+
+    return slotsAsync.when(
+      loading: () {
+        onAvailability(false);
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+        );
+      },
+      error: (_, _) {
+        onAvailability(false);
+        return const _Notice(
+          message: 'Gagal memuat jadwal. Periksa jaringan Anda, lalu pilih '
+              'ulang tanggalnya.',
+          color: AppColors.danger,
+        );
+      },
+      data: (daySlots) {
+        final now = DateTime.now();
+        // A session that already finished today cannot be booked into.
+        final sessions = daySlots.sessions
+            .where((s) => !s.hasEndedOn(date, now))
+            .toList();
+
+        onAvailability(sessions.isNotEmpty);
+
+        if (sessions.isEmpty) {
+          return _Notice(
+            message: daySlots.isEmpty
+                ? 'Antrean untuk tanggal ini sudah penuh. Silakan pilih '
+                    'tanggal lain.'
+                : 'Jadwal praktik hari ini sudah berakhir. Silakan pilih '
+                    'tanggal lain.',
+            color: AppColors.danger,
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Jadwal Tersedia',
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Nomor antrean Anda ditentukan otomatis oleh rumah sakit '
+              'setelah janji temu dikonfirmasi.',
+              style: AppTypography.bodySm.copyWith(
+                fontSize: 12,
+                height: 1.3,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            for (final session in sessions) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.mint.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 18,
+                      color: AppColors.accentSoft,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sessions.length > 1
+                                ? 'Sesi ${session.session} · ${session.timeLabel}'
+                                : session.timeLabel,
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '${session.slots.length} antrean tersisa',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({required this.message, required this.color});
+
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        message,
+        style: AppTypography.bodySm.copyWith(
+          fontSize: 13,
+          height: 1.3,
+          color: color,
         ),
       ),
     );
