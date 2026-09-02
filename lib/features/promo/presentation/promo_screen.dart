@@ -1,3 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
+import '../../../core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,6 +24,53 @@ class _PromoScreenState extends State<PromoScreen> {
   String? _selectedCategory; // null means 'Semua'
 
   static const _categories = ['MCU', 'MRI', 'Kulit & Rambut', 'DWCC'];
+
+  List<_PromoItem> _dynamicPromos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPromotions();
+  }
+
+  Future<void> _fetchPromotions() async {
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final res = await dio.get('${AppConfig.cmsBaseUrl}/api/promotions');
+      if (res.statusCode == 200 && res.data != null) {
+        final list = res.data is Map ? res.data['data'] : null;
+        if (list is List && list.isNotEmpty) {
+          final items = <_PromoItem>[];
+          for (final raw in list) {
+            if (raw is Map) {
+              items.add(_PromoItem(
+                id: raw['id']?.toString() ?? '',
+                title: raw['title']?.toString() ?? '',
+                category: raw['category']?.toString() ?? 'Umum',
+                validity: raw['validity']?.toString() ?? 'Berlaku',
+                keywords: '${raw['title']} ${raw['category']} ${raw['description']}'.toLowerCase(),
+                asset: 'assets/images/promo/gmcu.jpg',
+                imageUrl: raw['image_url']?.toString(),
+                description: raw['description']?.toString() ?? '',
+              ));
+            }
+          }
+          if (items.isNotEmpty && mounted) {
+            setState(() {
+              _dynamicPromos = items;
+            });
+          }
+        }
+      }
+    } catch (_) {
+      // Fallback
+    }
+  }
 
   static const _promos = [
     _PromoItem(
@@ -72,7 +122,8 @@ class _PromoScreenState extends State<PromoScreen> {
   }
 
   List<_PromoItem> _getFilteredPromos() {
-    return _promos.where((p) {
+    final source = _dynamicPromos.isNotEmpty ? _dynamicPromos : _promos;
+    return source.where((p) {
       final matchesCategory = _selectedCategory == null ||
           p.category.toLowerCase() == _selectedCategory!.toLowerCase();
       final matchesQuery = _query.isEmpty ||
@@ -115,11 +166,22 @@ class _PromoScreenState extends State<PromoScreen> {
                     // Banner Image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        promo.asset,
-                        width: double.infinity,
-                        fit: BoxFit.contain,
-                      ),
+                      child: promo.imageUrl != null && promo.imageUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: promo.imageUrl!,
+                              width: double.infinity,
+                              fit: BoxFit.contain,
+                              errorWidget: (context, url, error) => Image.asset(
+                                promo.asset,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                              ),
+                            )
+                          : Image.asset(
+                              promo.asset,
+                              width: double.infinity,
+                              fit: BoxFit.contain,
+                            ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     _CategoryBadge(category: promo.category),
@@ -393,6 +455,7 @@ class _PromoItem {
     required this.validity,
     required this.keywords,
     required this.asset,
+    this.imageUrl,
     required this.description,
   });
 
@@ -402,6 +465,7 @@ class _PromoItem {
   final String validity;
   final String keywords;
   final String asset;
+  final String? imageUrl;
   final String description;
 }
 
@@ -501,21 +565,43 @@ class _PromoCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    promo.asset,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 140,
-                      color: AppColors.surface,
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.image_outlined,
-                        size: 40,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ),
+                  child: promo.imageUrl != null && promo.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: promo.imageUrl!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            height: 140,
+                            color: AppColors.surface,
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                            promo.asset,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          promo.asset,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            height: 140,
+                            color: AppColors.surface,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.image_outlined,
+                              size: 40,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _MetaLine(

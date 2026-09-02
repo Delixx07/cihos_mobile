@@ -1,3 +1,4 @@
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -119,7 +120,36 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   // Cover Image
-                  if (article.imageAsset != null)
+                  if (article.imageAsset != null && (article.imageAsset!.startsWith('http://') || article.imageAsset!.startsWith('https://')))
+                    CachedNetworkImage(
+                      imageUrl: article.imageAsset!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.article_outlined,
+                            size: 64,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (article.imageAsset != null)
                     Image.asset(
                       article.imageAsset!,
                       fit: BoxFit.cover,

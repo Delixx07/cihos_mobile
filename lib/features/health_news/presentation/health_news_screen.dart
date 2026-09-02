@@ -1,3 +1,4 @@
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -514,6 +515,24 @@ class _Cover extends StatelessWidget {
   Widget build(BuildContext context) {
     if (article.imageAsset == null) {
       return const ImagePlaceholder(icon: Icons.article_outlined);
+    }
+    if (article.imageAsset!.startsWith('http://') || article.imageAsset!.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: article.imageAsset!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) =>
+            const ImagePlaceholder(icon: Icons.article_outlined),
+      );
     }
     return Image.asset(
       article.imageAsset!,

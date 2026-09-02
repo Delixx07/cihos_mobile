@@ -1,10 +1,73 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../domain/health_article.dart';
 
-/// Stand-in article feed until the CMS exists.
-final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
-  return [
+class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
+  HealthArticlesNotifier() : super(_fallbackArticles) {
+    fetchFromCms();
+  }
+
+  Future<void> fetchFromCms() async {
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final res = await dio.get('${AppConfig.cmsBaseUrl}/api/articles');
+      if (res.statusCode == 200 && res.data != null) {
+        final list = res.data is Map ? res.data['data'] : null;
+        if (list is List && list.isNotEmpty) {
+          final items = <HealthArticle>[];
+          for (var i = 0; i < list.length; i++) {
+            final raw = list[i];
+            if (raw is Map) {
+              final contentStr = raw['content']?.toString() ?? raw['summary']?.toString() ?? '';
+              final cleanParagraphs = contentStr
+                  .replaceAll(RegExp(r'<[^>]*>'), '')
+                  .split('\n')
+                  .map((p) => p.trim())
+                  .where((p) => p.isNotEmpty)
+                  .toList();
+
+              items.add(HealthArticle(
+                id: raw['id']?.toString() ?? 'cms_$i',
+                title: raw['title']?.toString() ?? '',
+                date: raw['published_at'] != null
+                    ? DateTime.tryParse(raw['published_at'].toString()) ?? DateTime.now()
+                    : DateTime.now(),
+                shelf: i == 0 ? ArticleShelf.latest : (i < 3 ? ArticleShelf.reading : ArticleShelf.others),
+                category: raw['category']?.toString() ?? 'Kesehatan Umum',
+                author: raw['author']?.toString() ?? 'dr. Ciputra Hospital',
+                authorRole: raw['author_role']?.toString() ?? 'Dokter Spesialis',
+                readTime: raw['read_time']?.toString() ?? '3 menit baca',
+                imageAsset: raw['image_url']?.toString(),
+                summary: raw['summary']?.toString(),
+                content: cleanParagraphs.isNotEmpty ? cleanParagraphs : [raw['summary']?.toString() ?? ''],
+                tags: (raw['tags'] is List) ? (raw['tags'] as List).map((t) => t.toString()).toList() : [],
+              ));
+            }
+          }
+          if (items.isNotEmpty) {
+            state = items;
+          }
+        }
+      }
+    } catch (_) {
+      // Fallback to static articles
+    }
+  }
+}
+
+final healthArticlesProvider =
+    StateNotifierProvider<HealthArticlesNotifier, List<HealthArticle>>((ref) {
+  return HealthArticlesNotifier();
+});
+
+final _fallbackArticles = [
     // Berita Terbaru
     HealthArticle(
       id: 'a1',
@@ -206,8 +269,7 @@ final healthArticlesProvider = Provider<List<HealthArticle>>((ref) {
         'Jerawat di area T-zone sering berkaitan dengan produksi sebum berlebih, sementara area rahang dan dagu kerap dipicu oleh fluktuasi hormon estrogen/progesteron.',
       ],
     ),
-  ];
-});
+];
 
 /// Articles on one shelf, in feed order.
 final articlesByShelfProvider =

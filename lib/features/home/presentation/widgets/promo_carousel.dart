@@ -1,11 +1,14 @@
+﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/image_placeholder.dart';
-import '../../../../core/theme/app_motion.dart';
 
-/// The swipeable promo banner below the greeting.
+/// The swipeable promo banner below the greeting, loaded dynamically from Laravel CMS API.
 class PromoCarousel extends StatefulWidget {
   const PromoCarousel({super.key});
 
@@ -17,12 +20,51 @@ class _PromoCarouselState extends State<PromoCarousel> {
   final _controller = PageController();
   int _page = 0;
 
-  static const _slides = [
+  static const _fallbackSlides = [
     'assets/images/banner/cihos1.jpg',
     'assets/images/promo/gmcu.jpg',
     'assets/images/promo/hair skin.png',
     'assets/images/promo/mri screening.jpg',
   ];
+
+  List<String> _bannerUrls = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPromotions();
+  }
+
+  Future<void> _fetchPromotions() async {
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final response = await dio.get('${AppConfig.cmsBaseUrl}/api/promotions');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map ? response.data['data'] : null;
+        if (data is List && data.isNotEmpty) {
+          final urls = <String>[];
+          for (final item in data) {
+            if (item is Map && item['image_url'] != null) {
+              urls.add(item['image_url'].toString());
+            }
+          }
+          if (urls.isNotEmpty && mounted) {
+            setState(() {
+              _bannerUrls = urls;
+            });
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Fallback silently to bundled asset slides
+    }
+  }
 
   @override
   void dispose() {
@@ -32,13 +74,16 @@ class _PromoCarouselState extends State<PromoCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final slides = _bannerUrls.isNotEmpty ? _bannerUrls : _fallbackSlides;
+    final isNetwork = _bannerUrls.isNotEmpty;
+
     return Column(
       children: [
         SizedBox(
           height: 200,
           child: PageView.builder(
             controller: _controller,
-            itemCount: _slides.length,
+            itemCount: slides.length,
             onPageChanged: (index) => setState(() => _page = index),
             itemBuilder: (context, index) => Container(
               decoration: BoxDecoration(
@@ -55,17 +100,40 @@ class _PromoCarouselState extends State<PromoCarousel> {
               ),
               clipBehavior: Clip.antiAlias,
               child: Center(
-                child: Image.asset(
-                  _slides[index],
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const ImagePlaceholder(
-                        icon: Icons.local_offer_outlined,
-                        iconSize: 34,
+                child: isNetwork
+                    ? CachedNetworkImage(
+                        imageUrl: slides[index],
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.white,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Image.asset(
+                          _fallbackSlides[index % _fallbackSlides.length],
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      )
+                    : Image.asset(
+                        slides[index],
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ImagePlaceholder(
+                          icon: Icons.local_offer_outlined,
+                          iconSize: 34,
+                        ),
                       ),
-                ),
               ),
             ),
           ),
@@ -74,7 +142,7 @@ class _PromoCarouselState extends State<PromoCarousel> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var i = 0; i < _slides.length; i++)
+            for (var i = 0; i < slides.length; i++)
               AnimatedContainer(
                 duration: AppMotion.fast,
                 margin: const EdgeInsets.symmetric(horizontal: 3),

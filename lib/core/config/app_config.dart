@@ -16,6 +16,8 @@
 /// requires a per-user bearer token.
 abstract final class AppConfig {
   /// Base URL of the Laravel API, without a trailing slash.
+  static const cmsBaseUrl = String.fromEnvironment('CMS_BASE_URL', defaultValue: 'http://172.20.21.10/mobile_admin');
+
   static const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://172.20.0.39/appointment_test/public',
