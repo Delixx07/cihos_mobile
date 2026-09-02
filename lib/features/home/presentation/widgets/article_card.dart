@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -46,14 +47,7 @@ class ArticleCard extends StatelessWidget {
                 child: SizedBox(
                   width: 110,
                   height: 85,
-                  child: article.imageAsset == null
-                      ? const _ThumbnailPlaceholder()
-                      : Image.asset(
-                          article.imageAsset!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const _ThumbnailPlaceholder(),
-                        ),
+                  child: _buildThumbnail(),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -122,6 +116,36 @@ class ArticleCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    final image = article.imageAsset;
+    if (image == null || image.trim().isEmpty) {
+      return const _ThumbnailPlaceholder();
+    }
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => const _ThumbnailPlaceholder(),
+      );
+    }
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          const _ThumbnailPlaceholder(),
     );
   }
 }

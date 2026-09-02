@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,18 +180,36 @@ class _SavedArticleCard extends StatelessWidget {
                 child: SizedBox(
                   width: 105,
                   height: 90,
-                  child: article.imageAsset != null
-                      ? Image.asset(
-                          article.imageAsset!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const ImagePlaceholder(
-                            icon: Icons.article_outlined,
+                  child: () {
+                    final img = article.imageAsset;
+                    if (img == null || img.trim().isEmpty) {
+                      return const ImagePlaceholder(icon: Icons.article_outlined);
+                    }
+                    if (img.startsWith('http://') || img.startsWith('https://')) {
+                      return CachedNetworkImage(
+                        imageUrl: img,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.surface,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
-                        )
-                      : const ImagePlaceholder(
-                          icon: Icons.article_outlined,
                         ),
+                        errorWidget: (context, url, error) =>
+                            const ImagePlaceholder(icon: Icons.article_outlined),
+                      );
+                    }
+                    return Image.asset(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const ImagePlaceholder(icon: Icons.article_outlined),
+                    );
+                  }(),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),

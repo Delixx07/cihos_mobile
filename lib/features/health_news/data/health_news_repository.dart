@@ -23,13 +23,22 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
       );
       final res = await dio.get('${AppConfig.cmsBaseUrl}/api/articles');
       if (res.statusCode == 200 && res.data != null) {
-        final list = res.data is Map ? res.data['data'] : null;
+        final dynamic body = res.data;
+        final list = body is Map
+            ? (body['data'] is List
+                ? body['data']
+                : (body['articles'] is List ? body['articles'] : null))
+            : (body is List ? body : null);
+
         if (list is List && list.isNotEmpty) {
           final items = <HealthArticle>[];
+          final latestThreshold = (list.length > 3) ? (list.length / 2).ceil() : list.length;
+
           for (var i = 0; i < list.length; i++) {
             final raw = list[i];
             if (raw is Map) {
-              final contentStr = raw['content']?.toString() ?? raw['summary']?.toString() ?? '';
+              final contentStr =
+                  raw['content']?.toString() ?? raw['summary']?.toString() ?? '';
               final cleanParagraphs = contentStr
                   .replaceAll(RegExp(r'<[^>]*>'), '')
                   .split('\n')
@@ -37,21 +46,46 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
                   .where((p) => p.isNotEmpty)
                   .toList();
 
+              final rawImg = raw['image_url'] ??
+                  raw['image'] ??
+                  raw['thumbnail'] ??
+                  raw['cover'];
+              final resolvedImg = AppConfig.resolveCmsImageUrl(rawImg);
+
+              final rawDate = raw['published_at'] ??
+                  raw['created_at'] ??
+                  raw['date'];
+              final date = rawDate != null
+                  ? DateTime.tryParse(rawDate.toString()) ?? DateTime.now()
+                  : DateTime.now();
+
+              final shelf = i < latestThreshold
+                  ? ArticleShelf.latest
+                  : ArticleShelf.others;
+
               items.add(HealthArticle(
                 id: raw['id']?.toString() ?? 'cms_$i',
                 title: raw['title']?.toString() ?? '',
-                date: raw['published_at'] != null
-                    ? DateTime.tryParse(raw['published_at'].toString()) ?? DateTime.now()
-                    : DateTime.now(),
-                shelf: i == 0 ? ArticleShelf.latest : (i < 3 ? ArticleShelf.reading : ArticleShelf.others),
+                date: date,
+                shelf: shelf,
                 category: raw['category']?.toString() ?? 'Kesehatan Umum',
                 author: raw['author']?.toString() ?? 'dr. Ciputra Hospital',
                 authorRole: raw['author_role']?.toString() ?? 'Dokter Spesialis',
                 readTime: raw['read_time']?.toString() ?? '3 menit baca',
-                imageAsset: raw['image_url']?.toString(),
+                imageAsset: resolvedImg,
                 summary: raw['summary']?.toString(),
-                content: cleanParagraphs.isNotEmpty ? cleanParagraphs : [raw['summary']?.toString() ?? ''],
-                tags: (raw['tags'] is List) ? (raw['tags'] as List).map((t) => t.toString()).toList() : [],
+                content: cleanParagraphs.isNotEmpty
+                    ? cleanParagraphs
+                    : [raw['summary']?.toString() ?? ''],
+                tags: (raw['tags'] is List)
+                    ? (raw['tags'] as List).map((t) => t.toString()).toList()
+                    : (raw['tags'] is String
+                        ? (raw['tags'] as String)
+                            .split(',')
+                            .map((t) => t.trim())
+                            .where((t) => t.isNotEmpty)
+                            .toList()
+                        : []),
               ));
             }
           }
@@ -278,8 +312,11 @@ final _fallbackArticles = [
 /// Articles on one shelf, in feed order.
 final articlesByShelfProvider =
     Provider.family<List<HealthArticle>, ArticleShelf>((ref, shelf) {
-      return ref
-          .watch(healthArticlesProvider)
-          .where((a) => a.shelf == shelf)
-          .toList();
+      final all = ref.watch(healthArticlesProvider);
+      final matching = all.where((a) => a.shelf == shelf).toList();
+      if (matching.isNotEmpty) return matching;
+      if (shelf == ArticleShelf.others && all.isNotEmpty) {
+        return all;
+      }
+      return matching;
     });

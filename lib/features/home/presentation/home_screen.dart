@@ -20,6 +20,7 @@ import '../../../core/theme/app_elevation.dart';
 import '../../../core/widgets/pressable.dart';
 import '../../../core/widgets/social_media_buttons.dart';
 import '../../schedule/data/schedule_repository.dart';
+import '../../health_news/data/health_news_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -313,6 +314,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 .firstOrNull ??
             activeUpcomingList.firstOrNull);
 
+    final healthArticles = ref.watch(healthArticlesProvider);
+    final homeArticles = healthArticles.isNotEmpty
+        ? healthArticles.take(4).toList()
+        : _articles;
+
     return Scaffold(
       bottomNavigationBar: const AppBottomNav(current: AppTab.home),
       body: TexturedBackground(
@@ -452,7 +458,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    for (final article in _articles) ...[
+                    for (final article in homeArticles) ...[
                       Pressable(
                         scale: 0.98,
                         child: ArticleCard(

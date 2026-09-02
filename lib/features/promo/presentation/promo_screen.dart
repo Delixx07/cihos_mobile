@@ -23,7 +23,15 @@ class _PromoScreenState extends State<PromoScreen> {
   String _query = '';
   String? _selectedCategory; // null means 'Semua'
 
-  static const _categories = ['MCU', 'MRI', 'Kulit & Rambut', 'DWCC'];
+  List<String> get _categories {
+    final source = _dynamicPromos.isNotEmpty ? _dynamicPromos : _promos;
+    final set = <String>{};
+    for (final p in source) {
+      final cat = p.category.trim();
+      if (cat.isNotEmpty) set.add(cat);
+    }
+    return set.isNotEmpty ? set.toList() : const ['MCU', 'MRI', 'Kulit & Rambut', 'DWCC'];
+  }
 
   List<_PromoItem> _dynamicPromos = [];
 
@@ -47,20 +55,44 @@ class _PromoScreenState extends State<PromoScreen> {
       );
       final res = await dio.get('${AppConfig.cmsBaseUrl}/api/promotions');
       if (res.statusCode == 200 && res.data != null) {
-        final list = res.data is Map ? res.data['data'] : null;
+        final dynamic body = res.data;
+        final list = body is Map
+            ? (body['data'] is List
+                ? body['data']
+                : (body['promotions'] is List ? body['promotions'] : null))
+            : (body is List ? body : null);
+
         if (list is List && list.isNotEmpty) {
           final items = <_PromoItem>[];
           for (final raw in list) {
             if (raw is Map) {
+              final title =
+                  raw['title']?.toString() ?? raw['name']?.toString() ?? '';
+              final category =
+                  raw['category']?.toString() ?? raw['category_name']?.toString() ?? 'Umum';
+              final desc =
+                  raw['description']?.toString() ?? raw['content']?.toString() ?? '';
+              final validity = raw['validity']?.toString() ??
+                  (raw['valid_until'] != null
+                      ? 'Berlaku s/d ${raw['valid_until']}'
+                      : 'Berlaku');
+
+              final rawImg = raw['image_url'] ??
+                  raw['image'] ??
+                  raw['banner_url'] ??
+                  raw['banner'] ??
+                  raw['thumbnail'];
+              final resolvedImg = AppConfig.resolveCmsImageUrl(rawImg);
+
               items.add(_PromoItem(
                 id: raw['id']?.toString() ?? '',
-                title: raw['title']?.toString() ?? '',
-                category: raw['category']?.toString() ?? 'Umum',
-                validity: raw['validity']?.toString() ?? 'Berlaku',
-                keywords: '${raw['title']} ${raw['category']} ${raw['description']}'.toLowerCase(),
+                title: title,
+                category: category,
+                validity: validity,
+                keywords: '$title $category $desc'.toLowerCase(),
                 asset: 'assets/images/promo/gmcu.jpg',
-                imageUrl: raw['image_url']?.toString(),
-                description: raw['description']?.toString() ?? '',
+                imageUrl: resolvedImg,
+                description: desc,
               ));
             }
           }
@@ -72,7 +104,7 @@ class _PromoScreenState extends State<PromoScreen> {
         }
       }
     } catch (_) {
-      // Fallback
+      // Fallback to bundled promos
     }
   }
 

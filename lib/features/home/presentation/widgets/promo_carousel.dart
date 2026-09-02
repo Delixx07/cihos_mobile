@@ -51,12 +51,26 @@ class _PromoCarouselState extends State<PromoCarousel> {
       );
       final response = await dio.get('${AppConfig.cmsBaseUrl}/api/promotions');
       if (response.statusCode == 200 && response.data != null) {
-        final data = response.data is Map ? response.data['data'] : null;
+        final dynamic body = response.data;
+        final data = body is Map
+            ? (body['data'] is List
+                ? body['data']
+                : (body['promotions'] is List ? body['promotions'] : null))
+            : (body is List ? body : null);
+
         if (data is List && data.isNotEmpty) {
           final urls = <String>[];
           for (final item in data) {
-            if (item is Map && item['image_url'] != null) {
-              urls.add(item['image_url'].toString());
+            if (item is Map) {
+              final raw = item['image_url'] ??
+                  item['image'] ??
+                  item['banner_url'] ??
+                  item['banner'] ??
+                  item['thumbnail'];
+              final resolved = AppConfig.resolveCmsImageUrl(raw);
+              if (resolved != null && resolved.isNotEmpty) {
+                urls.add(resolved);
+              }
             }
           }
           if (urls.isNotEmpty && mounted) {
