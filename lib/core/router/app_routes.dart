@@ -31,6 +31,7 @@ abstract final class AppRoutes {
   static const bookingSummary = '/booking/summary';
   static const examResults = '/exam-results';
   static const mcuPackages = '/mcu-packages';
+  static const videoCallRoom = '/video-call/room';
 
   // Adding a patient to the account, step by step.
   static const patientType = '/patient/type';

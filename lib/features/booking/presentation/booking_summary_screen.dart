@@ -124,15 +124,28 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
         enableDrag: false,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => BookingSuccessSheet(result: result),
+        builder: (_) => BookingSuccessSheet(
+          result: result,
+          isVideoCall: widget.booking.kind == BookingKind.videoCall,
+        ),
       );
 
       if (!mounted) return;
-      context.go(
-        destination == BookingSuccessAction.viewHistory
-            ? AppRoutes.appointments
-            : AppRoutes.home,
-      );
+      if (destination == BookingSuccessAction.startVideoCall) {
+        context.push(
+          AppRoutes.videoCallRoom,
+          extra: {
+            'doctorName': widget.booking.doctorName,
+            'specialty': widget.booking.specialty,
+          },
+        );
+      } else {
+        context.go(
+          destination == BookingSuccessAction.viewHistory
+              ? AppRoutes.appointments
+              : AppRoutes.home,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);

@@ -40,6 +40,7 @@ import '../../features/schedule/presentation/appointment_detail_screen.dart';
 import '../../features/schedule/presentation/schedule_screen.dart';
 import '../../features/wellness/presentation/wellness_screen.dart';
 import '../../features/queue/presentation/queue_monitor_screen.dart';
+import '../../features/video_call/presentation/video_call_screen.dart';
 import 'app_routes.dart';
 import '../theme/app_motion.dart';
 
@@ -294,6 +295,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // state, so a half-filled form cannot leak between attempts.
           draft: state.extra as PatientDraft? ?? const PatientDraft(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.videoCallRoom,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return VideoCallScreen(
+            doctorName: extra?['doctorName'] as String?,
+            specialty: extra?['specialty'] as String?,
+            doctorPhoto: extra?['doctorPhoto'] as String?,
+            channelName: extra?['channelName'] as String?,
+            token: extra?['token'] as String?,
+          );
+        },
       ),
     ],
   );
