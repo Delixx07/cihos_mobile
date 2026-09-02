@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -126,12 +127,11 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(user: await action());
       return true;
     } on ApiException catch (e) {
-      if (e.fieldErrors.isNotEmpty) {
-        print('====== API VALIDATION ERRORS ======');
-        e.fieldErrors.forEach((field, errors) {
-          print('$field: ${errors.join(', ')}');
-        });
-        print('===================================');
+      if (kDebugMode && e.fieldErrors.isNotEmpty) {
+        // Field names only: the values the server rejected are the patient's
+        // NIK, email, and phone number, which must not reach logcat.
+        // ignore: avoid_print
+        print('[Auth] validation rejected: ${e.fieldErrors.keys.join(', ')}');
       }
 
       state = state.copyWith(

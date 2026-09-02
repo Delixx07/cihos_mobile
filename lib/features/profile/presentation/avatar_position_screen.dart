@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -88,11 +89,34 @@ class _AvatarPositionScreenState extends State<AvatarPositionScreen> {
       if (byteData == null) return;
 
       final Uint8List pngBytes = byteData.buffer.asUint8List();
-      final tempDir = Directory.systemTemp;
+
+      // The documents directory, not systemTemp: only the stored path survives
+      // a restart, so a cached file leaves the profile pointing at an image
+      // Android has since deleted. One fixed filename per account keeps old
+      // avatars from piling up.
+      final dir = await getApplicationDocumentsDirectory();
+      final avatarDir = Directory('${dir.path}/avatar');
+      if (!await avatarDir.exists()) {
+        await avatarDir.create(recursive: true);
+      }
+
+      // A new name each save, because Flutter caches images by file path and
+      // would otherwise keep showing the previous picture.
       final file = File(
-        '${tempDir.path}/avatar_cropped_${DateTime.now().millisecondsSinceEpoch}.png',
+        '${avatarDir.path}/avatar_${DateTime.now().millisecondsSinceEpoch}.png',
       );
       await file.writeAsBytes(pngBytes);
+
+      // Drop earlier avatars now that the new one is safely written.
+      for (final old in avatarDir.listSync()) {
+        if (old is File && old.path != file.path) {
+          try {
+            await old.delete();
+          } catch (_) {
+            // A file we cannot remove is not worth failing the save over.
+          }
+        }
+      }
 
       if (!mounted) return;
       Navigator.of(context).pop(file.path);

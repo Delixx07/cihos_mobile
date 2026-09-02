@@ -79,9 +79,6 @@ class BookingRepository {
       // GET /app/me.
     };
 
-    // ignore: avoid_print
-    print('[BookingRepository] POST /app/appointments payload: $payload');
-
     final response = await _client.post(
       '/app/appointments',
       body: payload,
