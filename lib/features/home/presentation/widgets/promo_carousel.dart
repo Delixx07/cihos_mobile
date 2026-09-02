@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -39,6 +39,12 @@ class _PromoCarouselState extends State<PromoCarousel> {
     try {
       final dio = Dio(
         BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            'X-Api-Key': AppConfig.cmsApiKey.isNotEmpty
+                ? AppConfig.cmsApiKey
+                : AppConfig.apiKey,
+          },
           connectTimeout: const Duration(seconds: 4),
           receiveTimeout: const Duration(seconds: 4),
         ),

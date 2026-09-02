@@ -13,6 +13,10 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
     try {
       final dio = Dio(
         BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            if (AppConfig.cmsApiKey.isNotEmpty) 'X-Api-Key': AppConfig.cmsApiKey,
+          },
           connectTimeout: const Duration(seconds: 4),
           receiveTimeout: const Duration(seconds: 4),
         ),
@@ -83,9 +87,9 @@ final _fallbackArticles = [
           'Ajang lari bergengsi Indonesia Running Series 2025 siap digelar di 4 kota besar dengan dukungan tim medis dan pos hidrasi standar internasional.',
       tags: const ['Lari', 'Olahraga', 'Event 2025', 'Kardiovaskular'],
       content: const [
-        'Ajang lari berskala nasional "Indonesia Running Series 2025" resmi diumumkan dan akan digelar di 4 kota metropolitan utama: Jakarta, Surabaya, Bandung, dan Bali. Mengusung tema "Run for Life & Health", ribuan pelari dari berbagai kategori—mulai dari 5K, 10K, Half Marathon (21K), hingga Full Marathon (42K)—diharapkan turut meramaikan kompetisi ini.',
+        'Ajang lari berskala nasional "Indonesia Running Series 2025" resmi diumumkan dan akan digelar di 4 kota metropolitan utama: Jakarta, Surabaya, Bandung, dan Bali. Mengusung tema "Run for Life & Health", ribuan pelari dari berbagai kategoriâ€”mulai dari 5K, 10K, Half Marathon (21K), hingga Full Marathon (42K)â€”diharapkan turut meramaikan kompetisi ini.',
         'Kesiapan fisik dan pemeriksaan medis berkala merupakan faktor mutlak sebelum mengikuti kompetisi lari jarak jauh. Berdasarkan studi sports medicine, pelari yang melakukan persiapan terstruktur minimal 8-12 minggu sebelumnya memiliki risiko cedera otot dan dehidrasi berat hingga 65% lebih rendah dibandingkan mereka yang tidak mempersiapkan diri.',
-        'Tips Menjaga Kondisi Tubuh untuk Pelari:\n• Hydration Strategy: Pastikan mengonsumsi air dan elektrolit sebelum, saat, dan sesudah latihan.\n• Dynamic Stretching: Lakukan pemanasan dinamis 10–15 menit sebelum berlari untuk meningkatkan elastisitas otot.\n• Pacing Control: Mulai dengan ritme stabil sesuai denyut jantung target (Heart Rate Zone 2-3).\n• Post-Run Recovery: Berikan waktu istirahat yang cukup untuk regenerasi serat otot dan kompensasi energi glikogen.',
+        'Tips Menjaga Kondisi Tubuh untuk Pelari:\nâ€¢ Hydration Strategy: Pastikan mengonsumsi air dan elektrolit sebelum, saat, dan sesudah latihan.\nâ€¢ Dynamic Stretching: Lakukan pemanasan dinamis 10â€“15 menit sebelum berlari untuk meningkatkan elastisitas otot.\nâ€¢ Pacing Control: Mulai dengan ritme stabil sesuai denyut jantung target (Heart Rate Zone 2-3).\nâ€¢ Post-Run Recovery: Berikan waktu istirahat yang cukup untuk regenerasi serat otot dan kompensasi energi glikogen.',
         'Ciputra Hospital turut berpartisipasi menghadirkan Medical Recovery Booth, Tim Medis Siaga, serta layanan pemeriksaan Cardiopulmonary Exercise Testing (CPET) untuk memastikan kebugaran para pelari tetap optimal dan aman sebelum berkompetisi.',
       ],
     ),

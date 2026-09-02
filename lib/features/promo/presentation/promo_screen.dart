@@ -37,6 +37,10 @@ class _PromoScreenState extends State<PromoScreen> {
     try {
       final dio = Dio(
         BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            if (AppConfig.cmsApiKey.isNotEmpty) 'X-Api-Key': AppConfig.cmsApiKey,
+          },
           connectTimeout: const Duration(seconds: 4),
           receiveTimeout: const Duration(seconds: 4),
         ),
