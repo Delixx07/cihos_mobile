@@ -342,49 +342,11 @@ class _DoctorFinderScreenState extends ConsumerState<DoctorFinderScreen> {
                       builder: (_) => CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
-                          // Header summary row
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                              AppSpacing.xxl,
-                              AppSpacing.lg,
-                              AppSpacing.xxl,
-                              AppSpacing.sm,
-                            ),
-                            sliver: SliverToBoxAdapter(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Daftar Dokter',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.headingMd.copyWith(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${matches.length} Dokter Ditemukan',
-                                    style: AppTypography.caption.copyWith(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textTertiary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
                           // 2-Column Grid of Doctor Cards
                           SliverPadding(
                             padding: const EdgeInsets.fromLTRB(
                               AppSpacing.xxl,
-                              AppSpacing.xs,
+                              AppSpacing.lg,
                               AppSpacing.xxl,
                               AppSpacing.xxxl,
                             ),

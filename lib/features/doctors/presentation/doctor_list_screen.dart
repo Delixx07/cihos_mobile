@@ -438,7 +438,6 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                               : 'Tidak ada dokter yang cocok dengan "$_query".'),
                       builder: (_) => _Results(
                         matches: matches,
-                        totalCount: matches.length,
                         kind: widget.kind,
                         onProfileTap: _openProfile,
                         onBookTap: _handleBookAction,
@@ -601,14 +600,12 @@ class _SearchBar extends StatelessWidget {
 class _Results extends StatelessWidget {
   const _Results({
     required this.matches,
-    required this.totalCount,
     required this.kind,
     required this.onProfileTap,
     required this.onBookTap,
   });
 
   final List<Doctor> matches;
-  final int totalCount;
   final BookingKind? kind;
   final ValueChanged<Doctor> onProfileTap;
   final ValueChanged<Doctor> onBookTap;
@@ -619,45 +616,14 @@ class _Results extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
-        AppSpacing.sm,
+        AppSpacing.lg,
         AppSpacing.xxl,
         AppSpacing.xxxl,
       ),
-      itemCount: matches.length + 1,
+      itemCount: matches.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xs, top: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Daftar Dokter',
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.headingMd.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '$totalCount Dokter Ditemukan',
-                  style: AppTypography.caption.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final doctor = matches[index - 1];
+        final doctor = matches[index];
         return DoctorCard(
           doctor: doctor,
           kind: kind,
