@@ -52,8 +52,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _onForgotPassword() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
+        // No reset endpoint exists yet, so promising a sent email would be a
+        // lie the patient waits on. Point them somewhere that can help.
         content: Text(
-          'Fitur reset kata sandi telah dikirim ke email terdaftar Anda.',
+          'Reset kata sandi belum tersedia di aplikasi. Silakan hubungi '
+          'Rumah Sakit Ciputra Surabaya untuk bantuan.',
         ),
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 3),

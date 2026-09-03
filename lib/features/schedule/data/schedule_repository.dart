@@ -23,11 +23,6 @@ class ScheduleRepository {
         authenticated: true,
       );
 
-      if (kDebugMode) {
-        // ignore: avoid_print
-        print('[ScheduleRepository] GET /app/appointments raw: $response');
-      }
-
       final rawList = response['data'] ??
           response['appointments'] ??
           response['items'] ??

@@ -96,16 +96,6 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Debug: log booking fields to flutter console so we can trace what
-      // values are being sent to the API.
-      // ignore: avoid_print
-      print('[BookingSummary] submitting booking: '
-          'unitCode=${widget.booking.unitCode}, '
-          'paramedicCode=${widget.booking.paramedicCode}, '
-          'doctorId=${widget.booking.doctorId}, '
-          'operationalTimeCode=${widget.booking.operationalTimeCode}, '
-          'date=${widget.booking.date}');
-
       final result =
           await ref.read(bookingRepositoryProvider).create(widget.booking);
 

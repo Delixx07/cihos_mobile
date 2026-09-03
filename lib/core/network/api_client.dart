@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
@@ -32,33 +33,39 @@ class ApiClient {
           )..interceptors.add(
             InterceptorsWrapper(
               onRequest: (options, handler) {
-                // ignore: avoid_print
-                print(
-                  '[API ▶] ${options.method} ${options.uri}\n'
-                  '  Headers: ${options.headers}\n'
-                  '  Body: ${options.data}',
+                _log(
+                  '[API >] ${options.method} ${options.uri}'
+                  '\n  Body: ${options.data}',
                 );
                 handler.next(options);
               },
               onResponse: (response, handler) {
-                // ignore: avoid_print
-                print(
-                  '[API ◀] ${response.statusCode} ${response.requestOptions.uri}\n'
-                  '  Body: ${response.data}',
+                _log(
+                  '[API <] ${response.statusCode} ${response.requestOptions.uri}',
                 );
                 handler.next(response);
               },
               onError: (error, handler) {
-                // ignore: avoid_print
-                print(
-                  '[API ✗] ${error.type} ${error.requestOptions.uri}\n'
-                  '  Message: ${error.message}\n'
-                  '  Response: ${error.response?.data}',
+                _log(
+                  '[API x] ${error.type} ${error.requestOptions.uri}'
+                  '\n  Message: ${error.message}',
                 );
                 handler.next(error);
               },
             ),
           );
+
+  /// Debug-only logging.
+  ///
+  /// Never logs headers: they carry the patient's bearer token and the shared
+  /// API key, and logcat is readable by other tooling on the device. Response
+  /// bodies are omitted too — they hold medical record numbers and appointment
+  /// details.
+  static void _log(String message) {
+    if (!kDebugMode) return;
+    // ignore: avoid_print
+    print(message);
+  }
 
   final Dio _dio;
   final TokenStore _tokenStore;

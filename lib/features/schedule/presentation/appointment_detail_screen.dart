@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/illustrations.dart';
 import '../data/schedule_repository.dart';
 import '../domain/scheduled_appointment.dart';
 import 'widgets/cancel_appointment_sheet.dart';
@@ -466,7 +466,10 @@ class AppointmentDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: Illustrations.qrCode(size: 210),
+                child: _CheckInQr(
+                  token: appointment.checkInToken,
+                  size: 210,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
@@ -487,6 +490,20 @@ class AppointmentDetailScreen extends ConsumerWidget {
                   fontSize: 14,
                 ),
               ),
+              if (appointment.checkInToken case final token?) ...[
+                const SizedBox(height: AppSpacing.xs),
+                // Readable fallback: scanners fail on cracked screens and in
+                // glare, and the desk can type this code in instead.
+                Text(
+                  'Kode Check-in: $token',
+                  style: AppTypography.bodySm.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Tunjukkan QR ini pada petugas atau arahkan ke scanner mesin KiosK mandiri.',
@@ -691,7 +708,11 @@ class _QrPassCard extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Illustrations.qrCode(size: 96),
+                      _CheckInQr(
+                        token: appointment.checkInToken,
+                        size: 96,
+                        compact: true,
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         'Perbesar QR',
@@ -1351,6 +1372,75 @@ class _BottomActionDock extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// The QR the hospital's kiosk scans to check the patient in.
+///
+/// Renders the appointment's real check-in token — a decorative placeholder
+/// here would be worse than showing nothing, because the screen tells the
+/// patient to present it at the desk. A cancelled appointment carries no
+/// token, so this says so instead of drawing a code that cannot work.
+class _CheckInQr extends StatelessWidget {
+  const _CheckInQr({
+    required this.token,
+    required this.size,
+    this.compact = false,
+  });
+
+  final String? token;
+  final double size;
+
+  /// Trims the message down for the small card on the detail screen.
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = token;
+    if (value == null || value.isEmpty) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.qr_code_2_rounded,
+                  size: compact ? 28 : 44,
+                  color: AppColors.textTertiary,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  compact
+                      ? 'QR tidak tersedia'
+                      : 'QR check-in tidak tersedia untuk janji temu ini.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption.copyWith(
+                    fontSize: compact ? 9 : 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return QrImageView(
+      data: value,
+      version: QrVersions.auto,
+      size: size,
+      backgroundColor: AppColors.white,
+      // The kiosk scans this off a phone screen, often at an angle and in
+      // bright light; high correction keeps it readable when partly obscured.
+      errorCorrectionLevel: QrErrorCorrectLevel.H,
+      padding: EdgeInsets.zero,
     );
   }
 }

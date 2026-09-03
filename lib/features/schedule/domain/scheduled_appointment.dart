@@ -25,6 +25,7 @@ class ScheduledAppointment {
     required this.guaranteeType,
     this.partnerId,
     this.medicalNo,
+    this.checkInToken,
     this.status = AppointmentStatus.onSchedule,
   });
 
@@ -46,6 +47,12 @@ class ScheduledAppointment {
   final String guaranteeType;
   final String? partnerId;
   final String? medicalNo;
+
+  /// Short code the hospital's kiosk scans to check the patient in, e.g.
+  /// `LIUYAK96`. Absent once an appointment is cancelled, so a stale QR can
+  /// never be presented at the desk.
+  final String? checkInToken;
+
   final AppointmentStatus status;
 
   String get timeRange {
@@ -85,6 +92,7 @@ class ScheduledAppointment {
     String? guaranteeType,
     String? partnerId,
     String? medicalNo,
+    String? checkInToken,
     AppointmentStatus? status,
   }) {
     return ScheduledAppointment(
@@ -101,6 +109,7 @@ class ScheduledAppointment {
       guaranteeType: guaranteeType ?? this.guaranteeType,
       partnerId: partnerId ?? this.partnerId,
       medicalNo: medicalNo ?? this.medicalNo,
+      checkInToken: checkInToken ?? this.checkInToken,
       status: status ?? this.status,
     );
   }
@@ -238,7 +247,12 @@ class ScheduledAppointment {
         json['paramedic_name'] ??
         json['ParamedicName'] ??
         json['nama_dokter'] ??
-        json['NamaDokter'];
+        json['NamaDokter'] ??
+        // GET /app/appointments sends the name as a plain string under
+        // `doctor`; the Map branches below only fire for the nested shapes
+        // other endpoints use.
+        (json['doctor'] is String ? json['doctor'] : null) ??
+        (json['paramedic'] is String ? json['paramedic'] : null);
     if (directDoc != null && directDoc.toString().trim().isNotEmpty) {
       doctorName = directDoc.toString().trim();
     } else if (json['doctor'] is Map) {
@@ -327,6 +341,17 @@ class ScheduledAppointment {
         json['card_number']?.toString() ??
         json['CardNumber']?.toString();
 
+    final rawToken = (json['token'] ??
+            json['qr_token'] ??
+            json['checkin_token'] ??
+            json['CheckInToken'] ??
+            '')
+        .toString()
+        .trim();
+    final checkInToken = rawToken.isEmpty || rawToken == 'null'
+        ? null
+        : rawToken;
+
     final rawStatus = (json['status'] ?? json['appointment_status'] ?? '')
         .toString()
         .toLowerCase();
@@ -351,6 +376,7 @@ class ScheduledAppointment {
       guaranteeType: guaranteeType,
       partnerId: partnerId,
       medicalNo: medicalNo,
+      checkInToken: checkInToken,
       status: status,
     );
   }
