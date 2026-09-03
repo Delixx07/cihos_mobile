@@ -1,11 +1,15 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// Screen for live video teleconsultation between patient and doctor powered by Agora RTC.
 class VideoCallScreen extends StatefulWidget {
@@ -17,6 +21,7 @@ class VideoCallScreen extends StatefulWidget {
     this.channelName,
     this.token,
     this.appId,
+    this.uid,
   });
 
   final String? doctorName;
@@ -25,6 +30,7 @@ class VideoCallScreen extends StatefulWidget {
   final String? channelName;
   final String? token;
   final String? appId;
+  final int? uid;
 
   @override
   State<VideoCallScreen> createState() => _VideoCallScreenState();
@@ -183,7 +189,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
       await _engine!.joinChannel(
         token: tokenToUse,
         channelId: _activeChannel.trim(),
-        uid: 0,
+        uid: widget.uid ?? 0,
         options: const ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
           channelProfile: ChannelProfileType.channelProfileCommunication,
@@ -884,6 +890,582 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+// =============================================================================
+// TELECONSULTATION TOKEN & LOBBY SUPPORT
+// =============================================================================
+
+/// Token data returned by the CMS API for an Agora teleconsultation session.
+class AgoraTokenData {
+  const AgoraTokenData({
+    required this.appId,
+    required this.channelName,
+    required this.token,
+    required this.uid,
+    required this.expiresAt,
+    required this.appointmentId,
+    this.doctorName,
+    this.doctorSpecialty,
+    this.patientName,
+    this.scheduledAt,
+  });
+
+  final String appId;
+  final String channelName;
+  final String token;
+  final int uid;
+  final int expiresAt;
+  final String appointmentId;
+  final String? doctorName;
+  final String? doctorSpecialty;
+  final String? patientName;
+  final String? scheduledAt;
+
+  factory AgoraTokenData.fromJson(Map<String, dynamic> json) {
+    return AgoraTokenData(
+      appId: json['app_id']?.toString() ?? AppConfig.agoraAppId,
+      channelName: json['channel_name']?.toString() ?? AppConfig.agoraChannelName,
+      token: json['token']?.toString() ?? '',
+      uid: (json['uid'] as num?)?.toInt() ?? 20001,
+      expiresAt: (json['expires_at'] as num?)?.toInt() ?? 0,
+      appointmentId: json['appointment_id']?.toString() ?? '',
+      doctorName: json['doctor_name']?.toString(),
+      doctorSpecialty: json['doctor_specialty']?.toString(),
+      patientName: json['patient_name']?.toString(),
+      scheduledAt: json['scheduled_at']?.toString(),
+    );
+  }
+}
+
+/// Service to fetch Agora RTC token from the CMS API for a given appointment.
+///
+/// Endpoint: GET {CMS_BASE_URL}/api/teleconsultation/token?id={appointmentId}
+/// Auth:     x-api-key header
+class TeleconsultationTokenService {
+  TeleconsultationTokenService._();
+
+  static final _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'Accept': 'application/json',
+        'x-api-key': AppConfig.cmsApiKey,
+      },
+    ),
+  );
+
+  /// Fetch Agora token for the patient side of a teleconsultation session.
+  /// Uses query parameter `id` to avoid Apache blocking %2F in path.
+  static Future<AgoraTokenData> fetchToken(String appointmentId) async {
+    final url = '${AppConfig.cmsBaseUrl}/api/teleconsultation/token';
+
+    try {
+      final response = await _dio.get(
+        url,
+        queryParameters: {'id': appointmentId},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final body = response.data as Map<String, dynamic>;
+        if (body['ok'] == true && body['data'] != null) {
+          return AgoraTokenData.fromJson(body['data'] as Map<String, dynamic>);
+        }
+        throw Exception(body['message']?.toString() ?? 'Respons API tidak valid');
+      }
+
+      throw Exception('HTTP ${response.statusCode}: Gagal mengambil token teleconsultasi');
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw Exception(
+            'Koneksi timeout. Pastikan perangkat terhubung ke jaringan yang sama dengan server.');
+      }
+      throw Exception('Gagal menghubungi server: ${e.message}');
+    }
+  }
+}
+
+/// Lobby/waiting screen shown before patient joins the teleconsultation video call.
+///
+/// Fetches Agora RTC token from CMS API, displays doctor info, and
+/// navigates to [VideoCallScreen] once the token is ready.
+class TeleconsultationLobbyScreen extends StatefulWidget {
+  const TeleconsultationLobbyScreen({
+    super.key,
+    required this.appointmentId,
+    this.doctorName,
+    this.doctorSpecialty,
+    this.patientName,
+    this.scheduledAt,
+  });
+
+  final String appointmentId;
+  final String? doctorName;
+  final String? doctorSpecialty;
+  final String? patientName;
+  final String? scheduledAt;
+
+  @override
+  State<TeleconsultationLobbyScreen> createState() =>
+      _TeleconsultationLobbyScreenState();
+}
+
+class _TeleconsultationLobbyScreenState
+    extends State<TeleconsultationLobbyScreen>
+    with SingleTickerProviderStateMixin {
+  AgoraTokenData? _tokenData;
+  String? _errorMessage;
+  bool _isLoading = true;
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _fetchToken();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchToken() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data =
+          await TeleconsultationTokenService.fetchToken(widget.appointmentId);
+      if (mounted) {
+        setState(() {
+          _tokenData = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _joinVideoCall() {
+    if (_tokenData == null) return;
+
+    context.push(
+      '/video-call/room',
+      extra: {
+        'channelName': _tokenData!.channelName,
+        'token': _tokenData!.token,
+        'appId': _tokenData!.appId,
+        'uid': _tokenData!.uid,
+        'doctorName': _tokenData!.doctorName ?? widget.doctorName ?? 'Dokter',
+        'specialty': _tokenData!.doctorSpecialty ?? widget.doctorSpecialty ?? 'Spesialis',
+      },
+    );
+  }
+
+  String _formatScheduledAt(String? raw) {
+    if (raw == null || raw.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(raw);
+      return DateFormat("EEEE, d MMMM yyyy � HH:mm 'WIB'", 'id_ID').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveDoctorName =
+        _tokenData?.doctorName ?? widget.doctorName ?? 'dr. Dokter Spesialis';
+    final effectiveSpecialty =
+        _tokenData?.doctorSpecialty ?? widget.doctorSpecialty ?? 'Spesialis';
+    final effectiveSchedule = _formatScheduledAt(
+        _tokenData?.scheduledAt ?? widget.scheduledAt);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new,
+              size: 18, color: AppColors.textPrimary),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'Masuk Teleconsultasi',
+          style: AppTypography.headingMd.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: const Color(0xFFE2E8F0)),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+          child: Column(
+            children: [
+              const SizedBox(height: AppSpacing.lg),
+
+              // Doctor Avatar / Pulse Animation
+              ScaleTransition(
+                scale: _isLoading ? _pulseAnim : const AlwaysStoppedAnimation(1.0),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppColors.primaryGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.medical_services_rounded,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              // Doctor Info
+              Text(
+                effectiveDoctorName,
+                style: AppTypography.headingMd.copyWith(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  effectiveSpecialty,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Session Info Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _InfoRow(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Jadwal Sesi',
+                      value: effectiveSchedule,
+                    ),
+                    const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                    _InfoRow(
+                      icon: Icons.tag_rounded,
+                      label: 'ID Appointment',
+                      value: widget.appointmentId,
+                      mono: true,
+                    ),
+                    if (_tokenData?.channelName != null) ...[
+                      const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                      _InfoRow(
+                        icon: Icons.router_rounded,
+                        label: 'Channel',
+                        value: _tokenData!.channelName,
+                        mono: true,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Status / Loading / Error
+              if (_isLoading) ...[
+                _StatusCard(
+                  color: const Color(0xFFEFF6FF),
+                  borderColor: const Color(0xFFBFDBFE),
+                  icon: Icons.cloud_sync_rounded,
+                  iconColor: AppColors.primary,
+                  title: 'Menyiapkan Sesi Video Call...',
+                  subtitle: 'Sedang menghubungkan ke server dan menyiapkan token keamanan.',
+                  trailing: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ] else if (_errorMessage != null) ...[
+                _StatusCard(
+                  color: const Color(0xFFFFF1F2),
+                  borderColor: const Color(0xFFFECDD3),
+                  icon: Icons.error_outline_rounded,
+                  iconColor: const Color(0xFFE11D48),
+                  title: 'Gagal Menyiapkan Sesi',
+                  subtitle: _errorMessage!,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _fetchToken,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Coba Lagi'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                _StatusCard(
+                  color: const Color(0xFFF0FDF4),
+                  borderColor: const Color(0xFFBBF7D0),
+                  icon: Icons.check_circle_rounded,
+                  iconColor: const Color(0xFF16A34A),
+                  title: 'Sesi Siap!',
+                  subtitle:
+                      'Token keamanan sudah disiapkan. Klik tombol di bawah untuk memulai video call dengan dokter.',
+                ),
+              ],
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // CTA Button
+              AnimatedOpacity(
+                opacity: (_tokenData != null && !_isLoading) ? 1.0 : 0.4,
+                duration: const Duration(milliseconds: 300),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        (_tokenData != null && !_isLoading) ? _joinVideoCall : null,
+                    icon: const Icon(Icons.videocam_rounded, size: 22),
+                    label: const Text(
+                      'Mulai Video Call',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.5),
+                      disabledForegroundColor: Colors.white70,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              // Disclaimer
+              Text(
+                'Pastikan kamera dan mikrofon diizinkan sebelum bergabung.\nVideo call menggunakan teknologi Agora RTC.',
+                style: AppTypography.caption.copyWith(
+                  fontSize: 11.5,
+                  color: AppColors.textTertiary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: AppSpacing.xxxl),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.mono = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool mono;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textTertiary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  fontFamily: mono ? 'monospace' : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.color,
+    required this.borderColor,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+  });
+
+  final Color color;
+  final Color borderColor;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: iconColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 10),
+            trailing!,
+          ],
+        ],
       ),
     );
   }

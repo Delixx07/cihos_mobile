@@ -1260,12 +1260,60 @@ class _BottomActionDock extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isCancelled) ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentSoft,
+              if (!isCancelled) ...[
+                // Masuk Ruang Telekonsultasi (Video Call)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      final aptId = appointment.id.isNotEmpty
+                          ? appointment.id
+                          : appointment.bookingCode;
+                      context.push(
+                        '/teleconsultation/${Uri.encodeComponent(aptId)}',
+                        extra: {
+                          'doctorName': appointment.doctorName,
+                          'doctorSpecialty': appointment.specialty,
+                          'patientName': appointment.patientName,
+                          'scheduledAt': appointment.startsAt.toIso8601String(),
+                        },
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.videocam_rounded,
+                          color: AppColors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Masuk Ruang Telekonsultasi',
+                          style: AppTypography.button.copyWith(
+                            color: AppColors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentSoft,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

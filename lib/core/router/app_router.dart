@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -297,6 +297,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/teleconsultation/:appointmentId',
+        builder: (context, state) {
+          final appointmentId =
+              Uri.decodeComponent(state.pathParameters['appointmentId'] ?? '');
+          final extra = state.extra as Map<String, dynamic>?;
+          return TeleconsultationLobbyScreen(
+            appointmentId: appointmentId,
+            doctorName: extra?['doctorName'] as String?,
+            doctorSpecialty: extra?['doctorSpecialty'] as String?,
+            patientName: extra?['patientName'] as String?,
+            scheduledAt: extra?['scheduledAt'] as String?,
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.videoCallRoom,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
@@ -306,6 +321,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             doctorPhoto: extra?['doctorPhoto'] as String?,
             channelName: extra?['channelName'] as String?,
             token: extra?['token'] as String?,
+            uid: extra?['uid'] is int ? extra!['uid'] as int : null,
           );
         },
       ),
@@ -318,7 +334,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 Booking _bookingFrom(GoRouterState state) =>
     state.extra as Booking? ?? const Booking(kind: BookingKind.appointment);
 
-/// Fade-through — for tab switches, where neither direction is "forward".
+/// Fade-through â€” for tab switches, where neither direction is "forward".
 ///
 /// The outgoing page fades and shrinks a touch; the incoming one fades in as
 /// it settles to full size. Scaling rather than sliding keeps the tabs feeling
@@ -346,7 +362,7 @@ CustomTransitionPage<void> _fadeThrough(GoRouterState state, Widget child) {
   );
 }
 
-/// Shared-axis — for pushes, where there is a real sense of going deeper.
+/// Shared-axis â€” for pushes, where there is a real sense of going deeper.
 ///
 /// The new page slides in from the right while the one behind it slides out to
 /// the left and dims, so the stack reads as a horizontal filmstrip. Popping
