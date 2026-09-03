@@ -349,26 +349,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     if (activeAppointment != null) ...[
                       const SizedBox(height: AppSpacing.xxl),
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Konsultasi Anda',
-                            style: AppTypography.headingMd.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Konsultasi Anda',
+                        style: AppTypography.headingMd.copyWith(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       if (appointmentPatients.length > 1) ...[
@@ -397,32 +385,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: AppSpacing.xxxl),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Info Kesehatan',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.headingMd.copyWith(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Info Kesehatan',
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.headingMd.copyWith(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                         InkWell(

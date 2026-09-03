@@ -39,12 +39,7 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
             if (raw is Map) {
               final contentStr =
                   raw['content']?.toString() ?? raw['summary']?.toString() ?? '';
-              final cleanParagraphs = contentStr
-                  .replaceAll(RegExp(r'<[^>]*>'), '')
-                  .split('\n')
-                  .map((p) => p.trim())
-                  .where((p) => p.isNotEmpty)
-                  .toList();
+              final cleanParagraphs = _parseHtmlToParagraphs(contentStr);
 
               final rawImg = raw['image_url'] ??
                   raw['image'] ??
@@ -320,3 +315,27 @@ final articlesByShelfProvider =
       }
       return matching;
     });
+
+List<String> _parseHtmlToParagraphs(String html) {
+  if (html.trim().isEmpty) return [];
+
+  var text = html
+      .replaceAll(RegExp(r'</p>|<br\s*/?>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
+      .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>');
+
+  return text
+      .split(RegExp(r'\n{2,}'))
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
+}

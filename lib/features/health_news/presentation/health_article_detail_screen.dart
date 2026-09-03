@@ -1,9 +1,11 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -14,15 +16,117 @@ import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
 
 /// Modern, immersive health article detail reader screen.
-class HealthArticleDetailScreen extends ConsumerWidget {
+/// Fetches complete, untruncated content from the CMS API.
+class HealthArticleDetailScreen extends ConsumerStatefulWidget {
   const HealthArticleDetailScreen({super.key, required this.article});
 
   final HealthArticle article;
 
+  @override
+  ConsumerState<HealthArticleDetailScreen> createState() =>
+      _HealthArticleDetailScreenState();
+}
+
+class _HealthArticleDetailScreenState
+    extends ConsumerState<HealthArticleDetailScreen> {
+  late HealthArticle _article;
+  bool _isLoadingFullContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _article = widget.article;
+    _loadFullArticle();
+  }
+
+  Future<void> _loadFullArticle() async {
+    setState(() => _isLoadingFullContent = true);
+    try {
+      final dio = Dio(
+        BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            if (AppConfig.cmsApiKey.isNotEmpty) 'X-Api-Key': AppConfig.cmsApiKey,
+          },
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final res = await dio.get('${AppConfig.cmsBaseUrl}/api/articles/${widget.article.id}');
+      if (res.statusCode == 200 && res.data != null && mounted) {
+        final dynamic body = res.data;
+        final raw = body is Map ? (body['data'] ?? body['article'] ?? body) : null;
+        if (raw is Map) {
+          final rawContent = raw['content']?.toString() ?? '';
+          final rawSummary = raw['summary']?.toString() ?? '';
+
+          final cleanParagraphs = _parseHtmlToParagraphs(
+            rawContent.trim().isNotEmpty ? rawContent : rawSummary,
+          );
+
+          final rawImg = raw['image_url'] ?? raw['image'] ?? raw['thumbnail'];
+          final resolvedImg = AppConfig.resolveCmsImageUrl(rawImg) ?? _article.imageAsset;
+
+          setState(() {
+            _article = HealthArticle(
+              id: raw['id']?.toString() ?? _article.id,
+              title: raw['title']?.toString() ?? _article.title,
+              date: raw['published_at'] != null
+                  ? DateTime.tryParse(raw['published_at'].toString()) ?? _article.date
+                  : _article.date,
+              shelf: _article.shelf,
+              category: raw['category']?.toString() ?? _article.category,
+              author: raw['author']?.toString() ?? _article.author,
+              authorRole: raw['author_role']?.toString() ?? _article.authorRole,
+              readTime: raw['read_time']?.toString() ?? _article.readTime,
+              imageAsset: resolvedImg,
+              summary: rawSummary.trim().isNotEmpty ? rawSummary : _article.summary,
+              content: cleanParagraphs.isNotEmpty ? cleanParagraphs : _article.content,
+              tags: (raw['tags'] is List)
+                  ? (raw['tags'] as List).map((t) => t.toString()).toList()
+                  : _article.tags,
+            );
+            _isLoadingFullContent = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {
+      // Keep initial article data
+    }
+    if (mounted) {
+      setState(() => _isLoadingFullContent = false);
+    }
+  }
+
+  static List<String> _parseHtmlToParagraphs(String html) {
+    if (html.trim().isEmpty) return [];
+
+    var text = html
+        .replaceAll(RegExp(r'</p>|<br\s*/?>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
+        .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>');
+
+    return text
+        .split(RegExp(r'\n{2,}'))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
   Future<void> _toggleBookmark(BuildContext context, WidgetRef ref) async {
     final isNowSaved = await ref
         .read(savedArticleIdsProvider.notifier)
-        .toggle(article.id);
+        .toggle(_article.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -40,16 +144,16 @@ class HealthArticleDetailScreen extends ConsumerWidget {
 
   void _shareArticle(BuildContext context) {
     AppSocialLinks.openUrl(
-      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
+      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${_article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
       context: context,
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isBookmarked = ref.watch(savedArticleIdsProvider).contains(article.id);
+  Widget build(BuildContext context) {
+    final isBookmarked = ref.watch(savedArticleIdsProvider).contains(_article.id);
     final formattedDate =
-        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(article.date);
+        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_article.date);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -120,9 +224,11 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   // Cover Image
-                  if (article.imageAsset != null && (article.imageAsset!.startsWith('http://') || article.imageAsset!.startsWith('https://')))
+                  if (_article.imageAsset != null &&
+                      (_article.imageAsset!.startsWith('http://') ||
+                          _article.imageAsset!.startsWith('https://')))
                     CachedNetworkImage(
-                      imageUrl: article.imageAsset!,
+                      imageUrl: _article.imageAsset!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
                         decoration: const BoxDecoration(
@@ -132,7 +238,10 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                           child: SizedBox(
                             width: 28,
                             height: 28,
-                            child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              color: Colors.white70,
+                              strokeWidth: 2,
+                            ),
                           ),
                         ),
                       ),
@@ -149,9 +258,9 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     )
-                  else if (article.imageAsset != null)
+                  else if (_article.imageAsset != null)
                     Image.asset(
-                      article.imageAsset!,
+                      _article.imageAsset!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         decoration: const BoxDecoration(
@@ -195,72 +304,38 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // Bottom Pill & Category inside Flexible Space
+                  // Subtle frosted pill on image
                   Positioned(
                     bottom: 16,
                     left: AppSpacing.xl,
-                    right: AppSpacing.xl,
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              article.category,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                              ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _article.readTime,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.access_time_rounded,
-                                size: 12,
-                                color: Colors.white70,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                article.readTime,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -283,15 +358,32 @@ class HealthArticleDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Publication Date
+                  // Clean Category & Date Header (No colored container box)
                   Row(
                     children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 13,
-                        color: AppColors.textTertiary,
+                      Flexible(
+                        child: Text(
+                          _article.category.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                       Text(
                         formattedDate,
                         style: AppTypography.bodySm.copyWith(
@@ -307,7 +399,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
 
                   // Main Article Title
                   Text(
-                    article.title,
+                    _article.title,
                     style: AppTypography.headingLg.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -338,7 +430,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                         Container(
                           width: 44,
                           height: 44,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: AppColors.primaryGradient,
                           ),
@@ -357,7 +449,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      article.author,
+                                      _article.author,
                                       overflow: TextOverflow.ellipsis,
                                       style: AppTypography.bodySm.copyWith(
                                         fontSize: 13.5,
@@ -376,7 +468,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                article.authorRole,
+                                _article.authorRole,
                                 style: AppTypography.caption.copyWith(
                                   fontSize: 11.5,
                                   color: AppColors.textSecondary,
@@ -389,62 +481,59 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.xl),
 
-                  // Summary / Lead Callout Box
-                  if (article.summary != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F6FF),
-                        borderRadius: BorderRadius.circular(16),
-                        border: const Border(
-                          left: BorderSide(
-                            color: AppColors.primary,
-                            width: 4,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        article.summary!,
-                        style: AppTypography.bodyMd.copyWith(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.55,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-
-                  // Body Content Paragraphs
-                  if (article.content.isNotEmpty)
-                    for (int i = 0; i < article.content.length; i++) ...[
+                  // Main Article Content - Clean plain text paragraphs (No blue box container)
+                  if (_article.content.isNotEmpty)
+                    for (int i = 0; i < _article.content.length; i++) ...[
                       Text(
-                        article.content[i],
+                        _article.content[i],
                         style: AppTypography.bodyMd.copyWith(
-                          fontSize: 14.5,
-                          height: 1.7,
-                          color: AppColors.textPrimary.withValues(alpha: 0.88),
+                          fontSize: 15,
+                          height: 1.75,
+                          color: AppColors.textPrimary.withValues(alpha: 0.92),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                     ]
+                  else if (_article.summary != null && _article.summary!.trim().isNotEmpty)
+                    Text(
+                      _article.summary!.trim(),
+                      style: AppTypography.bodyMd.copyWith(
+                        fontSize: 15,
+                        height: 1.75,
+                        color: AppColors.textPrimary.withValues(alpha: 0.92),
+                      ),
+                    )
                   else
                     Text(
                       'Informasi kesehatan terkini disajikan secara akurat oleh tim medis profesional Ciputra Hospital guna memberikan edukasi preventif bagi masyarakat.',
                       style: AppTypography.bodyMd.copyWith(
-                        fontSize: 14.5,
-                        height: 1.7,
+                        fontSize: 15,
+                        height: 1.75,
                         color: AppColors.textPrimary,
                       ),
                     ),
 
+                  if (_isLoadingFullContent) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+
                   const SizedBox(height: AppSpacing.lg),
 
                   // Tags Section
-                  if (article.tags.isNotEmpty) ...[
+                  if (_article.tags.isNotEmpty) ...[
                     const Text(
                       'Topik Terkait:',
                       style: TextStyle(
@@ -458,7 +547,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final tag in article.tags)
+                        for (final tag in _article.tags)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
