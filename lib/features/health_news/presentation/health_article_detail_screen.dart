@@ -6,11 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/config/app_config.dart';
-import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/social_media_buttons.dart';
 import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
@@ -157,6 +155,27 @@ class _HealthArticleDetailScreenState
     );
   }
 
+  void _openFullScreenImage(BuildContext context) {
+    if (_article.imageAsset == null || _article.imageAsset!.trim().isEmpty) return;
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.95),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FullScreenImageViewer(
+            imageAsset: _article.imageAsset!,
+            heroTag: 'article_detail_image_${_article.id}',
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBookmarked = ref.watch(savedArticleIdsProvider).contains(_article.id);
@@ -231,83 +250,62 @@ class _HealthArticleDetailScreenState
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Cover Image
-                  if (_article.imageAsset != null &&
-                      (_article.imageAsset!.startsWith('http://') ||
-                          _article.imageAsset!.startsWith('https://')))
-                    CachedNetworkImage(
-                      imageUrl: _article.imageAsset!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                        ),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              color: Colors.white70,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.article_outlined,
-                            size: 64,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (_article.imageAsset != null)
-                    Image.asset(
-                      _article.imageAsset!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.article_outlined,
-                            size: 64,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.article_outlined,
-                          size: 64,
-                          color: Colors.white70,
+                  // Cover Image with Hero transition & Tap to Fullscreen Zoom
+                  GestureDetector(
+                    onTap: () => _openFullScreenImage(context),
+                    child: Hero(
+                      tag: 'article_detail_image_${_article.id}',
+                      child: _buildCoverImage(),
+                    ),
+                  ),
+
+                  // Gradient Dark Overlay for readable text
+                  IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.75),
+                          ],
                         ),
                       ),
                     ),
+                  ),
 
-                  // Gradient Dark Overlay for readable text
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.45),
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.75),
-                        ],
+                  // Subtle Zoom Hint Icon (Top Right or Bottom Right)
+                  Positioned(
+                    top: 56,
+                    right: 16,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.zoom_in_rounded,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Perbesar',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -467,80 +465,69 @@ class _HealthArticleDetailScreenState
 
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Author & Medical Reviewer Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accentSoft.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.primaryGradient,
+                  // Author Card (Only Author from API)
+                  if (_article.author.trim().isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white,
-                            size: 24,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
+                            ),
+                            child: const Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _article.author,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.bodySm.copyWith(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Penulis',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textTertiary,
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.verified_rounded,
-                                    size: 15,
-                                    color: Color(0xFF0284C7),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _article.authorRole,
-                                style: AppTypography.caption.copyWith(
-                                  fontSize: 11.5,
-                                  color: AppColors.textSecondary,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  _article.author.trim(),
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
 
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Main Article Content - Clean plain text paragraphs (No blue box container)
+                  // Main Article Content from Backend API
                   if (_article.content.isNotEmpty)
                     for (int i = 0; i < _article.content.length; i++) ...[
                       Text(
@@ -561,15 +548,6 @@ class _HealthArticleDetailScreenState
                         height: 1.75,
                         color: AppColors.textPrimary.withValues(alpha: 0.92),
                       ),
-                    )
-                  else
-                    Text(
-                      'Informasi kesehatan terkini disajikan secara akurat oleh tim medis profesional Ciputra Hospital guna memberikan edukasi preventif bagi masyarakat.',
-                      style: AppTypography.bodyMd.copyWith(
-                        fontSize: 15,
-                        height: 1.75,
-                        color: AppColors.textPrimary,
-                      ),
                     ),
 
                   if (_isLoadingFullContent) ...[
@@ -586,116 +564,256 @@ class _HealthArticleDetailScreenState
                     ),
                     const SizedBox(height: AppSpacing.md),
                   ],
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Tags Section
-                  if (_article.tags.isNotEmpty) ...[
-                    const Text(
-                      'Topik Terkait:',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final tag in _article.tags)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-
-                  // Hospital Medical Consultation Banner
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x29003366),
-                          offset: Offset(0, 6),
-                          blurRadius: 16,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.health_and_safety_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            const Expanded(
-                              child: Text(
-                                'Ingin Konsultasi Lebih Lanjut?',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Buat janji temu dengan dokter spesialis di Ciputra Hospital sekarang juga secara praktis.',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppButton.light(
-                          label: 'Buat Janji Dokter',
-                          expand: true,
-                          onPressed: () => context.push(AppRoutes.doctors),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCoverImage() {
+    final image = _article.imageAsset;
+    if (image != null &&
+        (image.startsWith('http://') || image.startsWith('https://'))) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                color: Colors.white70,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.article_outlined,
+              size: 64,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+      );
+    } else if (image != null && image.trim().isNotEmpty) {
+      return Image.asset(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.article_outlined,
+              size: 64,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppColors.primaryGradient,
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.article_outlined,
+          size: 64,
+          color: Colors.white70,
+        ),
+      ),
+    );
+  }
+}
+
+/// Immersive Fullscreen Image Viewer with Pinch-to-Zoom & Double-Tap
+class _FullScreenImageViewer extends StatefulWidget {
+  const _FullScreenImageViewer({
+    required this.imageAsset,
+    required this.heroTag,
+  });
+
+  final String imageAsset;
+  final String heroTag;
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer>
+    with SingleTickerProviderStateMixin {
+  late TransformationController _transformationController;
+  late AnimationController _animationController;
+  Animation<Matrix4>? _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..addListener(() {
+        if (_zoomAnimation != null) {
+          _transformationController.value = _zoomAnimation!.value;
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleDoubleTap(TapDownDetails details) {
+    if (_animationController.isAnimating) return;
+
+    final currentMatrix = _transformationController.value;
+    final isZoomed = currentMatrix.getMaxScaleOnAxis() > 1.05;
+
+    Matrix4 targetMatrix;
+    if (!isZoomed) {
+      final position = details.localPosition;
+      // ignore: deprecated_member_use
+      targetMatrix = Matrix4.identity()
+        // ignore: deprecated_member_use
+        ..translate(-position.dx * 1.5, -position.dy * 1.5)
+        // ignore: deprecated_member_use
+        ..scale(2.5);
+    } else {
+      targetMatrix = Matrix4.identity();
+    }
+
+    _zoomAnimation = Matrix4Tween(
+      begin: currentMatrix,
+      end: targetMatrix,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+
+    _animationController.forward(from: 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Zoomable Interactive Image Area
+          GestureDetector(
+            onDoubleTapDown: _handleDoubleTap,
+            onDoubleTap: () {},
+            child: InteractiveViewer(
+              transformationController: _transformationController,
+              minScale: 0.8,
+              maxScale: 4.5,
+              clipBehavior: Clip.none,
+              child: Center(
+                child: Hero(
+                  tag: widget.heroTag,
+                  child: _buildImage(),
+                ),
+              ),
+            ),
+          ),
+
+          // Top Action Bar with Close Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                 
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (widget.imageAsset.startsWith('http://') ||
+        widget.imageAsset.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: widget.imageAsset,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => const Center(
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              color: Colors.white70,
+              strokeWidth: 2.5,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => const Center(
+          child: Icon(
+            Icons.broken_image_rounded,
+            size: 64,
+            color: Colors.white54,
+          ),
+        ),
+      );
+    }
+    return Image.asset(
+      widget.imageAsset,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => const Center(
+        child: Icon(
+          Icons.broken_image_rounded,
+          size: 64,
+          color: Colors.white54,
+        ),
       ),
     );
   }
