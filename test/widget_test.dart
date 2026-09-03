@@ -1221,7 +1221,7 @@ void main() {
 
     expect(find.byType(HealthNewsScreen), findsOneWidget);
     expect(find.text('Berita Terbaru'), findsOneWidget);
-    expect(find.text('Bacaan Saya'), findsOneWidget);
+    expect(find.text('Favorit Saya'), findsOneWidget);
   });
 
   testWidgets('health news see all links to saved articles screen', (
@@ -1240,7 +1240,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SavedArticlesScreen), findsOneWidget);
-    expect(find.text('Bacaan Saya'), findsOneWidget);
+    expect(find.text('Favorit Saya'), findsOneWidget);
   });
 
   testWidgets('profile links to saved articles screen', (tester) async {
@@ -1250,7 +1250,7 @@ void main() {
     await tester.tap(find.text('Profil'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Bacaan Saya'));
+    await tester.tap(find.text('Favorit Saya'));
     await tester.pumpAndSettle();
 
     expect(find.byType(SavedArticlesScreen), findsOneWidget);
@@ -1281,18 +1281,18 @@ void main() {
 
     expect(find.byType(HealthArticleDetailScreen), findsOneWidget);
 
-    // Tap bookmark button
-    await tester.tap(find.byTooltip('Simpan ke Bacaan Saya'));
+    // Tap favorite button
+    await tester.tap(find.byTooltip('Simpan ke Favorit'));
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Hapus dari Bacaan Saya'), findsOneWidget);
-    expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
+    expect(find.byTooltip('Hapus dari Favorit'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_rounded), findsWidgets);
 
     // Tap back to news feed
     await tester.tap(find.byType(IconButton).first);
     await tester.pumpAndSettle();
 
-    // Verify it appears in Bacaan Saya
+    // Verify it appears in Favorit Saya
     expect(find.byType(HealthNewsScreen), findsOneWidget);
   });
 

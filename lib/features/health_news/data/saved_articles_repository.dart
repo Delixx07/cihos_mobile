@@ -85,3 +85,10 @@ final savedArticlesProvider = Provider<List<HealthArticle>>((ref) {
   final allArticles = ref.watch(healthArticlesProvider);
   return allArticles.where((a) => savedIds.contains(a.id)).toList();
 });
+
+/// Toggles user favorite status and synchronizes like count with CMS backend.
+Future<bool> toggleArticleFavorite(WidgetRef ref, String articleId) async {
+  final isNowSaved = await ref.read(savedArticleIdsProvider.notifier).toggle(articleId);
+  await ref.read(healthArticlesProvider.notifier).toggleLike(articleId, isNowSaved);
+  return isNowSaved;
+}

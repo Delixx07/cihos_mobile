@@ -13,10 +13,11 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/image_placeholder.dart';
 import '../../../core/widgets/pressable.dart';
 import '../../../core/widgets/textured_background.dart';
+import '../data/health_news_repository.dart';
 import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
 
-/// Screen displaying the patient's bookmarked/marked health articles ("Bacaan Saya").
+/// Screen displaying the patient's favorite health articles ("Favorit Saya").
 class SavedArticlesScreen extends ConsumerWidget {
   const SavedArticlesScreen({super.key});
 
@@ -47,7 +48,7 @@ class SavedArticlesScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bacaan Saya',
+                            'Favorit Saya',
                             style: AppTypography.headingLg.copyWith(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -55,7 +56,7 @@ class SavedArticlesScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '${savedArticles.length} artikel tersimpan',
+                            '${savedArticles.length} artikel difavoritkan',
                             style: AppTypography.caption.copyWith(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
@@ -99,11 +100,14 @@ class SavedArticlesScreen extends ConsumerWidget {
                                 await ref
                                     .read(savedArticleIdsProvider.notifier)
                                     .remove(article.id);
+                                await ref
+                                    .read(healthArticlesProvider.notifier)
+                                    .toggleLike(article.id, false);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Artikel "${article.title}" dihapus dari Bacaan Saya.',
+                                        'Artikel "${article.title}" dihapus dari Favorit Saya.',
                                       ),
                                       behavior: SnackBarBehavior.floating,
                                       action: SnackBarAction(
@@ -116,6 +120,12 @@ class SavedArticlesScreen extends ConsumerWidget {
                                                     .notifier,
                                               )
                                               .add(article.id);
+                                          ref
+                                              .read(
+                                                healthArticlesProvider
+                                                    .notifier,
+                                              )
+                                              .toggleLike(article.id, true);
                                         },
                                       ),
                                       duration: const Duration(seconds: 3),
@@ -246,8 +256,8 @@ class _SavedArticleCard extends StatelessWidget {
                           child: const Padding(
                             padding: EdgeInsets.all(2.0),
                             child: Icon(
-                              Icons.bookmark_rounded,
-                              color: Colors.amber,
+                              Icons.favorite_rounded,
+                              color: Color(0xFFE11D48),
                               size: 20,
                             ),
                           ),
@@ -329,14 +339,14 @@ class _EmptySavedArticles extends StatelessWidget {
                 ),
               ),
               child: const Icon(
-                Icons.menu_book_rounded,
+                Icons.favorite_outline_rounded,
                 size: 44,
-                color: AppColors.primary,
+                color: Color(0xFFE11D48),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Belum Ada Bacaan Tersimpan',
+              'Belum Ada Favorit Tersimpan',
               textAlign: TextAlign.center,
               style: AppTypography.headingMd.copyWith(
                 fontSize: 19,
@@ -346,7 +356,7 @@ class _EmptySavedArticles extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Tandai artikel kesehatan yang ingin Anda baca atau simpan untuk dibaca kembali kapan saja.',
+              'Ketuk ikon hati pada artikel kesehatan untuk menyimpannya ke Favorit Saya.',
               textAlign: TextAlign.center,
               style: AppTypography.bodySm.copyWith(
                 fontSize: 13,

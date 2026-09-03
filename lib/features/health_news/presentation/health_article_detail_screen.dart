@@ -79,6 +79,7 @@ class _HealthArticleDetailScreenState
               author: raw['author']?.toString() ?? _article.author,
               authorRole: raw['author_role']?.toString() ?? _article.authorRole,
               readTime: raw['read_time']?.toString() ?? _article.readTime,
+              likes: (raw['likes'] as num?)?.toInt() ?? _article.likes,
               imageAsset: resolvedImg,
               summary: rawSummary.trim().isNotEmpty ? rawSummary : _article.summary,
               content: cleanParagraphs.isNotEmpty ? cleanParagraphs : _article.content,
@@ -123,17 +124,24 @@ class _HealthArticleDetailScreenState
         .toList();
   }
 
-  Future<void> _toggleBookmark(BuildContext context, WidgetRef ref) async {
-    final isNowSaved = await ref
-        .read(savedArticleIdsProvider.notifier)
-        .toggle(_article.id);
+  Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
+    final isNowSaved = await toggleArticleFavorite(ref, _article.id);
+    if (mounted) {
+      setState(() {
+        _article = _article.copyWith(
+          likes: isNowSaved
+              ? _article.likes + 1
+              : (_article.likes > 0 ? _article.likes - 1 : 0),
+        );
+      });
+    }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isNowSaved
-                ? 'Artikel berhasil disimpan ke Bacaan Saya'
-                : 'Artikel dihapus dari Bacaan Saya',
+                ? 'Artikel ditambahkan ke Favorit'
+                : 'Artikel dihapus dari Favorit',
           ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -190,16 +198,16 @@ class _HealthArticleDetailScreenState
                 ),
                 child: IconButton(
                   tooltip: isBookmarked
-                      ? 'Hapus dari Bacaan Saya'
-                      : 'Simpan ke Bacaan Saya',
+                      ? 'Hapus dari Favorit'
+                      : 'Simpan ke Favorit',
                   icon: Icon(
                     isBookmarked
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: isBookmarked ? Colors.amber : Colors.white,
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isBookmarked ? const Color(0xFFE11D48) : Colors.white,
                     size: 20,
                   ),
-                  onPressed: () => _toggleBookmark(context, ref),
+                  onPressed: () => _toggleFavorite(context, ref),
                 ),
               ),
               Container(
@@ -304,37 +312,45 @@ class _HealthArticleDetailScreenState
                     ),
                   ),
 
-                  // Subtle frosted pill on image
+                  // Subtle frosted pill on image: Live Likes Count
                   Positioned(
                     bottom: 16,
                     left: AppSpacing.xl,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: Colors.white70,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _article.readTime,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                    child: InkWell(
+                      onTap: () => _toggleFavorite(context, ref),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isBookmarked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 13,
+                              color: isBookmarked
+                                  ? const Color(0xFFE11D48)
+                                  : Colors.white,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 5),
+                            Text(
+                              '${_article.likes} Suka',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -358,7 +374,7 @@ class _HealthArticleDetailScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Clean Category & Date Header (No colored container box)
+                  // Clean Category, Date & Likes Header (No colored container box)
                   Row(
                     children: [
                       Flexible(
@@ -390,6 +406,47 @@ class _HealthArticleDetailScreenState
                           fontSize: 12,
                           color: AppColors.textTertiary,
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => _toggleFavorite(context, ref),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isBookmarked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 13,
+                              color: isBookmarked
+                                  ? const Color(0xFFE11D48)
+                                  : AppColors.textTertiary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_article.likes}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isBookmarked
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: isBookmarked
+                                    ? const Color(0xFFE11D48)
+                                    : AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

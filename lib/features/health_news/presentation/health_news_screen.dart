@@ -51,7 +51,7 @@ class HealthNewsScreen extends ConsumerWidget {
                     _Carousel(articles: others),
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // Bacaan Saya Section
+                    // Favorit Saya Section
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xl,
@@ -60,7 +60,7 @@ class HealthNewsScreen extends ConsumerWidget {
                         children: [
                           const Expanded(
                             child: _ShelfTitle(
-                              'Bacaan Saya',
+                              'Favorit Saya',
                               padding: EdgeInsets.zero,
                             ),
                           ),
@@ -257,14 +257,16 @@ class _Carousel extends StatelessWidget {
   }
 }
 
-class _CarouselCard extends StatelessWidget {
+class _CarouselCard extends ConsumerWidget {
   const _CarouselCard({required this.article, this.onTap});
 
   final HealthArticle article;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(savedArticleIdsProvider).contains(article.id);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -364,24 +366,42 @@ class _CarouselCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.access_time_rounded,
-                              size: 11,
-                              color: AppColors.textTertiary,
+                        InkWell(
+                          onTap: () => toggleArticleFavorite(ref, article.id),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              article.readTime,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textTertiary,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSaved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 14.5,
+                                  color: isSaved
+                                      ? const Color(0xFFE11D48)
+                                      : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${article.likes}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSaved
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSaved
+                                        ? const Color(0xFFE11D48)
+                                        : AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -416,14 +436,16 @@ class _CarouselCard extends StatelessWidget {
 }
 
 /// A saved read row: thumbnail left, headline and modern metadata right.
-class _ReadingRow extends StatelessWidget {
+class _ReadingRow extends ConsumerWidget {
   const _ReadingRow({required this.article, this.onTap});
 
   final HealthArticle article;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(savedArticleIdsProvider).contains(article.id);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -525,24 +547,42 @@ class _ReadingRow extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.access_time_rounded,
-                              size: 11.5,
-                              color: AppColors.textTertiary,
+                        InkWell(
+                          onTap: () => toggleArticleFavorite(ref, article.id),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              article.readTime,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textTertiary,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSaved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 15,
+                                  color: isSaved
+                                      ? const Color(0xFFE11D48)
+                                      : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${article.likes}',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: isSaved
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSaved
+                                        ? const Color(0xFFE11D48)
+                                        : AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,

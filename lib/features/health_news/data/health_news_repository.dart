@@ -67,6 +67,7 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
                 author: raw['author']?.toString() ?? 'dr. Ciputra Hospital',
                 authorRole: raw['author_role']?.toString() ?? 'Dokter Spesialis',
                 readTime: raw['read_time']?.toString() ?? '3 menit baca',
+                likes: (raw['likes'] as num?)?.toInt() ?? 0,
                 imageAsset: resolvedImg,
                 summary: raw['summary']?.toString(),
                 content: cleanParagraphs.isNotEmpty
@@ -92,6 +93,48 @@ class HealthArticlesNotifier extends StateNotifier<List<HealthArticle>> {
     } catch (_) {
       // Fallback to static articles
     }
+  }
+
+  Future<int?> toggleLike(String articleId, bool isLiked) async {
+    // 1. Optimistic update
+    state = [
+      for (final a in state)
+        if (a.id == articleId)
+          a.copyWith(likes: isLiked ? a.likes + 1 : (a.likes > 0 ? a.likes - 1 : 0))
+        else
+          a
+    ];
+
+    // 2. Call backend API
+    try {
+      final dio = Dio(
+        BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            if (AppConfig.cmsApiKey.isNotEmpty) 'X-Api-Key': AppConfig.cmsApiKey,
+          },
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final res = await dio.post(
+        '${AppConfig.cmsBaseUrl}/api/articles/$articleId/like',
+        data: {'action': isLiked ? 'like' : 'unlike'},
+      );
+      if (res.statusCode == 200 && res.data != null && res.data['likes'] != null) {
+        final newLikes = (res.data['likes'] as num).toInt();
+        state = [
+          for (final a in state)
+            if (a.id == articleId)
+              a.copyWith(likes: newLikes)
+            else
+              a
+        ];
+        return newLikes;
+      }
+    } catch (_) {}
+    return null;
   }
 }
 

@@ -1,22 +1,27 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../domain/health_article.dart';
+import '../../../health_news/data/saved_articles_repository.dart';
+import '../../../health_news/domain/health_article.dart';
 import '../../../../core/widgets/image_placeholder.dart';
 
 /// A modern, clean, and simple card in the "Info Kesehatan" list.
-class ArticleCard extends StatelessWidget {
+/// Features an interactive heart/favorite button synced with live CMS likes.
+class ArticleCard extends ConsumerWidget {
   const ArticleCard({super.key, required this.article, this.onTap});
 
   final HealthArticle article;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(savedArticleIdsProvider).contains(article.id);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -118,28 +123,46 @@ class ArticleCard extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 6),
-                    // Bottom metadata: Read Time & Read action
+                    // Bottom metadata: Interactive Heart/Like button & Read action
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.access_time_rounded,
-                              size: 11.5,
-                              color: AppColors.textTertiary,
+                        InkWell(
+                          onTap: () => toggleArticleFavorite(ref, article.id),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              article.readTime,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textTertiary,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSaved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 15,
+                                  color: isSaved
+                                      ? const Color(0xFFE11D48)
+                                      : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${article.likes}',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: isSaved
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSaved
+                                        ? const Color(0xFFE11D48)
+                                        : AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
