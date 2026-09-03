@@ -17,6 +17,7 @@ class AppButton extends StatefulWidget {
     this.background,
     this.gradient = AppColors.primaryGradient,
     this.foreground = AppColors.white,
+    this.width,
     this.borderRadius,
     this.height,
   });
@@ -28,6 +29,7 @@ class AppButton extends StatefulWidget {
     required this.onPressed,
     this.expand = false,
     this.isLoading = false,
+    this.width,
     this.borderRadius,
     this.height,
   }) : background = AppColors.white,
@@ -41,6 +43,7 @@ class AppButton extends StatefulWidget {
   final Color? background;
   final Gradient? gradient;
   final Color foreground;
+  final double? width;
   final double? borderRadius;
   final double? height;
 
@@ -96,7 +99,9 @@ class _AppButtonState extends State<AppButton> {
                 : null,
           ),
           child: SizedBox(
-            width: widget.expand ? double.infinity : AppSizes.buttonWidth,
+            width: widget.expand
+                ? double.infinity
+                : (widget.width ?? AppSizes.buttonWidth),
             height: height,
             child: FilledButton(
               onPressed: isEnabled ? widget.onPressed : null,

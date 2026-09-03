@@ -761,17 +761,6 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer>
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                 
-                ),
               ],
             ),
           ),

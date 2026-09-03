@@ -319,10 +319,15 @@ class _EmptySavedArticles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xxl,
+          vertical: AppSpacing.lg,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 90,
@@ -333,7 +338,7 @@ class _EmptySavedArticles extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.12),
+                    const Color(0xFFE11D48).withValues(alpha: 0.12),
                     AppColors.accentSoft.withValues(alpha: 0.08),
                   ],
                 ),
@@ -355,21 +360,28 @@ class _EmptySavedArticles extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Ketuk ikon hati pada artikel kesehatan untuk menyimpannya ke Favorit Saya.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySm.copyWith(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                height: 1.45,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Text(
+                'Ketuk ikon hati pada artikel kesehatan untuk menyimpannya ke Favorit Saya.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySm.copyWith(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            AppButton(
-              label: 'Jelajahi Info Kesehatan',
-              height: 48,
-              borderRadius: 24,
-              onPressed: onExplore,
+            SizedBox(
+              width: 220,
+              child: AppButton(
+                label: 'Jelajahi Info Kesehatan',
+                expand: true,
+                height: 48,
+                borderRadius: 24,
+                onPressed: onExplore,
+              ),
             ),
           ],
         ),
