@@ -1,34 +1,145 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/router/app_routes.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/social_media_buttons.dart';
 import '../data/saved_articles_repository.dart';
 import '../domain/health_article.dart';
 
 /// Modern, immersive health article detail reader screen.
-class HealthArticleDetailScreen extends ConsumerWidget {
+/// Fetches complete, untruncated content from the CMS API.
+class HealthArticleDetailScreen extends ConsumerStatefulWidget {
   const HealthArticleDetailScreen({super.key, required this.article});
 
   final HealthArticle article;
 
-  Future<void> _toggleBookmark(BuildContext context, WidgetRef ref) async {
-    final isNowSaved = await ref
-        .read(savedArticleIdsProvider.notifier)
-        .toggle(article.id);
+  @override
+  ConsumerState<HealthArticleDetailScreen> createState() =>
+      _HealthArticleDetailScreenState();
+}
+
+class _HealthArticleDetailScreenState
+    extends ConsumerState<HealthArticleDetailScreen> {
+  late HealthArticle _article;
+  bool _isLoadingFullContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _article = widget.article;
+    _loadFullArticle();
+  }
+
+  Future<void> _loadFullArticle() async {
+    setState(() => _isLoadingFullContent = true);
+    try {
+      final dio = Dio(
+        BaseOptions(
+          headers: {
+            'Accept': 'application/json',
+            if (AppConfig.cmsApiKey.isNotEmpty) 'X-Api-Key': AppConfig.cmsApiKey,
+          },
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final res = await dio.get('${AppConfig.cmsBaseUrl}/api/articles/${widget.article.id}');
+      if (res.statusCode == 200 && res.data != null && mounted) {
+        final dynamic body = res.data;
+        final raw = body is Map ? (body['data'] ?? body['article'] ?? body) : null;
+        if (raw is Map) {
+          final rawContent = raw['content']?.toString() ?? '';
+          final rawSummary = raw['summary']?.toString() ?? '';
+
+          final cleanParagraphs = _parseHtmlToParagraphs(
+            rawContent.trim().isNotEmpty ? rawContent : rawSummary,
+          );
+
+          final rawImg = raw['image_url'] ?? raw['image'] ?? raw['thumbnail'];
+          final resolvedImg = AppConfig.resolveCmsImageUrl(rawImg) ?? _article.imageAsset;
+
+          setState(() {
+            _article = HealthArticle(
+              id: raw['id']?.toString() ?? _article.id,
+              title: raw['title']?.toString() ?? _article.title,
+              date: raw['published_at'] != null
+                  ? DateTime.tryParse(raw['published_at'].toString()) ?? _article.date
+                  : _article.date,
+              shelf: _article.shelf,
+              category: raw['category']?.toString() ?? _article.category,
+              author: raw['author']?.toString() ?? _article.author,
+              authorRole: raw['author_role']?.toString() ?? _article.authorRole,
+              readTime: raw['read_time']?.toString() ?? _article.readTime,
+              likes: (raw['likes'] as num?)?.toInt() ?? _article.likes,
+              imageAsset: resolvedImg,
+              summary: rawSummary.trim().isNotEmpty ? rawSummary : _article.summary,
+              content: cleanParagraphs.isNotEmpty ? cleanParagraphs : _article.content,
+              tags: (raw['tags'] is List)
+                  ? (raw['tags'] as List).map((t) => t.toString()).toList()
+                  : _article.tags,
+            );
+            _isLoadingFullContent = false;
+          });
+          return;
+        }
+      }
+    } catch (_) {
+      // Keep initial article data
+    }
+    if (mounted) {
+      setState(() => _isLoadingFullContent = false);
+    }
+  }
+
+  static List<String> _parseHtmlToParagraphs(String html) {
+    if (html.trim().isEmpty) return [];
+
+    var text = html
+        .replaceAll(RegExp(r'</p>|<br\s*/?>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</li>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
+        .replaceAll(RegExp(r'<h[1-6][^>]*>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'</h[1-6]>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>');
+
+    return text
+        .split(RegExp(r'\n{2,}'))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
+    final isNowSaved = await toggleArticleFavorite(ref, _article.id);
+    if (mounted) {
+      setState(() {
+        _article = _article.copyWith(
+          likes: isNowSaved
+              ? _article.likes + 1
+              : (_article.likes > 0 ? _article.likes - 1 : 0),
+        );
+      });
+    }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isNowSaved
-                ? 'Artikel berhasil disimpan ke Bacaan Saya'
-                : 'Artikel dihapus dari Bacaan Saya',
+                ? 'Artikel ditambahkan ke Favorit'
+                : 'Artikel dihapus dari Favorit',
           ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -39,16 +150,37 @@ class HealthArticleDetailScreen extends ConsumerWidget {
 
   void _shareArticle(BuildContext context) {
     AppSocialLinks.openUrl(
-      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
+      'https://wa.me/?text=${Uri.encodeComponent('Baca artikel kesehatan menarik: ${_article.title}\n\nInfo selengkapnya di Ciputra Hospital Mobile.')}',
       context: context,
     );
   }
 
+  void _openFullScreenImage(BuildContext context) {
+    if (_article.imageAsset == null || _article.imageAsset!.trim().isEmpty) return;
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.95),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FullScreenImageViewer(
+            imageAsset: _article.imageAsset!,
+            heroTag: 'article_detail_image_${_article.id}',
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isBookmarked = ref.watch(savedArticleIdsProvider).contains(article.id);
+  Widget build(BuildContext context) {
+    final isBookmarked = ref.watch(savedArticleIdsProvider).contains(_article.id);
     final formattedDate =
-        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(article.date);
+        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_article.date);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -86,16 +218,16 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                 ),
                 child: IconButton(
                   tooltip: isBookmarked
-                      ? 'Hapus dari Bacaan Saya'
-                      : 'Simpan ke Bacaan Saya',
+                      ? 'Hapus dari Favorit'
+                      : 'Simpan ke Favorit',
                   icon: Icon(
                     isBookmarked
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: isBookmarked ? Colors.amber : Colors.white,
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isBookmarked ? const Color(0xFFE11D48) : Colors.white,
                     size: 20,
                   ),
-                  onPressed: () => _toggleBookmark(context, ref),
+                  onPressed: () => _toggleFavorite(context, ref),
                 ),
               ),
               Container(
@@ -119,119 +251,106 @@ class HealthArticleDetailScreen extends ConsumerWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Cover Image
-                  if (article.imageAsset != null)
-                    Image.asset(
-                      article.imageAsset!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.article_outlined,
-                            size: 64,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.article_outlined,
-                          size: 64,
-                          color: Colors.white70,
-                        ),
-                      ),
+                  // Cover Image with Hero transition & Tap to Fullscreen Zoom
+                  GestureDetector(
+                    onTap: () => _openFullScreenImage(context),
+                    child: Hero(
+                      tag: 'article_detail_image_${_article.id}',
+                      child: _buildCoverImage(),
                     ),
+                  ),
 
                   // Gradient Dark Overlay for readable text
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.45),
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.75),
-                        ],
+                  IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.75),
+                          ],
+                        ),
                       ),
                     ),
                   ),
 
-                  // Bottom Pill & Category inside Flexible Space
+                  // Subtle Zoom Hint Icon (Top Right or Bottom Right)
+                  Positioned(
+                    top: 56,
+                    right: 16,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.zoom_in_rounded,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Perbesar',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Subtle frosted pill on image: Live Likes Count
                   Positioned(
                     bottom: 16,
                     left: AppSpacing.xl,
-                    right: AppSpacing.xl,
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                    child: InkWell(
+                      onTap: () => _toggleFavorite(context, ref),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isBookmarked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 13,
+                              color: isBookmarked
+                                  ? const Color(0xFFE11D48)
+                                  : Colors.white,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              article.category,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 5),
+                            Text(
+                              '${_article.likes} Suka',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.access_time_rounded,
-                                size: 12,
-                                color: Colors.white70,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                article.readTime,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -254,21 +373,79 @@ class HealthArticleDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Publication Date
+                  // Clean Category, Date & Likes Header (No colored container box)
                   Row(
                     children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 13,
-                        color: AppColors.textTertiary,
+                      Flexible(
+                        child: Text(
+                          _article.category.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                       Text(
                         formattedDate,
                         style: AppTypography.bodySm.copyWith(
                           fontSize: 12,
                           color: AppColors.textTertiary,
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => _toggleFavorite(context, ref),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isBookmarked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 13,
+                              color: isBookmarked
+                                  ? const Color(0xFFE11D48)
+                                  : AppColors.textTertiary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_article.likes}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isBookmarked
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: isBookmarked
+                                    ? const Color(0xFFE11D48)
+                                    : AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -278,7 +455,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
 
                   // Main Article Title
                   Text(
-                    article.title,
+                    _article.title,
                     style: AppTypography.headingLg.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -289,238 +466,344 @@ class HealthArticleDetailScreen extends ConsumerWidget {
 
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Author & Medical Reviewer Card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accentSoft.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.primaryGradient,
-                          ),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      article.author,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.bodySm.copyWith(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.verified_rounded,
-                                    size: 15,
-                                    color: Color(0xFF0284C7),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                article.authorRole,
-                                style: AppTypography.caption.copyWith(
-                                  fontSize: 11.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Summary / Lead Callout Box
-                  if (article.summary != null) ...[
+                  // Author Card (Only Author from API)
+                  if (_article.author.trim().isNotEmpty) ...[
                     Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0F6FF),
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: const Border(
-                          left: BorderSide(
-                            color: AppColors.primary,
-                            width: 4,
+                        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
+                        ],
                       ),
-                      child: Text(
-                        article.summary!,
-                        style: AppTypography.bodyMd.copyWith(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.55,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-
-                  // Body Content Paragraphs
-                  if (article.content.isNotEmpty)
-                    for (int i = 0; i < article.content.length; i++) ...[
-                      Text(
-                        article.content[i],
-                        style: AppTypography.bodyMd.copyWith(
-                          fontSize: 14.5,
-                          height: 1.7,
-                          color: AppColors.textPrimary.withValues(alpha: 0.88),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                    ]
-                  else
-                    Text(
-                      'Informasi kesehatan terkini disajikan secara akurat oleh tim medis profesional Ciputra Hospital guna memberikan edukasi preventif bagi masyarakat.',
-                      style: AppTypography.bodyMd.copyWith(
-                        fontSize: 14.5,
-                        height: 1.7,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Tags Section
-                  if (article.tags.isNotEmpty) ...[
-                    const Text(
-                      'Topik Terkait:',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final tag in article.tags)
+                      child: Row(
+                        children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
+                            child: const Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 22,
                             ),
                           ),
-                      ],
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Penulis',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _article.author.trim(),
+                                  style: AppTypography.bodySm.copyWith(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
 
-                  // Hospital Medical Consultation Banner
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x29003366),
-                          offset: Offset(0, 6),
-                          blurRadius: 16,
+                  // Main Article Content from Backend API
+                  if (_article.content.isNotEmpty)
+                    for (int i = 0; i < _article.content.length; i++) ...[
+                      Text(
+                        _article.content[i],
+                        style: AppTypography.bodyMd.copyWith(
+                          fontSize: 15,
+                          height: 1.75,
+                          color: AppColors.textPrimary.withValues(alpha: 0.92),
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ]
+                  else if (_article.summary != null && _article.summary!.trim().isNotEmpty)
+                    Text(
+                      _article.summary!.trim(),
+                      style: AppTypography.bodyMd.copyWith(
+                        fontSize: 15,
+                        height: 1.75,
+                        color: AppColors.textPrimary.withValues(alpha: 0.92),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.health_and_safety_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            const Expanded(
-                              child: Text(
-                                'Ingin Konsultasi Lebih Lanjut?',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
+
+                  if (_isLoadingFullContent) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Buat janji temu dengan dokter spesialis di Ciputra Hospital sekarang juga secara praktis.',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        AppButton.light(
-                          label: 'Buat Janji Dokter',
-                          expand: true,
-                          onPressed: () => context.push(AppRoutes.doctors),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCoverImage() {
+    final image = _article.imageAsset;
+    if (image != null &&
+        (image.startsWith('http://') || image.startsWith('https://'))) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                color: Colors.white70,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.article_outlined,
+              size: 64,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+      );
+    } else if (image != null && image.trim().isNotEmpty) {
+      return Image.asset(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.article_outlined,
+              size: 64,
+              color: Colors.white70,
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppColors.primaryGradient,
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.article_outlined,
+          size: 64,
+          color: Colors.white70,
+        ),
+      ),
+    );
+  }
+}
+
+/// Immersive Fullscreen Image Viewer with Pinch-to-Zoom & Double-Tap
+class _FullScreenImageViewer extends StatefulWidget {
+  const _FullScreenImageViewer({
+    required this.imageAsset,
+    required this.heroTag,
+  });
+
+  final String imageAsset;
+  final String heroTag;
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer>
+    with SingleTickerProviderStateMixin {
+  late TransformationController _transformationController;
+  late AnimationController _animationController;
+  Animation<Matrix4>? _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..addListener(() {
+        if (_zoomAnimation != null) {
+          _transformationController.value = _zoomAnimation!.value;
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleDoubleTap(TapDownDetails details) {
+    if (_animationController.isAnimating) return;
+
+    final currentMatrix = _transformationController.value;
+    final isZoomed = currentMatrix.getMaxScaleOnAxis() > 1.05;
+
+    Matrix4 targetMatrix;
+    if (!isZoomed) {
+      final position = details.localPosition;
+      // ignore: deprecated_member_use
+      targetMatrix = Matrix4.identity()
+        // ignore: deprecated_member_use
+        ..translate(-position.dx * 1.5, -position.dy * 1.5)
+        // ignore: deprecated_member_use
+        ..scale(2.5);
+    } else {
+      targetMatrix = Matrix4.identity();
+    }
+
+    _zoomAnimation = Matrix4Tween(
+      begin: currentMatrix,
+      end: targetMatrix,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+
+    _animationController.forward(from: 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Zoomable Interactive Image Area
+          GestureDetector(
+            onDoubleTapDown: _handleDoubleTap,
+            onDoubleTap: () {},
+            child: InteractiveViewer(
+              transformationController: _transformationController,
+              minScale: 0.8,
+              maxScale: 4.5,
+              clipBehavior: Clip.none,
+              child: Center(
+                child: Hero(
+                  tag: widget.heroTag,
+                  child: _buildImage(),
+                ),
+              ),
+            ),
+          ),
+
+          // Top Action Bar with Close Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (widget.imageAsset.startsWith('http://') ||
+        widget.imageAsset.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: widget.imageAsset,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => const Center(
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              color: Colors.white70,
+              strokeWidth: 2.5,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => const Center(
+          child: Icon(
+            Icons.broken_image_rounded,
+            size: 64,
+            color: Colors.white54,
+          ),
+        ),
+      );
+    }
+    return Image.asset(
+      widget.imageAsset,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => const Center(
+        child: Icon(
+          Icons.broken_image_rounded,
+          size: 64,
+          color: Colors.white54,
+        ),
       ),
     );
   }

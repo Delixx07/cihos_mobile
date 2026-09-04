@@ -9,7 +9,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../doctors/data/catalog_repository.dart';
 import '../../doctors/data/doctor_repository.dart';
+import '../../doctors/domain/practice_schedule.dart';
 import '../../schedule/data/schedule_repository.dart';
 import '../data/booking_repository.dart';
 import '../data/patient_repository.dart';
@@ -117,15 +119,28 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
         enableDrag: false,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => BookingSuccessSheet(result: result),
+        builder: (_) => BookingSuccessSheet(
+          result: result,
+          isVideoCall: widget.booking.kind == BookingKind.videoCall,
+        ),
       );
 
       if (!mounted) return;
-      context.go(
-        destination == BookingSuccessAction.viewHistory
-            ? AppRoutes.appointments
-            : AppRoutes.home,
-      );
+      if (destination == BookingSuccessAction.startVideoCall) {
+        context.push(
+          AppRoutes.videoCallRoom,
+          extra: {
+            'doctorName': widget.booking.doctorName,
+            'specialty': widget.booking.specialty,
+          },
+        );
+      } else {
+        context.go(
+          destination == BookingSuccessAction.viewHistory
+              ? AppRoutes.appointments
+              : AppRoutes.home,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -164,6 +179,38 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
         : null;
 
     final isVideoCall = widget.booking.kind == BookingKind.videoCall;
+
+    final effectiveUnitCode = widget.booking.unitCode ?? doctor?.unitCode;
+    final upcomingQuery = widget.booking.doctorId != null
+        ? UpcomingScheduleQuery(
+            doctorId: widget.booking.doctorId!,
+            unitCode: effectiveUnitCode,
+            days: 30,
+            withSlots: 0,
+          )
+        : null;
+
+    final upcomingAsync = upcomingQuery != null
+        ? ref.watch(upcomingSchedulesProvider(upcomingQuery))
+        : null;
+
+    final matchedUpcoming = widget.booking.date == null
+        ? null
+        : upcomingAsync?.valueOrNull?.cast<UpcomingScheduleDate?>().firstWhere(
+            (s) =>
+                s != null &&
+                s.date.year == widget.booking.date!.year &&
+                s.date.month == widget.booking.date!.month &&
+                s.date.day == widget.booking.date!.day,
+            orElse: () => null,
+          );
+
+    final resolvedPracticeTime =
+        (widget.booking.practiceTime?.isNotEmpty == true)
+            ? widget.booking.practiceTime
+            : (matchedUpcoming?.timeLabel.isNotEmpty == true
+                ? matchedUpcoming!.timeLabel
+                : null);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -227,7 +274,9 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Text(
-                        'Ringkasan Janji Temu',
+                        isVideoCall
+                            ? 'Ringkasan Video Call'
+                            : 'Ringkasan Janji Temu',
                         style: AppTypography.headingMd.copyWith(
                           color: AppColors.white,
                           fontSize: 18,
@@ -261,353 +310,164 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                         AppSpacing.lg,
                       ),
                       children: [
-                        // Location Card with rich blue/teal styling
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color.fromARGB(255, 139, 139, 139),
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF0D9488),
-                                      Color(0xFF14B8A6),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF0D9488)
-                                          .withValues(alpha: 0.25),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.local_hospital_rounded,
-                                  size: 22,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'LOKASI PELAYANAN',
-                                          style: AppTypography.caption.copyWith(
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.5,
-                                            color: const Color(0xFF0F766E),
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 7,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFDCFCE7),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: const Text(
-                                            'Surabaya Barat',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF166534),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      'Ciputra Hospital Surabaya',
-                                      style: AppTypography.inputText.copyWith(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: AppSpacing.md),
-
                         // Main Booking Summary Card
                         Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: AppColors.border,
-                              width: 1,
+                              width: 1.2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Header: Method Badge + Edit Button
-                              Container(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppSpacing.md,
-                                  10,
-                                  AppSpacing.sm,
-                                  10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isVideoCall
-                                      ? const Color(0xFFECFDF5)
-                                      : const Color(0xFFF0FDFA),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(20),
-                                  ),
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: isVideoCall
-                                          ? const Color(0xFFA7F3D0)
-                                          : const Color(0xFF99F6E4),
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: isVideoCall
-                                            ? const Color(0xFF059669)
-                                            : const Color(0xFF0D9488),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        isVideoCall
-                                            ? Icons.videocam_rounded
-                                            : Icons.medical_services_rounded,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      isVideoCall
-                                          ? 'Video Call Dokter'
-                                          : 'Janji Temu Rumah Sakit',
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: isVideoCall
-                                            ? const Color(0xFF065F46)
-                                            : const Color(0xFF115E59),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    // Styled Ubah Button
-                                    InkWell(
-                                      key: const Key('summaryEdit'),
-                                      onTap: _edit,
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: AppColors.accentSoft
-                                                .withValues(alpha: 0.4),
-                                          ),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.edit_outlined,
-                                              size: 13,
-                                              color: AppColors.accentSoft,
-                                            ),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              'Ubah',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.accentSoft,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
+                              // Top Section: Consultation Method Badge + Ubah Button + Doctor Info
                               Padding(
                                 padding: const EdgeInsets.all(AppSpacing.lg),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Patient Row with Colorful Avatar
+                                    // Row 1: Method Badge + Ubah Button
                                     Row(
                                       children: [
                                         Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Color(0xFF4F46E5),
-                                                Color(0xFF6366F1),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 9,
+                                            vertical: 3.5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isVideoCall
+                                                ? const Color(0xFFECFDF5)
+                                                : const Color(0xFFEFF6FF),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: isVideoCall
+                                                  ? const Color(0xFFA7F3D0)
+                                                  : const Color(0xFFBFDBFE),
+                                              width: 1,
                                             ),
                                           ),
-                                          child: Center(
-                                            child: Text(
-                                              (widget.booking.patientName
-                                                          ?.isNotEmpty ==
-                                                      true)
-                                                  ? widget.booking
-                                                      .patientName![0]
-                                                      .toUpperCase()
-                                                  : 'P',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: AppSpacing.md),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                widget.booking.patientName ??
-                                                    'Pasien',
-                                                style: AppTypography.inputText
-                                                    .copyWith(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: AppColors.textPrimary,
-                                                ),
+                                              Icon(
+                                                isVideoCall
+                                                    ? Icons.videocam_rounded
+                                                    : Icons.medical_services_rounded,
+                                                size: 13,
+                                                color: isVideoCall
+                                                    ? const Color(0xFF059669)
+                                                    : const Color(0xFF2563EB),
                                               ),
-                                              const SizedBox(height: 2),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 7,
-                                                  vertical: 2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFF1F5F9),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  // APP-XXXXXX is a temporary
-                                                  // local number, not a
-                                                  // hospital MRN — showing it
-                                                  // invites the patient to
-                                                  // quote a number the desk
-                                                  // cannot find.
-                                                  switch (widget.booking
-                                                      .patientMedicalRecordNumber) {
-                                                    final mrn?
-                                                        when mrn.isNotEmpty &&
-                                                            !mrn.startsWith(
-                                                              'APP-',
-                                                            ) =>
-                                                      'No. RM: $mrn',
-                                                    _ => 'Pasien Terdaftar',
-                                                  },
-                                                  style: const TextStyle(
-                                                    fontSize: 11.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
+                                              const SizedBox(width: 5),
+                                              Text(
+                                                isVideoCall
+                                                    ? 'Video Call Dokter'
+                                                    : 'Janji Temu Rumah Sakit',
+                                                style: TextStyle(
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isVideoCall
+                                                      ? const Color(0xFF065F46)
+                                                      : const Color(0xFF1D4ED8),
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        InkWell(
+                                          key: const Key('summaryEdit'),
+                                          onTap: _edit,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEFF6FF),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: const Color(0xFFBFDBFE),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize:
+                                                  MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.edit_outlined,
+                                                  size: 12,
+                                                  color: Color(0xFF2563EB),
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Ubah',
+                                                  style: TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight:
+                                                        FontWeight.w700,
+                                                    color: Color(0xFF1D4ED8),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
 
                                     const SizedBox(height: AppSpacing.md),
-                                    const Divider(
-                                      height: 1,
-                                      color: AppColors.border,
-                                    ),
-                                    const SizedBox(height: AppSpacing.md),
 
-                                    // Doctor & Specialty Row
+                                    // Doctor Row & Hospital
                                     Row(
                                       children: [
                                         Container(
-                                          width: 52,
-                                          height: 52,
+                                          width: 46,
+                                          height: 46,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: AppColors.white,
+                                            color: const Color(0xFFF1F5F9),
                                             border: Border.all(
-                                              color: const Color(0xFF14B8A6),
-                                              width: 2,
+                                              color: const Color(0xFFBAE6FD),
+                                              width: 1.5,
                                             ),
                                           ),
                                           child: ClipOval(
                                             child: doctor?.photoAsset == null
                                                 ? const Icon(
                                                     Icons.person_rounded,
-                                                    size: 28,
-                                                    color:
-                                                        AppColors.textTertiary,
+                                                    size: 24,
+                                                    color: AppColors
+                                                        .textTertiary,
                                                   )
                                                 : Image.asset(
                                                     doctor!.photoAsset!,
-                                                    width: 52,
-                                                    height: 52,
+                                                    width: 46,
+                                                    height: 46,
                                                     fit: BoxFit.cover,
                                                     alignment:
                                                         Alignment.topCenter,
                                                     errorBuilder:
-                                                        (_, _, _) => const Icon(
+                                                        (_, _, _) =>
+                                                            const Icon(
                                                       Icons.person_rounded,
-                                                      size: 28,
+                                                      size: 24,
                                                       color: AppColors
                                                           .textTertiary,
                                                     ),
@@ -630,162 +490,187 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                                                   color: AppColors.textPrimary,
                                                 ),
                                               ),
-                                              const SizedBox(height: 4),
+                                              const SizedBox(height: 2),
                                               Text(
-                                                (widget.booking.specialty ??
-                                                        'Spesialis')
-                                                    .toUpperCase(),
-                                                style: const TextStyle(
+                                                widget.booking.specialty ??
+                                                    'Dokter Spesialis',
+                                                style: AppTypography.caption
+                                                    .copyWith(
                                                   fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF0284C7),
-                                                  letterSpacing: 0.3,
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      const Color(0xFF0284C7),
                                                 ),
+                                              ),
+                                              const SizedBox(height: 3),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.local_hospital_rounded,
+                                                    size: 13,
+                                                    color: Color(0xFFEF4444),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Ciputra Hospital Surabaya',
+                                                    style: AppTypography
+                                                        .caption
+                                                        .copyWith(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
                                     ),
+                                  ],
+                                ),
+                              ),
 
-                                    const SizedBox(height: AppSpacing.md),
-                                    const Divider(
-                                      height: 1,
-                                      color: AppColors.border,
+                              const Divider(height: 1, color: AppColors.border),
+
+                              // Detail Section: Direct line items (NO individual container boxes)
+                              Padding(
+                                padding: const EdgeInsets.all(AppSpacing.lg),
+                                child: Column(
+                                  children: [
+                                    // 1. Jadwal & Jam Praktek
+                                    _SummaryLineItem(
+                                      icon: Icons.event_available_rounded,
+                                      iconColor: const Color(0xFF2563EB),
+                                      iconBgColor: const Color(0xFFEFF6FF),
+                                      primaryText: widget.booking.date != null
+                                          ? DateFormat(
+                                              'EEEE, d MMMM yyyy',
+                                              'id_ID',
+                                            ).format(widget.booking.date!)
+                                          : '-',
+                                      extra: (resolvedPracticeTime != null &&
+                                              resolvedPracticeTime.isNotEmpty)
+                                          ? Container(
+                                              margin:
+                                                  const EdgeInsets.only(top: 4),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 7,
+                                                vertical: 2.5,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEFF6FF),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 12,
+                                                    color: Color(0xFF2563EB),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Praktek: $resolvedPracticeTime',
+                                                    style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF1D4ED8),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : null,
                                     ),
-                                    const SizedBox(height: AppSpacing.md),
 
-                                    // 2-Column Info Grid: [Tanggal] & [Metode Pembayaran] (Replaces Jam)
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Column 1: Tanggal (Warm Amber Card)
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFFBEB),
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                              border: Border.all(
-                                                color: const Color(0xFFFDE68A),
-                                                width: 1.2,
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .calendar_today_rounded,
-                                                      size: 14,
-                                                      color: Color(0xFFD97706),
-                                                    ),
-                                                    SizedBox(width: 5),
-                                                    Text(
-                                                      'Tanggal',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color:
-                                                            Color(0xFF92400E),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 5),
-                                                Text(
-                                                  widget.booking.date != null
-                                                      ? DateFormat(
-                                                          'd MMM yyyy',
-                                                          'id_ID',
-                                                        ).format(
-                                                          widget.booking.date!,
-                                                        )
-                                                      : '-',
-                                                  style: const TextStyle(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w800,
-                                                    color:
-                                                        AppColors.textPrimary,
-                                                  ),
-                                                ),
-                                              ],
+                                    const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      child: Divider(
+                                        height: 1,
+                                        color: Color(0xFFF1F5F9),
+                                      ),
+                                    ),
+
+                                    // 2. Pasien (Kiri) & Pembayaran (Kanan) dalam 1 Row
+                                    IntrinsicHeight(
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Kolom Kiri: Pasien
+                                          Expanded(
+                                            child: _SummaryLineItem(
+                                              icon: Icons.person_rounded,
+                                              iconColor:
+                                                  const Color(0xFF7C3AED),
+                                              iconBgColor:
+                                                  const Color(0xFFF5F3FF),
+                                              primaryText: widget
+                                                      .booking.patientName ??
+                                                  'Pasien',
+                                              // APP-XXXXXX is a temporary
+                                              // local number, not a hospital
+                                              // MRN — showing it invites the
+                                              // patient to quote a number the
+                                              // desk cannot find.
+                                              secondaryText: switch (widget
+                                                  .booking
+                                                  .patientMedicalRecordNumber) {
+                                                final mrn?
+                                                    when mrn.isNotEmpty &&
+                                                        !mrn.startsWith(
+                                                          'APP-',
+                                                        ) =>
+                                                  'No. RM: $mrn',
+                                                _ =>
+                                                  widget.booking.isNewPatient
+                                                      ? 'Pasien Baru'
+                                                      : 'Pasien Terdaftar',
+                                              },
                                             ),
                                           ),
-                                        ),
 
-                                        const SizedBox(width: 10),
-
-                                        // Column 2: Metode Pembayaran (Emerald Card - Replaces Jam)
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFECFDF5),
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                              border: Border.all(
-                                                color: const Color(0xFFA7F3D0),
-                                                width: 1.2,
-                                              ),
+                                          // Garis Pembatas Vertikal Halus
+                                          Container(
+                                            width: 1,
+                                            margin: const EdgeInsets.symmetric(
+                                              horizontal: AppSpacing.sm,
                                             ),
-                                            child: Column(
+                                            color: const Color(0xFFF1F5F9),
+                                          ),
+
+                                          // Kolom Kanan: Pembayaran
+                                          Expanded(
+                                            child: _SummaryLineItem(
+                                              icon: Icons
+                                                  .account_balance_wallet_rounded,
+                                              iconColor:
+                                                  const Color(0xFF059669),
+                                              iconBgColor:
+                                                  const Color(0xFFECFDF5),
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .account_balance_wallet_rounded,
-                                                      size: 14,
-                                                      color: Color(0xFF059669),
-                                                    ),
-                                                    SizedBox(width: 5),
-                                                    Text(
-                                                      'Pembayaran',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color:
-                                                            Color(0xFF065F46),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 5),
-                                                Text(
-                                                  widget.booking.company !=
-                                                              null &&
-                                                          widget
-                                                              .booking
-                                                              .company!
-                                                              .isNotEmpty
-                                                      ? widget.booking.company!
-                                                      : (widget.booking
-                                                              .paymentMethod ??
-                                                          'Pribadi (Umum)'),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w800,
-                                                    color:
-                                                        AppColors.textPrimary,
-                                                  ),
-                                                ),
-                                              ],
+                                                  CrossAxisAlignment.center,
+                                              primaryText: (widget.booking
+                                                              .company
+                                                              ?.isNotEmpty ==
+                                                          true)
+                                                  ? widget.booking.company!
+                                                  : (widget.booking
+                                                          .paymentMethod ??
+                                                      'Pribadi'),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -796,41 +681,42 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
 
                         const SizedBox(height: AppSpacing.lg),
 
-                        // Add Another Booking Button with fresh teal theme
+                        // Add Another Booking Button
                         InkWell(
                           onTap: _addAnotherBooking,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            height: 48,
+                            height: 46,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
+                              color: const Color(0xFFF0F9FF),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFF14B8A6),
-                                width: 1.3,
+                                color: const Color(0xFFBAE6FD),
+                                width: 1.2,
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(3),
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFF0D9488),
+                                    color: Color(0xFF0284C7),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
                                     Icons.add,
                                     color: Colors.white,
-                                    size: 14,
+                                    size: 13,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Tambah ${widget.booking.kind.label}',
                                   style: AppTypography.inputText.copyWith(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F766E),
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF0369A1),
                                   ),
                                 ),
                               ],
@@ -842,8 +728,8 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                           child: Text(
                             'Anda dapat membuat lebih dari 1 janji temu sebelum konfirmasi.',
                             textAlign: TextAlign.center,
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
+                            style: AppTypography.caption.copyWith(
+                              fontSize: 11.5,
                               color: AppColors.textTertiary,
                             ),
                           ),
@@ -884,46 +770,59 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                           SizedBox(
                             width: double.infinity,
                             height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accentSoft,
-                                foregroundColor: Colors.white,
-                                elevation: 2,
-                                shadowColor: AppColors.accentSoft
-                                    .withValues(alpha: 0.4),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF003366), Color(0xFF0047AB)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
                                 ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0047AB)
+                                        .withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              onPressed: _isSubmitting ? null : _submit,
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2.2,
-                                      ),
-                                    )
-                                  : const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'Konfirmasi Janji Temu',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _isSubmitting ? null : _submit,
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.2,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            isVideoCall
+                                                ? 'Konfirmasi Video Call'
+                                                : 'Konfirmasi Janji Temu',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.2,
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(width: 6),
-                                        Icon(
-                                          Icons.arrow_forward_rounded,
-                                          size: 18,
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
+                              ),
                             ),
                           ),
                         ],
@@ -940,6 +839,91 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
   ),
 );
 }
+}
+
+class _SummaryLineItem extends StatelessWidget {
+  const _SummaryLineItem({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBgColor,
+    required this.primaryText,
+    this.secondaryText,
+    this.extra,
+    this.crossAxisAlignment,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBgColor;
+  final String primaryText;
+  final String? secondaryText;
+  final Widget? extra;
+  final CrossAxisAlignment? crossAxisAlignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSingleLine =
+        (secondaryText == null || secondaryText!.isEmpty) && extra == null;
+    final effectiveCrossAxis = crossAxisAlignment ??
+        (isSingleLine
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.start);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        crossAxisAlignment: effectiveCrossAxis,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 17,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  primaryText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.inputText.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (secondaryText != null && secondaryText!.isNotEmpty) ...[
+                  const SizedBox(height: 1.5),
+                  Text(
+                    secondaryText!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+                ?extra,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TermsCheckbox extends StatelessWidget {

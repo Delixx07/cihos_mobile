@@ -363,9 +363,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => context.go(AppRoutes.appointments),
                     ),
                     _ProfileMenuRow(
-                      icon: Icons.menu_book_outlined,
-                      iconColor: AppColors.accentSoft,
-                      title: 'Bacaan Saya',
+                      icon: Icons.favorite_outline_rounded,
+                      iconColor: const Color(0xFFE11D48),
+                      title: 'Favorit Saya',
                       onTap: () => context.push(AppRoutes.savedArticles),
                     ),
 

@@ -15,7 +15,10 @@ class Doctor {
     this.consultationFee,
     this.photoAsset,
     this.about = '',
-    this.methods = const {ConsultationMethod.appointment},
+    this.methods = const {
+      ConsultationMethod.appointment,
+      ConsultationMethod.videoCall,
+    },
     this.education = const [],
     this.clinicalInterests = const [],
     this.awards = const [],
@@ -58,15 +61,25 @@ class Doctor {
   bool supports(ConsultationMethod method) => methods.contains(method);
 
   /// Builds a doctor from `/api/app/doctors`.
+  /// All API doctors support both appointment and videoCall consultation.
   factory Doctor.fromJson(Map<String, dynamic> json) => Doctor(
     id: json['paramedic_id'].toString(),
     name: (json['name'] as String? ?? '').trim(),
     specialty: (json['specialty'] as String?)?.trim() ?? 'Lain-lain',
     code: json['paramedic_code'] as String?,
     unitCode: json['unit_code'] as String?,
+    methods: const {
+      ConsultationMethod.appointment,
+      ConsultationMethod.videoCall,
+    },
   );
 
-  Doctor copyWith({String? unitCode}) => Doctor(
+  Doctor copyWith({
+    String? unitCode,
+    Set<ConsultationMethod>? methods,
+    List<String>? education,
+    List<String>? clinicalInterests,
+  }) => Doctor(
     id: id,
     name: name,
     specialty: specialty,
@@ -79,9 +92,9 @@ class Doctor {
     consultationFee: consultationFee,
     photoAsset: photoAsset,
     about: about,
-    methods: methods,
-    education: education,
-    clinicalInterests: clinicalInterests,
+    methods: methods ?? this.methods,
+    education: education ?? this.education,
+    clinicalInterests: clinicalInterests ?? this.clinicalInterests,
     awards: awards,
     courses: courses,
   );

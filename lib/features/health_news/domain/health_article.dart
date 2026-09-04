@@ -13,6 +13,7 @@ class HealthArticle {
     this.author = 'Tim Medis Ciputra Hospital',
     this.authorRole = 'Dokter Spesialis & Konsultan',
     this.readTime = '3 menit baca',
+    this.likes = 0,
     this.summary,
     this.content = const [],
     this.tags = const [],
@@ -27,7 +28,40 @@ class HealthArticle {
   final String author;
   final String authorRole;
   final String readTime;
+  final int likes;
   final String? summary;
   final List<String> content;
   final List<String> tags;
+
+  HealthArticle copyWith({
+    String? id,
+    String? title,
+    DateTime? date,
+    ArticleShelf? shelf,
+    String? imageAsset,
+    String? category,
+    String? author,
+    String? authorRole,
+    String? readTime,
+    int? likes,
+    String? summary,
+    List<String>? content,
+    List<String>? tags,
+  }) {
+    return HealthArticle(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      date: date ?? this.date,
+      shelf: shelf ?? this.shelf,
+      imageAsset: imageAsset ?? this.imageAsset,
+      category: category ?? this.category,
+      author: author ?? this.author,
+      authorRole: authorRole ?? this.authorRole,
+      readTime: readTime ?? this.readTime,
+      likes: likes ?? this.likes,
+      summary: summary ?? this.summary,
+      content: content ?? this.content,
+      tags: tags ?? this.tags,
+    );
+  }
 }

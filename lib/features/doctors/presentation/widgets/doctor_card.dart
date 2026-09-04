@@ -32,7 +32,7 @@ class DoctorCard extends StatelessWidget {
       BookingKind.videoCall => (
         Icons.videocam_rounded,
         'Video Call',
-        const Color(0xFF059669),
+        AppColors.accentSoft,
       ),
       null => (
         Icons.calendar_month_rounded,

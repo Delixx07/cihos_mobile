@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +51,7 @@ class HealthNewsScreen extends ConsumerWidget {
                     _Carousel(articles: others),
                     const SizedBox(height: AppSpacing.xxl),
 
-                    // Bacaan Saya Section
+                    // Favorit Saya Section
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xl,
@@ -59,7 +60,7 @@ class HealthNewsScreen extends ConsumerWidget {
                         children: [
                           const Expanded(
                             child: _ShelfTitle(
-                              'Bacaan Saya',
+                              'Favorit Saya',
                               padding: EdgeInsets.zero,
                             ),
                           ),
@@ -205,31 +206,16 @@ class _ShelfTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 4,
-            height: 18,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.headingMd.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTypography.headingMd.copyWith(
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
@@ -271,14 +257,16 @@ class _Carousel extends StatelessWidget {
   }
 }
 
-class _CarouselCard extends StatelessWidget {
+class _CarouselCard extends ConsumerWidget {
   const _CarouselCard({required this.article, this.onTap});
 
   final HealthArticle article;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(savedArticleIdsProvider).contains(article.id);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -289,10 +277,10 @@ class _CarouselCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accentSoft.withValues(alpha: 0.04),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -305,59 +293,50 @@ class _CarouselCard extends StatelessWidget {
               SizedBox(
                 height: 130,
                 width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _Cover(article: article),
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          article.category,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: _Cover(article: article),
               ),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Clean Category & Date line (no colored container)
                     Row(
                       children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 11,
-                          color: AppColors.textTertiary,
+                        Flexible(
+                          child: Text(
+                            article.category.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 5),
+                          child: Text(
+                            '•',
+                            style: TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
                         Text(
                           DateFormat('dd MMM yyyy', 'id_ID').format(article.date),
-                          style: AppTypography.bodySm.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
                             color: AppColors.textTertiary,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
                       article.title,
                       maxLines: 2,
@@ -369,23 +348,79 @@ class _CarouselCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    if (article.summary != null &&
+                        article.summary!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        article.summary!.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption.copyWith(
+                          fontSize: 11,
+                          height: 1.2,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Baca Selengkapnya',
-                          style: AppTypography.bodySm.copyWith(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                        InkWell(
+                          onTap: () => toggleArticleFavorite(ref, article.id),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSaved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 14.5,
+                                  color: isSaved
+                                      ? const Color(0xFFE11D48)
+                                      : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${article.likes}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSaved
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSaved
+                                        ? const Color(0xFFE11D48)
+                                        : AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 3),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 13,
-                          color: AppColors.primary,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text(
+                              'Baca',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 9,
+                              color: AppColors.primary,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -400,42 +435,44 @@ class _CarouselCard extends StatelessWidget {
   }
 }
 
-/// A saved read row: thumbnail left, headline and "Baca Selengkapnya" right.
-class _ReadingRow extends StatelessWidget {
+/// A saved read row: thumbnail left, headline and modern metadata right.
+class _ReadingRow extends ConsumerWidget {
   const _ReadingRow({required this.article, this.onTap});
 
   final HealthArticle article;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSaved = ref.watch(savedArticleIdsProvider).contains(article.id);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border, width: 1),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accentSoft.withValues(alpha: 0.04),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
-                offset: const Offset(0, 2),
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
-                  width: 110,
-                  height: 85,
+                  width: 100,
+                  height: 94,
                   child: _Cover(article: article),
                 ),
               ),
@@ -443,26 +480,44 @@ class _ReadingRow extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 11,
-                          color: AppColors.textTertiary,
+                        Flexible(
+                          child: Text(
+                            article.category.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 5),
+                          child: Text(
+                            '•',
+                            style: TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
                         Text(
-                          DateFormat('dd MMMM yyyy', 'id_ID').format(article.date),
-                          style: AppTypography.bodySm.copyWith(
+                          DateFormat('dd MMM yyyy', 'id_ID').format(article.date),
+                          style: const TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             color: AppColors.textTertiary,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
                       article.title,
                       maxLines: 2,
@@ -474,23 +529,79 @@ class _ReadingRow extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    if (article.summary != null &&
+                        article.summary!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        article.summary!.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption.copyWith(
+                          fontSize: 11.5,
+                          height: 1.25,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Baca Selengkapnya',
-                          style: AppTypography.bodySm.copyWith(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                        InkWell(
+                          onTap: () => toggleArticleFavorite(ref, article.id),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSaved
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  size: 15,
+                                  color: isSaved
+                                      ? const Color(0xFFE11D48)
+                                      : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${article.likes}',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: isSaved
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSaved
+                                        ? const Color(0xFFE11D48)
+                                        : AppColors.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 3),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 13,
-                          color: AppColors.primary,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text(
+                              'Baca',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 9.5,
+                              color: AppColors.primary,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -514,6 +625,24 @@ class _Cover extends StatelessWidget {
   Widget build(BuildContext context) {
     if (article.imageAsset == null) {
       return const ImagePlaceholder(icon: Icons.article_outlined);
+    }
+    if (article.imageAsset!.startsWith('http://') || article.imageAsset!.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: article.imageAsset!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) =>
+            const ImagePlaceholder(icon: Icons.article_outlined),
+      );
     }
     return Image.asset(
       article.imageAsset!,

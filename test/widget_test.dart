@@ -138,11 +138,9 @@ Future<void> _openDoctorList(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Picks the seeded doctor in the finder, leaving the panel filled.
+/// Opens the finder and selects the seeded doctor.
 Future<void> _pickEdwinInFinder(WidgetTester tester) async {
   await tester.tap(find.text('Dokter'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const Key('finderDoctor')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('dr. Edwin Hadinata, Sp.PD'));
   await tester.pumpAndSettle();
@@ -484,7 +482,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DoctorFinderScreen), findsOneWidget);
-    expect(find.text('Pilih Klinik'), findsOneWidget);
+    expect(find.text('Cari Dokter'), findsWidgets);
   });
 
   testWidgets('the card opens the doctor profile sheet', (tester) async {
@@ -1223,7 +1221,7 @@ void main() {
 
     expect(find.byType(HealthNewsScreen), findsOneWidget);
     expect(find.text('Berita Terbaru'), findsOneWidget);
-    expect(find.text('Bacaan Saya'), findsOneWidget);
+    expect(find.text('Favorit Saya'), findsOneWidget);
   });
 
   testWidgets('health news see all links to saved articles screen', (
@@ -1242,7 +1240,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SavedArticlesScreen), findsOneWidget);
-    expect(find.text('Bacaan Saya'), findsOneWidget);
+    expect(find.text('Favorit Saya'), findsOneWidget);
   });
 
   testWidgets('profile links to saved articles screen', (tester) async {
@@ -1252,7 +1250,7 @@ void main() {
     await tester.tap(find.text('Profil'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Bacaan Saya'));
+    await tester.tap(find.text('Favorit Saya'));
     await tester.pumpAndSettle();
 
     expect(find.byType(SavedArticlesScreen), findsOneWidget);
@@ -1283,18 +1281,18 @@ void main() {
 
     expect(find.byType(HealthArticleDetailScreen), findsOneWidget);
 
-    // Tap bookmark button
-    await tester.tap(find.byTooltip('Simpan ke Bacaan Saya'));
+    // Tap favorite button
+    await tester.tap(find.byTooltip('Simpan ke Favorit'));
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Hapus dari Bacaan Saya'), findsOneWidget);
-    expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
+    expect(find.byTooltip('Hapus dari Favorit'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_rounded), findsWidgets);
 
     // Tap back to news feed
     await tester.tap(find.byType(IconButton).first);
     await tester.pumpAndSettle();
 
-    // Verify it appears in Bacaan Saya
+    // Verify it appears in Favorit Saya
     expect(find.byType(HealthNewsScreen), findsOneWidget);
   });
 
@@ -1359,46 +1357,68 @@ void main() {
     expect(find.text('Buat Video Call'), findsWidgets);
   });
 
-  testWidgets('the finder needs a doctor before continuing', (tester) async {
+  testWidgets('filter button in finder opens specialty picker', (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Dokter'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjutkan'));
+    expect(find.byType(DoctorFinderScreen), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('doctorClinicFilterButton')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pilih dokter terlebih dahulu.'), findsOneWidget);
+    expect(find.text('Filter Berdasarkan Klinik'), findsOneWidget);
   });
 
-  testWidgets('the clinic row opens its picker', (tester) async {
+  testWidgets(
+      'doctor finder lists doctors in 2-column grid and filters by search',
+      (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
     await tester.tap(find.text('Dokter'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('finderClinic')));
+    expect(find.byType(DoctorFinderScreen), findsOneWidget);
+    expect(find.text('Daftar Dokter'), findsOneWidget);
+
+    // Filter by typing in search bar
+    await tester.enterText(
+      find.byKey(const Key('doctorSearch')),
+      'Edwin',
+    );
     await tester.pumpAndSettle();
-
-    expect(find.text('Cari Klinik'), findsOneWidget);
-    expect(find.text('Andrologi'), findsOneWidget);
-  });
-
-  testWidgets('choosing a doctor fills the finder', (tester) async {
-    await _startAtLogin(tester);
-    await _signIn(tester);
-    await _pickEdwinInFinder(tester);
 
     expect(find.text('dr. Edwin Hadinata, Sp.PD'), findsOneWidget);
   });
 
-  testWidgets('continuing with doctor opens consultation methods',
+  testWidgets('tapping doctor card in finder opens doctor schedule screen',
       (tester) async {
     await _startAtLogin(tester);
     await _signIn(tester);
-    await _pickEdwinInFinder(tester);
+    await tester.tap(find.text('Dokter'));
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Lanjutkan'));
+    await tester.tap(find.text('dr. Edwin Hadinata, Sp.PD'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DoctorScheduleScreen), findsOneWidget);
+    expect(find.text('Profil & Jadwal Dokter'), findsOneWidget);
+    expect(find.text('Pilih Dokter Ini'), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping pilih dokter ini in doctor schedule opens consultation methods',
+      (tester) async {
+    await _startAtLogin(tester);
+    await _signIn(tester);
+    await tester.tap(find.text('Dokter'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('dr. Edwin Hadinata, Sp.PD'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pilih Dokter Ini'));
     await tester.pumpAndSettle();
 
     expect(find.text('Buat Appointment?'), findsOneWidget);

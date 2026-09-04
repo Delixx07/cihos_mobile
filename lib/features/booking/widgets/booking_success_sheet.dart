@@ -6,13 +6,18 @@ import '../../../core/theme/app_typography.dart';
 import '../data/booking_repository.dart';
 
 /// Where the patient goes after a booking is created.
-enum BookingSuccessAction { viewHistory, home }
+enum BookingSuccessAction { viewHistory, home, startVideoCall }
 
 /// Modern and vibrant confirmation sheet shown once the booking has been created.
 class BookingSuccessSheet extends StatelessWidget {
-  const BookingSuccessSheet({super.key, required this.result});
+  const BookingSuccessSheet({
+    super.key,
+    required this.result,
+    this.isVideoCall = false,
+  });
 
   final BookingResult result;
+  final bool isVideoCall;
 
   @override
   Widget build(BuildContext context) {
@@ -242,6 +247,43 @@ class BookingSuccessSheet extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
 
               // Action Buttons
+              if (isVideoCall) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    key: const Key('successVideoCall'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor:
+                          const Color(0xFF059669).withValues(alpha: 0.35),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context)
+                        .pop(BookingSuccessAction.startVideoCall),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.videocam_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Masuk Ruang Video Call',
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+
               // 1. Primary: Lihat Riwayat Janji Temu
               SizedBox(
                 width: double.infinity,

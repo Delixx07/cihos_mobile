@@ -42,9 +42,27 @@ final doctorsProvider = Provider<List<Doctor>>((ref) {
 
 /// Looks a doctor up by id; null when the id is unknown.
 final doctorByIdProvider = Provider.family<Doctor?, String>((ref, id) {
+  // First check live doctors fetched from API if available
+  final liveDoctors = ref.watch(liveDoctorsProvider(null)).asData?.value;
+  if (liveDoctors != null) {
+    for (final doctor in liveDoctors) {
+      if (doctor.id == id ||
+          doctor.id == 'd$id' ||
+          id == 'd${doctor.id}' ||
+          (doctor.code != null && doctor.code == id)) {
+        return doctor;
+      }
+    }
+  }
+
   final doctors = ref.watch(doctorsProvider);
   for (final doctor in doctors) {
-    if (doctor.id == id || doctor.id == 'd$id' || id == 'd${doctor.id}') return doctor;
+    if (doctor.id == id ||
+        doctor.id == 'd$id' ||
+        id == 'd${doctor.id}' ||
+        (doctor.code != null && doctor.code == id)) {
+      return doctor;
+    }
   }
   return null;
 });

@@ -8,14 +8,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/screen_header.dart';
-import '../../../core/widgets/textured_background.dart';
+import '../../../core/widgets/pressable.dart';
 import '../../booking/domain/booking.dart';
 import '../data/catalog_repository.dart';
 import '../data/doctor_repository.dart';
 import '../domain/doctor.dart';
 import 'widgets/consultation_method_card.dart';
-import '../../../core/widgets/pressable.dart';
 
 /// Doctor profile and practicing schedule preview screen.
 /// Displays read-only calendar of practicing days, then proceeds to booking schedule.
@@ -63,7 +61,8 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final doctor = widget.doctor ?? ref.watch(doctorByIdProvider(widget.doctorId));
+    final doctor =
+        widget.doctor ?? ref.watch(doctorByIdProvider(widget.doctorId));
 
     final effectiveUnitCode = doctor?.unitCode;
     final upcomingQuery = doctor != null
@@ -88,91 +87,199 @@ class _DoctorScheduleScreenState extends ConsumerState<DoctorScheduleScreen> {
         : null;
 
     return Scaffold(
-      body: TexturedBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ScreenHeader(title: 'Profil & Jadwal Dokter'),
-              Expanded(
-                child: doctor == null
-                    ? Center(
-                        child: Text(
-                          'Dokter tidak ditemukan',
-                          style: AppTypography.bodyMd,
-                        ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.md,
-                          AppSpacing.xxl,
-                          AppSpacing.xxl,
-                        ),
-                        children: [
-                          Pressable(
-                            scale: 0.98,
-                            child: _DoctorCard(doctor: doctor),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-
-                          // Metode Konsultasi Badges
-                          _ConsultationMethodsRow(doctor: doctor),
-                          const SizedBox(height: AppSpacing.lg),
-
-                          // Sections if available
-                          if (doctor.education.isNotEmpty) ...[
-                            _InfoSection(
-                              icon: Icons.school_outlined,
-                              title: 'Riwayat Pendidikan',
-                              items: doctor.education,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                          ],
-                          if (doctor.clinicalInterests.isNotEmpty) ...[
-                            _InfoSection(
-                              icon: Icons.medical_services_outlined,
-                              title: 'Minat Klinis',
-                              items: doctor.clinicalInterests,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                          ],
-
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            'Jadwal Hari Praktek Dokter:',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-
-                          // Read-Only Preview Calendar
-                          _DoctorSchedulePreviewCalendar(
-                            practisingDates: availableDates,
-                          ),
-                        ],
-                      ),
+      backgroundColor: AppColors.surface,
+      body: Stack(
+        children: [
+          // Header Linear Gradient (0% #003366 to 100% #0047AB)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 160,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF003366), // 0%
+                    Color(0xFF0047AB), // 100%
+                  ],
+                ),
               ),
-              if (doctor != null)
-                Padding(
+            ),
+          ),
+
+          // Main Column Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top App Bar
+              SafeArea(
+                bottom: false,
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xxl,
-                    0,
+                    AppSpacing.sm,
                     AppSpacing.xxl,
+                    AppSpacing.md,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Kembali',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                        onPressed: () => context.pop(),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Profil & Jadwal Dokter',
+                          style: AppTypography.headingMd.copyWith(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Curved Surface Content Container
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: doctor == null
+                      ? Center(
+                          child: Text(
+                            'Dokter tidak ditemukan',
+                            style: AppTypography.bodyMd,
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.xxl,
+                            AppSpacing.lg,
+                            AppSpacing.xxl,
+                            AppSpacing.xxl,
+                          ),
+                          children: [
+                            // 1. Doctor Profile Hero Card
+                            Pressable(
+                              scale: 0.98,
+                              child: _DoctorCard(doctor: doctor),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+
+                            // 2. Metode Konsultasi Badges
+                            _ConsultationMethodsRow(doctor: doctor),
+                            const SizedBox(height: AppSpacing.lg),
+
+                            // 3. Sections if available (Riwayat Pendidikan & Minat Klinis)
+                            if (doctor.education.isNotEmpty) ...[
+                              _InfoSection(
+                                icon: Icons.school_outlined,
+                                title: 'Riwayat Pendidikan',
+                                items: doctor.education,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                            if (doctor.clinicalInterests.isNotEmpty) ...[
+                              _InfoSection(
+                                icon: Icons.medical_services_outlined,
+                                title: 'Minat Klinis',
+                                items: doctor.clinicalInterests,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+
+                            const SizedBox(height: AppSpacing.xs),
+
+                            // 4. Jadwal Hari Praktek Dokter
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.calendar_month_outlined,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Jadwal Hari Praktek Dokter',
+                                    style: AppTypography.bodySm.copyWith(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+
+                            // Read-Only Preview Calendar
+                            _DoctorSchedulePreviewCalendar(
+                              practisingDates: availableDates,
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
+              // Bottom Fixed Booking CTA Bar
+              if (doctor != null)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl,
+                    AppSpacing.md,
+                    AppSpacing.xl,
+                    AppSpacing.lg,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
                   ),
                   child: AppButton(
                     label: 'Pilih Dokter Ini',
                     expand: true,
-                    background: AppColors.accentSoft,
+                    height: 50,
+                    borderRadius: 25,
                     onPressed: () => _book(doctor),
                   ),
                 ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -312,45 +419,59 @@ class _DoctorSchedulePreviewCalendarState
           const SizedBox(height: AppSpacing.sm),
 
           // Legend & Info
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 6,
             children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  border: Border.all(color: const Color(0xFFA5D6A7), width: 1.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      border: Border.all(
+                        color: const Color(0xFFA5D6A7),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Hari Praktek',
+                    style: AppTypography.caption.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2E7D32),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Hari Praktek',
-                style: AppTypography.caption.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF2E7D32),
-                ),
-              ),
-              const SizedBox(width: 18),
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Tidak Ada Jadwal',
-                style: AppTypography.caption.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textTertiary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Tidak Ada Jadwal',
+                    style: AppTypography.caption.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -365,7 +486,8 @@ class _DoctorSchedulePreviewCalendarState
       return const SizedBox(height: 34);
     }
 
-    final day = DateTime(_visibleMonth.year, _visibleMonth.month, dayOffset + 1);
+    final day =
+        DateTime(_visibleMonth.year, _visibleMonth.month, dayOffset + 1);
     final isPractising = widget.practisingDates != null &&
         widget.practisingDates!.any((d) =>
             d.year == day.year && d.month == day.month && d.day == day.day);
@@ -376,9 +498,7 @@ class _DoctorSchedulePreviewCalendarState
       height: 34,
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
-        color: isPractising
-            ? const Color(0xFFE8F5E9)
-            : Colors.transparent,
+        color: isPractising ? const Color(0xFFE8F5E9) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         border: isPractising
             ? Border.all(color: const Color(0xFFA5D6A7), width: 1.2)
@@ -474,6 +594,29 @@ class _DoctorCard extends StatelessWidget {
                       letterSpacing: 0.3,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.apartment_rounded,
+                        size: 13,
+                        color: AppColors.textTertiary,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          doctor.hospital,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption.copyWith(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -548,14 +691,10 @@ class _MethodChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: isAvailable
-              ? const Color(0xFFE8F5E9)
-              : AppColors.surface,
+          color: isAvailable ? const Color(0xFFE8F5E9) : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isAvailable
-                ? const Color(0xFF81C784)
-                : AppColors.border,
+            color: isAvailable ? const Color(0xFF81C784) : AppColors.border,
             width: 1,
           ),
         ),
@@ -633,7 +772,8 @@ class _InfoSection extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text('• ',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   Expanded(
                     child: Text(
                       item,

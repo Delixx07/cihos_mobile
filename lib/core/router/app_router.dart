@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,6 +35,7 @@ import '../../features/schedule/presentation/appointment_detail_screen.dart';
 import '../../features/schedule/presentation/schedule_screen.dart';
 import '../../features/wellness/presentation/wellness_screen.dart';
 import '../../features/queue/presentation/queue_monitor_screen.dart';
+import '../../features/video_call/presentation/video_call_screen.dart';
 import 'app_routes.dart';
 import '../theme/app_motion.dart';
 
@@ -280,6 +281,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // and minted its own record numbers from a timestamp (`RM-610877`),
       // which the hospital had never issued. Patients are added through
       // AddPatientSheet, which resolves a real MRN via /app/patients/check.
+      GoRoute(
+        path: '/teleconsultation/:appointmentId',
+        builder: (context, state) {
+          final appointmentId =
+              Uri.decodeComponent(state.pathParameters['appointmentId'] ?? '');
+          final extra = state.extra as Map<String, dynamic>?;
+          return TeleconsultationLobbyScreen(
+            appointmentId: appointmentId,
+            doctorName: extra?['doctorName'] as String?,
+            doctorSpecialty: extra?['doctorSpecialty'] as String?,
+            patientName: extra?['patientName'] as String?,
+            scheduledAt: extra?['scheduledAt'] as String?,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.videoCallRoom,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return VideoCallScreen(
+            doctorName: extra?['doctorName'] as String?,
+            specialty: extra?['specialty'] as String?,
+            doctorPhoto: extra?['doctorPhoto'] as String?,
+            channelName: extra?['channelName'] as String?,
+            token: extra?['token'] as String?,
+            uid: extra?['uid'] is int ? extra!['uid'] as int : null,
+          );
+        },
+      ),
     ],
   );
 });
@@ -289,7 +319,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 Booking _bookingFrom(GoRouterState state) =>
     state.extra as Booking? ?? const Booking(kind: BookingKind.appointment);
 
-/// Fade-through — for tab switches, where neither direction is "forward".
+/// Fade-through â€” for tab switches, where neither direction is "forward".
 ///
 /// The outgoing page fades and shrinks a touch; the incoming one fades in as
 /// it settles to full size. Scaling rather than sliding keeps the tabs feeling
@@ -317,7 +347,7 @@ CustomTransitionPage<void> _fadeThrough(GoRouterState state, Widget child) {
   );
 }
 
-/// Shared-axis — for pushes, where there is a real sense of going deeper.
+/// Shared-axis â€” for pushes, where there is a real sense of going deeper.
 ///
 /// The new page slides in from the right while the one behind it slides out to
 /// the left and dims, so the stack reads as a horizontal filmstrip. Popping

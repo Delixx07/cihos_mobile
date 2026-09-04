@@ -186,6 +186,7 @@ class Booking {
     this.specialty,
     this.unitCode,
     this.date,
+    this.practiceTime,
     this.slot,
     this.slotNumber,
     this.session,
@@ -210,6 +211,7 @@ class Booking {
   final String? specialty;
   final String? unitCode;
   final DateTime? date;
+  final String? practiceTime;
   final BookingSlot? slot;
   final int? slotNumber;
   final int? session;
@@ -251,6 +253,7 @@ class Booking {
     String? specialty,
     String? unitCode,
     DateTime? date,
+    String? practiceTime,
     BookingSlot? slot,
     int? slotNumber,
     int? session,
@@ -276,6 +279,7 @@ class Booking {
       specialty: specialty ?? this.specialty,
       unitCode: unitCode ?? this.unitCode,
       date: date ?? this.date,
+      practiceTime: practiceTime ?? this.practiceTime,
       slot: clearSlot ? null : (slot ?? this.slot),
       slotNumber: clearSlot ? null : (slotNumber ?? this.slotNumber),
       session: clearSlot ? null : (session ?? this.session),

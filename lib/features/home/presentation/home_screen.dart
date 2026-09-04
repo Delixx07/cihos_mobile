@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -19,6 +20,7 @@ import '../../../core/theme/app_elevation.dart';
 import '../../../core/widgets/pressable.dart';
 import '../../../core/widgets/social_media_buttons.dart';
 import '../../schedule/data/schedule_repository.dart';
+import '../../health_news/data/health_news_repository.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -36,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       label: 'Video Call Dokter',
       icon: Icons.video_call_outlined,
       imageAsset: 'assets/images/artwork/videoCall.png',
-      onTap: () => context.push(AppRoutes.videoCallSearch),
+      onTap: () => _onVideoCallTap(context),
     ),
     ServiceItem(
       label: 'Dokter',
@@ -69,6 +71,159 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTap: () => context.push(AppRoutes.promo),
     ),
   ];
+
+  void _onVideoCallTap(BuildContext context) {
+    if (!AppConfig.isAgoraConfigured) {
+      context.push(AppRoutes.videoCallSearch);
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl,
+            vertical: AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Video Call Dokter',
+                style: AppTypography.headingSm.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Pilih opsi konsultasi video call dokter spesialis.',
+                style: AppTypography.caption.copyWith(
+                  fontSize: 12.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Opsi 1: Masuk Ruang Video Call Langsung (Agora)
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: Color(0xFFBAE6FD)),
+                ),
+                tileColor: const Color(0xFFF0F9FF),
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0284C7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.videocam_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                title: const Text(
+                  'Masuk Ruang Video Call',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Uji coba panggilan live Agora (Ruang: ${AppConfig.agoraChannelName})',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Color(0xFF0284C7),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(AppRoutes.videoCallRoom);
+                },
+              ),
+              const SizedBox(height: 12),
+              // Opsi 2: Cari Jadwal Dokter & Booking
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+                tileColor: const Color(0xFFF8FAFC),
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF64748B).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: Color(0xFF475569),
+                    size: 22,
+                  ),
+                ),
+                title: const Text(
+                  'Cari Dokter & Jadwal Konsultasi',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Pilih dokter spesialis dan tentukan jadwal janji temu',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.textTertiary,
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(AppRoutes.videoCallSearch);
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   static final _articles = [
     HealthArticle(
@@ -159,6 +314,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 .firstOrNull ??
             activeUpcomingList.firstOrNull);
 
+    final healthArticles = ref.watch(healthArticlesProvider);
+    final homeArticles = healthArticles.isNotEmpty
+        ? healthArticles.take(4).toList()
+        : _articles;
+
     return Scaffold(
       bottomNavigationBar: const AppBottomNav(current: AppTab.home),
       body: TexturedBackground(
@@ -189,26 +349,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     if (activeAppointment != null) ...[
                       const SizedBox(height: AppSpacing.xxl),
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Konsultasi Anda',
-                            style: AppTypography.headingMd.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Konsultasi Anda',
+                        style: AppTypography.headingMd.copyWith(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       if (appointmentPatients.length > 1) ...[
@@ -237,32 +385,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: AppSpacing.xxxl),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Info Kesehatan',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.headingMd.copyWith(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Info Kesehatan',
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.headingMd.copyWith(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                         InkWell(
@@ -298,7 +432,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    for (final article in _articles) ...[
+                    for (final article in homeArticles) ...[
                       Pressable(
                         scale: 0.98,
                         child: ArticleCard(

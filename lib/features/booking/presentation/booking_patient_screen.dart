@@ -810,11 +810,11 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
 
                   // Radio Card: Pribadi (Umum)
                   _PaymentOptionCard(
-                    title: 'Pribadi (Umum)',
+                    title: 'Pribadi',
                     subtitle: 'Pembayaran mandiri',
                     icon: Icons.account_balance_wallet_rounded,
-                    accentColor: const Color(0xFF0284C7),
-                    selectedBgColor: const Color(0xFFF0F9FF),
+                    accentColor: const Color(0xFF059669),
+                    selectedBgColor: const Color(0xFFECFDF5),
                     isSelected: _paymentMethod == 'Pribadi',
                     onTap: () => setState(() {
                       _paymentMethod = 'Pribadi';
@@ -861,7 +861,7 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                           ),
                           const SizedBox(height: AppSpacing.sm),
                           DropdownButtonFormField<String>(
-                            value: _company,
+                            initialValue: _company,
                             isExpanded: true,
                             decoration: InputDecoration(
                               hintText: 'Pilih Asuransi atau Perusahaan',
@@ -921,34 +921,13 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
 
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Guide Bar
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentSoft.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.accentSoft.withValues(alpha: 0.15),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline_rounded,
-                          color: AppColors.accentSoft,
-                          size: 20,
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Text(
-                            'Pastikan data pasien dan penjamin sesuai dengan identitas resmi untuk kelancaran administrasi RS.',
-                            style: AppTypography.bodySm.copyWith(
-                              fontSize: 12,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
+                  // Guide Text
+                  Text(
+                    'Pastikan data pasien dan penjamin sesuai dengan identitas resmi untuk kelancaran administrasi RS.',
+                    style: AppTypography.bodySm.copyWith(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],

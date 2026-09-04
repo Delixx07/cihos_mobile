@@ -31,6 +31,8 @@ abstract final class AppRoutes {
   static const bookingSummary = '/booking/summary';
   static const examResults = '/exam-results';
   static const mcuPackages = '/mcu-packages';
+  static const videoCallRoom = '/video-call/room';
+  static const teleconsultation = '/teleconsultation';
 
   // Adding a patient to the account, step by step.
 
@@ -42,3 +44,4 @@ abstract final class AppRoutes {
   static String appointmentDetail(String id) =>
       '$appointments/${Uri.encodeComponent(id)}';
 }
+

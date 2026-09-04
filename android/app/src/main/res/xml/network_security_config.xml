@@ -10,9 +10,16 @@
   passwords over plain HTTP can be read by anyone on the path.
 -->
 <network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">172.20.0.39</domain>
+        <domain includeSubdomains="true">172.20.21.10</domain>
+        <domain includeSubdomains="true">172.20.0.39</domain>
         <!-- Android emulator's alias for the host machine. -->
-        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
     </domain-config>
 </network-security-config>
