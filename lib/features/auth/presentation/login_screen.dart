@@ -167,6 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _submit(),
                           suffixIcon: IconButton(
+                            tooltip: 'Tampilkan kata sandi',
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),

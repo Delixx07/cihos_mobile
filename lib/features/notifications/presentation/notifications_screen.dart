@@ -309,6 +309,7 @@ class _NotificationDetailDialog extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Tutup',
                   icon: const Icon(Icons.close_rounded, size: 20),
                   color: AppColors.textTertiary,
                   onPressed: () => Navigator.of(context).pop(),

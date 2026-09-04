@@ -85,7 +85,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accentSoft,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
                         ),
                         child: const Text('Kembali ke Jadwal'),
@@ -105,19 +105,19 @@ class AppointmentDetailScreen extends ConsumerWidget {
 
     final (statusBg, statusColor, statusIcon) = isCancelled
         ? (
-            const Color(0xFFFEE2E2),
-            const Color(0xFFDC2626),
+            AppColors.dangerSurface,
+            AppColors.danger,
             Icons.cancel_outlined,
           )
         : (isRescheduled
             ? (
-                const Color(0xFFFEF3C7),
-                const Color(0xFFD97706),
+                AppColors.warningSurface,
+                AppColors.warning,
                 Icons.schedule_rounded,
               )
             : (
-                const Color(0xFFDCFCE7),
-                const Color(0xFF15803D),
+                AppColors.successSurface,
+                AppColors.success,
                 Icons.check_circle_outline_rounded,
               ));
 
@@ -143,8 +143,9 @@ class AppointmentDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       IconButton(
+                        tooltip: 'Kembali',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -171,8 +172,9 @@ class AppointmentDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       IconButton(
+                        tooltip: 'Bagikan',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -197,7 +199,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppRadius.sm),
                               ),
                               backgroundColor: AppColors.primary,
                               content: Row(
@@ -207,7 +209,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                                     color: AppColors.white,
                                     size: 20,
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: AppSpacing.md),
                                   const Expanded(
                                     child: Text(
                                       'Detail janji temu disalin ke clipboard.',
@@ -236,7 +238,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                       height: 1.25,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     '${appointment.specialty} • ${appointment.hospital}',
                     style: AppTypography.bodySm.copyWith(
@@ -260,7 +262,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F2FE),
+                          color: AppColors.primarySurface,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -269,13 +271,13 @@ class AppointmentDetailScreen extends ConsumerWidget {
                             const Icon(
                               Icons.medical_services_outlined,
                               size: 13,
-                              color: Color(0xFF0284C7),
+                              color: AppColors.primary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               appointment.specialty,
                               style: AppTypography.caption.copyWith(
-                                color: const Color(0xFF0284C7),
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11.5,
                               ),
@@ -520,7 +522,7 @@ class AppointmentDetailScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accentSoft,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -632,8 +634,9 @@ class _TopAppBar extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
+              tooltip: 'Kembali',
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -698,12 +701,12 @@ class _QrPassCard extends StatelessWidget {
               // QR Code Box
               InkWell(
                 onTap: onShowFullQr,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
@@ -713,7 +716,7 @@ class _QrPassCard extends StatelessWidget {
                         size: 96,
                         compact: true,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         'Perbesar QR',
                         style: AppTypography.caption.copyWith(
@@ -742,7 +745,7 @@ class _QrPassCard extends StatelessWidget {
                         color: AppColors.textTertiary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
                         Expanded(
@@ -758,7 +761,7 @@ class _QrPassCard extends StatelessWidget {
                         ),
                         IconButton(
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                           icon: const Icon(
                             Icons.copy_rounded,
                             size: 18,
@@ -789,7 +792,7 @@ class _QrPassCard extends StatelessWidget {
                         color: AppColors.textTertiary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '${appointment.queueNumber}',
                       style: AppTypography.headingLg.copyWith(
@@ -813,7 +816,7 @@ class _QrPassCard extends StatelessWidget {
                 size: 15,
                 color: AppColors.accentSoft,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 'Perkiraan Sesi:',
                 style: AppTypography.bodySm.copyWith(
@@ -862,7 +865,7 @@ class _HospitalScheduleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F1FC),
+                  color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -906,7 +909,7 @@ class _HospitalScheduleCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Jl. CitraLand Utama, Made, Kec. Sambikerep, Surabaya',
                       style: AppTypography.bodySm.copyWith(
@@ -973,13 +976,13 @@ class _PatientGuarantorCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FE),
+                  color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.person_pin_rounded,
                   size: 18,
-                  color: Color(0xFF7C3AED),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -1006,7 +1009,7 @@ class _PatientGuarantorCard extends StatelessWidget {
             label: 'Jenis Jaminan',
             value: appointment.guaranteeType,
             valueColor: isInsurance
-                ? const Color(0xFF059669)
+                ? AppColors.success
                 : AppColors.textPrimary,
           ),
           if (appointment.partnerId != null &&
@@ -1041,7 +1044,7 @@ class _PatientGuarantorCard extends StatelessWidget {
                     size: 16,
                     color: AppColors.primary,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Lihat Perkiraan Biaya',
                     style: AppTypography.bodySm.copyWith(
@@ -1110,13 +1113,13 @@ class _DetailRow extends StatelessWidget {
                 ),
               ),
               if (trailingBadge != null) ...[
-                const SizedBox(width: 6),
+                const SizedBox(width: AppSpacing.sm),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F1FC),
-                    borderRadius: BorderRadius.circular(6),
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                   child: Text(
                     trailingBadge!,
@@ -1153,15 +1156,15 @@ class _ImportantNoticeCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFE0F2FE).withValues(alpha: 0.7),
-            const Color(0xFFF0F9FF).withValues(alpha: 0.4),
+            AppColors.primarySurface.withValues(alpha: 0.7),
+            AppColors.accentWash.withValues(alpha: 0.4),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFBAE6FD),
+          color: AppColors.lavender,
           width: 1,
         ),
       ),
@@ -1174,7 +1177,7 @@ class _ImportantNoticeCard extends StatelessWidget {
               const Icon(
                 Icons.info_outline_rounded,
                 size: 18,
-                color: Color(0xFF0284C7),
+                color: AppColors.primary,
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
@@ -1182,7 +1185,7 @@ class _ImportantNoticeCard extends StatelessWidget {
                 style: AppTypography.bodySm.copyWith(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0369A1),
+                  color: AppColors.primaryDark,
                 ),
               ),
             ],
@@ -1199,7 +1202,7 @@ class _ImportantNoticeCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0284C7),
+                      color: AppColors.primary,
                     ),
                   ),
                   Expanded(
@@ -1208,7 +1211,7 @@ class _ImportantNoticeCard extends StatelessWidget {
                       style: AppTypography.bodySm.copyWith(
                         fontSize: 12,
                         height: 1.3,
-                        color: const Color(0xFF0F172A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -1268,7 +1271,7 @@ class _BottomActionDock extends StatelessWidget {
                     backgroundColor: AppColors.accentSoft,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     elevation: 0,
                   ),
@@ -1281,7 +1284,7 @@ class _BottomActionDock extends StatelessWidget {
                         color: AppColors.white,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Tampilkan QR Pendaftaran',
                         style: AppTypography.button.copyWith(
@@ -1303,7 +1306,7 @@ class _BottomActionDock extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                       ),
                       onPressed: () {
@@ -1328,10 +1331,14 @@ class _BottomActionDock extends StatelessWidget {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: Color(0xFFFCA5A5)),
-                        backgroundColor: const Color(0xFFFEF2F2),
+                        // A softened danger edge, derived from the token so it
+                        // tracks the palette instead of drifting from it.
+                        side: BorderSide(
+                          color: AppColors.danger.withValues(alpha: 0.4),
+                        ),
+                        backgroundColor: AppColors.dangerSurface,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                       ),
                       onPressed: onCancelAppointment,
@@ -1340,7 +1347,7 @@ class _BottomActionDock extends StatelessWidget {
                         style: AppTypography.bodySm.copyWith(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFFDC2626),
+                          color: AppColors.danger,
                         ),
                       ),
                     ),
@@ -1355,7 +1362,7 @@ class _BottomActionDock extends StatelessWidget {
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
                   onPressed: () => context.push(AppRoutes.appointmentSearch),

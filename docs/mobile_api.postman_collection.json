@@ -206,7 +206,7 @@
               { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
             ],
             "url": { "raw": "{{BASE}}/api/app/appointments", "host": ["{{BASE}}"], "path": ["api", "app", "appointments"] },
-            "description": "Semua appointment milik pasien yang login (lama & baru, termasuk yang sudah Cancelled), terbaru dulu.\n\nSUKSES (200): { ok, count, appointments:[{ appointment_no, registration_no, ticket_no, date, time, doctor, specialty, clinic_code, status, token, created_at }] }\n\nstatus: \"Booked\" (belum check-in) | \"Registered\" (sudah check-in) | \"Cancelled\".\nticket_no: nomor tiket yang SAMA dengan yang tampil di layar TV/dicetak RS (mis. \"BH008\") — null bila belum sempat dihitung.\ntoken: dipakai untuk fitur check-in mandiri via QR (endpoint /api/checkin, di luar dokumen ini) — null setelah check-in/dibatalkan."
+            "description": "Semua appointment milik pasien yang login (lama & baru, termasuk yang sudah Cancelled), terbaru dulu. Ini TERMASUK appointment yang dibuat akun ini untuk anggota KELUARGA (lihat family_id/family di Book Appointment) — dicocokkan lewat BookedByAppPatientId, bukan cuma MedicalNo akun.\n\nSUKSES (200): { ok, count, appointments:[{ appointment_no, registration_no, ticket_no, date, time, doctor, specialty, clinic_code, status, token, created_at, medical_no, patient_name }] }\n\nstatus: \"Booked\" (belum check-in) | \"Registered\" (sudah check-in) | \"Cancelled\".\nticket_no: nomor tiket yang SAMA dengan yang tampil di layar TV/dicetak RS (mis. \"BH008\") — null bila belum sempat dihitung.\ntoken: dipakai untuk fitur check-in mandiri via QR (endpoint /api/checkin, di luar dokumen ini) — null setelah check-in/dibatalkan.\nmedical_no & patient_name: identitas PASIEN appointment ini — WAJIB dipakai untuk membedakan appointment milik sendiri vs keluarga (medical_no beda dari MRN akun sendiri berarti ini booking untuk keluarga; lihat GET /app/me untuk MRN akun)."
           }, "response": []
         },
         {
@@ -222,9 +222,9 @@
             "url": { "raw": "{{BASE}}/api/app/appointments", "host": ["{{BASE}}"], "path": ["api", "app", "appointments"] },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ServiceUnitCode\": \"SU-015\",\n  \"ParamedicCode\": \"D240146\",\n  \"ParamedicID\": 292,\n  \"OperationalTimeCode\": \"OT-089\",\n  \"Session\": 1,\n  \"StartDate\": \"20260822\",\n  \"slot_no\": 1,\n  \"RelationToPatient\": \"Pribadi\"\n}"
+              "raw": "{\n  \"ServiceUnitCode\": \"SU-015\",\n  \"ParamedicCode\": \"D240146\",\n  \"ParamedicID\": 292,\n  \"OperationalTimeCode\": \"OT-089\",\n  \"StartDate\": \"20260822\"\n}"
             },
-            "description": "Buat janji temu untuk PASIEN SENDIRI (bukan orang lain — identitas otomatis diambil dari akun yang login, TIDAK dikirim di body ini).\n\nWAJIB dikirim (dari hasil Get Schedule/Get Doctors/Get Clinics):\n- ServiceUnitCode: kode unit/klinik.\n- ParamedicCode + ParamedicID: dokter yang dipilih.\n- OperationalTimeCode: dari Get Schedule (`operational_time_code`).\n- Session: nomor sesi dari Get Schedule (`windows[].session`).\n- StartDate: format yyyyMMdd (BUKAN yyyy-MM-dd).\n- slot_no: nomor slot yang dipilih pasien dari Get Schedule (`windows[].slots[].no`) — WAJIB, tidak ada auto-pilih seperti Kiosk.\n\nOPSIONAL:\n- RelationToPatient: \"Pribadi\" (default) | \"Keluarga\" | \"Orang Lain\" — untuk kasus akun dipakai memesankan orang lain (identitas TETAP punya akun, field ini cuma keterangan hubungan).\n\nOTOMATIS DARI AKUN (jangan dikirim, akan diabaikan bila dikirim): PatientName, DateOfBirth, Gender, MobileNo, IdentityNoType, IdentityCardNo, MedicalNo, IsNewPatient.\n\nBila akun BELUM punya MRN asli (medical_no masih APP-XXXXXX), booking ini otomatis diperlakukan sebagai PASIEN BARU ke MEDINFRAS (pakai NIK dari akun) — MRN asli yang diterbitkan akan TERSIMPAN OTOMATIS ke akun (cek lewat Me setelah ini).\n\nSUKSES (201): { ok:true, appointment_no, medical_no, queue_no, queue_label, slot_no, slot_time, session, token, qr_token, patient, medinfras }\n\nGAGAL: 409 duplicate_appointment/holiday/on_leave/slot_taken/slot_reserved · 422 invalid_slot/validation_failed · 502 medinfras_failed."
+            "description": "Buat janji temu untuk PASIEN SENDIRI (bukan orang lain — identitas otomatis diambil dari akun yang login, TIDAK dikirim di body ini). Untuk booking KELUARGA, lihat section \"4. Keluarga\" — kirim `family_id` atau object `family` di body ini juga (dua-duanya dijelaskan di sana), field identitas di bawah TETAP tidak perlu dikirim.\n\nWAJIB dikirim (dari hasil Get Schedule/Get Doctors/Get Clinics):\n- ServiceUnitCode: kode unit/klinik.\n- ParamedicCode + ParamedicID: dokter yang dipilih.\n- OperationalTimeCode: dari Get Schedule (`operational_time_code`).\n- StartDate: format yyyyMMdd (BUKAN yyyy-MM-dd).\n\nOPSIONAL:\n- Session & slot_no: TIDAK PERLU dikirim (dan kalau dikirim, SELALU diabaikan) — server otomatis pilih slot tersedia paling awal (jamnya >= sekarang bila booking hari ini). Kalau semua slot hari itu sudah lewat/penuh: 409 no_slot_available.\n- RelationToPatient: \"Pribadi\" (default) | \"Keluarga\" | \"Orang Lain\" — otomatis terisi dari data keluarga tersimpan bila kirim `family_id`.\n- family_id ATAU family: lihat section \"4. Keluarga\".\n\nOTOMATIS DARI AKUN/KELUARGA (jangan dikirim manual, akan diabaikan bila dikirim): PatientName, DateOfBirth, Gender, MobileNo, IdentityNoType, IdentityCardNo, MedicalNo, IsNewPatient.\n\nBila akun BELUM punya MRN asli (medical_no masih APP-XXXXXX) DAN bukan booking keluarga, booking ini otomatis diperlakukan sebagai PASIEN BARU ke MEDINFRAS (pakai NIK dari akun) — MRN asli yang diterbitkan akan TERSIMPAN OTOMATIS ke akun (cek lewat Me setelah ini).\n\nSUKSES (201): { ok:true, appointment_no, medical_no, queue_no, queue_label, slot_no, slot_time, session, auto_slot, token, qr_token, patient, medinfras }\n\nGAGAL: 404 family_not_found (family_id bukan milik akun ini) · 409 duplicate_appointment/holiday/on_leave/slot_taken/slot_reserved/no_slot_available · 422 invalid_slot/validation_failed · 502 medinfras_failed."
           }, "response": []
         },
         {
@@ -243,6 +243,72 @@
               "raw": "{\n  \"appointment_no\": \"OPA/20260822/00038\",\n  \"CancelReason\": \"Berhalangan hadir\"\n}"
             },
             "description": "Batalkan appointment MILIK SENDIRI. Hanya bisa membatalkan appointment yang cocok dengan MedicalNo akun yang login (bukan milik pasien lain), dan HANYA SEBELUM check-in.\n\nWAJIB: appointment_no (dari List Riwayat / response Book Appointment).\nOPSIONAL: CancelReason (default \"Pembatalan Perjanjian\").\n\nappointment_no dikirim di BODY (bukan bagian URL) karena formatnya mengandung tanda \"/\" (mis. \"OPA/20260822/00038\").\n\nSUKSES (200): { ok:true, appointment_no, status:\"Cancelled\", reason }\n\nGAGAL: 404 not_found (bukan milik akun ini / tidak ada) · 409 already_voided/already_registered (sudah check-in, tak bisa dibatalkan lewat sini — hubungi RS) · 502 medinfras_failed."
+          }, "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Keluarga",
+      "item": [
+        {
+          "name": "Check Patient (resolve NIK → MedicalNo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/patients/check", "host": ["{{BASE}}"], "path": ["api", "app", "patients", "check"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nik\": \"3578012345670099\",\n  \"name\": \"Nama Anggota Keluarga\",\n  \"dob\": \"1970-01-01\",\n  \"phone\": \"081200000000\"\n}"
+            },
+            "description": "LANGKAH 1 sebelum menyimpan/booking untuk keluarga: cocokkan NIK ke rekam medis MEDINFRAS yang SUDAH ADA. WAJIB: nik (16 digit), name. Kirim MINIMAL SALAH SATU dari dob/phone (name saja tidak cukup untuk pencarian).\n\nKeputusan akhir SELALU berdasar kecocokan NIK PERSIS (name+dob/phone cuma penyaring kandidat) — tidak pernah menebak.\n\nSUKSES (200), tiga kemungkinan `status`:\n- \"found\": { ok:true, status:\"found\", data:{ medical_no, name, gender, birth_date } } — lanjut ke Tambah Keluarga atau langsung Book Appointment pakai object `family`.\n- \"not_found\": belum pernah terdaftar di MEDINFRAS — arahkan ke pendaftaran manual di RS, JANGAN dikirim ke Book Appointment sebagai pasien baru.\n- \"ambiguous\": ada kandidat tapi NIK tak cocok persis (atau lebih dari satu cocok, data RS dobel) — JANGAN ditebak, arahkan verifikasi manual di RS.\n\nGAGAL: 422 validation_failed · 502 medinfras_failed."
+          }, "response": []
+        },
+        {
+          "name": "List Keluarga Tersimpan",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/family", "host": ["{{BASE}}"], "path": ["api", "app", "family"] },
+            "description": "Daftar anggota keluarga TERSIMPAN milik akun yang login — tersimpan di server (bukan di HP), jadi tetap ada walau ganti perangkat/install ulang.\n\nSUKSES (200): { ok:true, count, family:[{ id, medical_no, name, dob, gender, phone, relation, relation_label }] }.\n\nrelation_label: teks bebas (\"Ibu\", \"Anak\", dst), null kalau belum pernah diisi — lihat Tambah Keluarga."
+          }, "response": []
+        },
+        {
+          "name": "Tambah Keluarga",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/family", "host": ["{{BASE}}"], "path": ["api", "app", "family"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nik\": \"3578012345670099\",\n  \"name\": \"Nama Anggota Keluarga\",\n  \"dob\": \"1970-01-01\",\n  \"phone\": \"081200000000\",\n  \"relation\": \"Keluarga\",\n  \"relation_label\": \"Ibu\"\n}"
+            },
+            "description": "Simpan SATU anggota keluarga ke daftar akun — pakai NIK, MELAKUKAN SENDIRI resolve yang sama seperti Check Patient (tak perlu panggil Check Patient dulu, boleh langsung ke sini). HANYA tersimpan kalau status hasilnya \"found\" (MRN asli persis) — sama seperti kebijakan Book Appointment, mencegah data ganda di MEDINFRAS. WAJIB: nik, name. Kirim minimal salah satu dob/phone. OPSIONAL: relation (\"Keluarga\" default, atau \"Orang Lain\" — dipakai jadi RelationToPatient saat booking, tetap divalidasi ketat), relation_label (teks BEBAS spesifik seperti \"Ibu\"/\"Anak\"/\"Suami\" — TERPISAH dari relation, murni kosmetik tampilan, tidak pernah dikirim ke MEDINFRAS).\n\nMengirim NIK yang SAMA lagi akan MEMPERBARUI baris yang sudah ada (bukan duplikat) — kalau relation_label TIDAK dikirim di pengiriman ulang, label yang sudah tersimpan sebelumnya TIDAK hilang/tertimpa null.\n\nSUKSES (200):\n- \"found\": { ok:true, status:\"found\", family:{ id, medical_no, name, dob, gender, phone, relation, relation_label } } — tersimpan, `id` ini dipakai sebagai `family_id` saat Book Appointment.\n- \"not_found\"/\"ambiguous\": { ok:true, status:... } — TIDAK tersimpan, sama seperti Check Patient, arahkan ke pendaftaran/verifikasi manual di RS.\n\nGAGAL: 422 validation_failed · 502 medinfras_failed."
+          }, "response": []
+        },
+        {
+          "name": "Hapus Keluarga",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Api-Key", "value": "{{MOBILE_API_KEY}}", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}", "type": "text" },
+              { "key": "Accept", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{BASE}}/api/app/family/1", "host": ["{{BASE}}"], "path": ["api", "app", "family", "1"] },
+            "description": "Hapus SATU anggota keluarga tersimpan lewat `id`-nya (dari List/Tambah Keluarga). Dibatasi ke milik akun yang login — tak bisa hapus (atau bahkan tahu ID itu valid) milik akun lain.\n\nSUKSES (200): { ok:true }\nGAGAL: 404 not_found (id bukan milik akun ini / sudah dihapus)."
           }, "response": []
         }
       ]

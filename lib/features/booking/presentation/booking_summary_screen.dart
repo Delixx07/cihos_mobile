@@ -12,6 +12,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../doctors/data/doctor_repository.dart';
 import '../../schedule/data/schedule_repository.dart';
 import '../data/booking_repository.dart';
+import '../data/patient_repository.dart';
 import '../domain/booking.dart';
 import '../widgets/booking_success_sheet.dart';
 import '../widgets/edit_booking_sheet.dart';
@@ -102,6 +103,10 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
       // APP-XXXXXX one — both are only visible after a refetch.
       ref.invalidate(appointmentsProvider);
       await ref.read(authControllerProvider.notifier).restoreSession();
+      // The account's temporary APP-XXXXXX has just become a real MRN, and
+      // the patient list still holds the old one — refresh it or the next
+      // booking shows a record number the hospital cannot find.
+      await ref.read(registeredPatientsProvider.notifier).refresh();
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -203,8 +208,9 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                   Row(
                     children: [
                       IconButton(
+                        tooltip: 'Kembali',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -532,12 +538,22 @@ class _BookingSummaryScreenState extends ConsumerState<BookingSummaryScreen> {
                                                       BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
-                                                  (widget.booking
-                                                              .patientMedicalRecordNumber
-                                                              ?.isNotEmpty ==
-                                                          true)
-                                                      ? 'No. RM: ${widget.booking.patientMedicalRecordNumber}'
-                                                      : 'Pasien Terdaftar',
+                                                  // APP-XXXXXX is a temporary
+                                                  // local number, not a
+                                                  // hospital MRN — showing it
+                                                  // invites the patient to
+                                                  // quote a number the desk
+                                                  // cannot find.
+                                                  switch (widget.booking
+                                                      .patientMedicalRecordNumber) {
+                                                    final mrn?
+                                                        when mrn.isNotEmpty &&
+                                                            !mrn.startsWith(
+                                                              'APP-',
+                                                            ) =>
+                                                      'No. RM: $mrn',
+                                                    _ => 'Pasien Terdaftar',
+                                                  },
                                                   style: const TextStyle(
                                                     fontSize: 11.5,
                                                     fontWeight: FontWeight.w600,

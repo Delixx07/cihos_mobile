@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -52,6 +53,7 @@ class BookingRepository {
     final startDate = DateFormat('yyyyMMdd').format(booking.date!);
 
     final relationToPatient = _resolveRelation(booking);
+    final family = familyPayload(booking, relationToPatient);
 
     final payload = {
       // Doctor / service unit identifiers
@@ -77,6 +79,14 @@ class BookingRepository {
       // account still holding a temporary APP-XXXXXX number, MEDINFRAS issues
       // the real MRN and saves it to the account — readable afterwards via
       // GET /app/me.
+
+      // Booking for someone else. Without one of these the appointment is
+      // filed under the account holder, so a parent booking for their child
+      // would arrive at the hospital registered as themselves. `family_id`
+      // wins when both are present, so only one is ever sent.
+      if (relationToPatient != 'Pribadi' && booking.patientFamilyId != null)
+        'family_id': booking.patientFamilyId,
+      'family': ?family,
     };
 
     final response = await _client.post(
@@ -117,6 +127,49 @@ class BookingRepository {
       slotTime: response['slot_time'] as String?,
       session: (response['session'] as num?)?.toInt(),
     );
+  }
+
+  /// Builds the `family` block when booking for someone other than the
+  /// account holder.
+  ///
+  /// `medical_no` must be a real MRN already resolved through
+  /// `POST /app/patients/check`. The API deliberately offers no way to
+  /// register a relative as a new patient here: an earlier attempt to guess
+  /// created duplicate records for people who were already registered, so an
+  /// unmatched relative has to be registered at the hospital instead.
+  @visibleForTesting
+  static Map<String, dynamic>? familyPayload(
+    Booking booking,
+    String relationToPatient,
+  ) {
+    if (relationToPatient == 'Pribadi') return null;
+
+    // A saved relative is identified by id; the server already holds their
+    // verified details, so re-sending them risks disagreeing with the record.
+    if (booking.patientFamilyId != null) return null;
+
+    final medicalNo = booking.patientMedicalRecordNumber?.trim();
+    if (medicalNo == null || medicalNo.isEmpty || medicalNo.startsWith('APP-')) {
+      throw ApiException(
+        message:
+            '${booking.patientName ?? 'Pasien ini'} belum terdaftar di sistem '
+            'rumah sakit, jadi janji temu tidak bisa dibuat lewat aplikasi. '
+            'Silakan daftarkan terlebih dahulu di Rumah Sakit Ciputra '
+            'Surabaya.',
+        code: 'family_not_registered',
+      );
+    }
+
+    return {
+      'medical_no': medicalNo,
+      if (booking.patientName?.isNotEmpty == true) 'name': booking.patientName,
+      if (booking.patientBirthDate != null)
+        'dob': DateFormat('yyyy-MM-dd').format(booking.patientBirthDate!),
+      if (booking.patientGender?.isNotEmpty == true)
+        'gender': booking.patientGender,
+      if (booking.patientPhone?.isNotEmpty == true)
+        'phone': booking.patientPhone,
+    };
   }
 
   /// Resolves the `RelationToPatient` value for the API payload.

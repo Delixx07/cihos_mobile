@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/auth_repository.dart';
 import '../domain/user.dart';
@@ -120,6 +121,22 @@ class AuthController extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
+  /// Ends the session because the server rejected the stored token.
+  ///
+  /// Separate from [signOut] so the sign-in screen can explain why the patient
+  /// is suddenly back there — being logged out with no reason reads as a bug.
+  Future<void> expireSession() async {
+    // Nothing to end if already signed out: a stray 401 from a request that
+    // outlived the session must not overwrite a real error on the sign-in
+    // screen.
+    if (!state.isSignedIn) return;
+
+    await _repository.signOut();
+    state = const AuthState(
+      error: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+    );
+  }
+
   /// Shared loading/error handling for the two calls that produce a session.
   Future<bool> _run(Future<AppUser> Function() action) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -151,5 +168,17 @@ class AuthController extends StateNotifier<AuthState> {
 }
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
-  (ref) => AuthController(ref.watch(authRepositoryProvider)),
+  (ref) {
+    final controller = AuthController(ref.watch(authRepositoryProvider));
+
+    // The API client reports a rejected token here. Clearing the session makes
+    // the router's guard send the patient to sign-in, rather than leaving them
+    // on a screen where every request fails.
+    ref.listen<int>(sessionExpiredProvider, (previous, next) {
+      if (previous == null || next <= previous) return;
+      controller.expireSession();
+    });
+
+    return controller;
+  },
 );

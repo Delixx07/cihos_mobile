@@ -59,6 +59,7 @@ class BookingPatient {
     this.phone,
     this.gender,
     this.birthDate,
+    this.familyId,
   });
 
   final String name;
@@ -68,6 +69,10 @@ class BookingPatient {
   final String? phone;
   final String? gender;
   final DateTime? birthDate;
+
+  /// Server-side id from `/app/family`, sent as `family_id` when booking.
+  /// Null for the account holder, who needs no family block at all.
+  final int? familyId;
 
   String get displayName {
     if (familyRelation != null && familyRelation!.isNotEmpty) {
@@ -91,6 +96,9 @@ class BookingPatient {
     nik: json['nik'] as String? ?? json['id_number'] as String?,
     phone: json['phone'] as String?,
     gender: json['gender'] as String?,
+    familyId: (json['familyId'] ?? json['id']) is num
+        ? ((json['familyId'] ?? json['id']) as num).toInt()
+        : null,
     birthDate: json['birthDate'] != null
         ? DateTime.tryParse(json['birthDate'] as String)
         : (json['birth_date'] != null
@@ -106,6 +114,7 @@ class BookingPatient {
     if (phone != null) 'phone': phone,
     if (gender != null) 'gender': gender,
     if (birthDate != null) 'birthDate': birthDate!.toIso8601String(),
+    if (familyId != null) 'familyId': familyId,
   };
 
   BookingPatient copyWith({
@@ -116,6 +125,7 @@ class BookingPatient {
     String? phone,
     String? gender,
     DateTime? birthDate,
+    int? familyId,
   }) {
     return BookingPatient(
       name: name ?? this.name,
@@ -125,6 +135,7 @@ class BookingPatient {
       phone: phone ?? this.phone,
       gender: gender ?? this.gender,
       birthDate: birthDate ?? this.birthDate,
+      familyId: familyId ?? this.familyId,
     );
   }
 
@@ -184,6 +195,8 @@ class Booking {
     this.patientNik,
     this.patientPhone,
     this.patientBirthDate,
+    this.patientGender,
+    this.patientFamilyId,
     this.patientRelation,
     this.isNewPatient = false,
     this.paymentMethod,
@@ -207,6 +220,13 @@ class Booking {
   final String? patientNik;
   final String? patientPhone;
   final DateTime? patientBirthDate;
+
+  /// `Laki-Laki` or `Perempuan`, as MEDINFRAS expects it.
+  final String? patientGender;
+
+  /// Id of the saved relative on the server, when the patient came from the
+  /// account's family list. Preferred over sending their details again.
+  final int? patientFamilyId;
 
   /// How the account holder relates to the patient, e.g. `Diri Sendiri`,
   /// `Anak`. Booking maps this onto the API's Pribadi/Keluarga/Orang Lain.
@@ -240,6 +260,8 @@ class Booking {
     String? patientNik,
     String? patientPhone,
     DateTime? patientBirthDate,
+    String? patientGender,
+    int? patientFamilyId,
     String? patientRelation,
     bool? isNewPatient,
     String? paymentMethod,
@@ -263,6 +285,8 @@ class Booking {
       patientNik: patientNik ?? this.patientNik,
       patientPhone: patientPhone ?? this.patientPhone,
       patientBirthDate: patientBirthDate ?? this.patientBirthDate,
+      patientGender: patientGender ?? this.patientGender,
+      patientFamilyId: patientFamilyId ?? this.patientFamilyId,
       patientRelation: patientRelation ?? this.patientRelation,
       isNewPatient: isNewPatient ?? this.isNewPatient,
       paymentMethod: paymentMethod ?? this.paymentMethod,

@@ -33,10 +33,6 @@ abstract final class AppRoutes {
   static const mcuPackages = '/mcu-packages';
 
   // Adding a patient to the account, step by step.
-  static const patientType = '/patient/type';
-  static const registerExistingPatient = '/patient/existing';
-  static const registerNewPatient = '/patient/new';
-  static const patientReview = '/patient/review';
 
   /// Path to one appointment's detail screen.
   ///

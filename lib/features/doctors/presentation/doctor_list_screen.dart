@@ -223,7 +223,7 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen> {
                           IconButton(
                             tooltip: 'Kembali',
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                             icon: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
@@ -587,10 +587,11 @@ class _SearchBar extends StatelessWidget {
           ),
           if (controller.text.isNotEmpty)
             IconButton(
+              tooltip: 'Tutup',
               icon: const Icon(Icons.close, size: 18, color: AppColors.textTertiary),
               onPressed: onClear,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             ),
         ],
       ),

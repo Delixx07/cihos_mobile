@@ -181,6 +181,7 @@ class _SheetTextField extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         suffixIcon: IconButton(
+          tooltip: 'Tampilkan kata sandi',
           icon: Icon(
             obscureText
                 ? Icons.visibility_outlined

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -10,6 +11,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../data/patient_repository.dart';
 import '../domain/booking.dart';
+import '../widgets/add_patient_sheet.dart';
 import '../widgets/patient_picker_sheet.dart';
 import '../../doctors/data/doctor_repository.dart';
 
@@ -44,7 +46,12 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
   }
 
   Future<void> _openAddPatient() async {
-    context.push(AppRoutes.patientType);
+    // The verified sheet, not the old /patient/type flow — see the note in
+    // patient_picker_sheet.dart.
+    final added = await AddPatientSheet.show(context);
+    if (added != null && mounted) {
+      setState(() => _patient = added);
+    }
   }
 
   Future<void> _pickPatient() async {
@@ -116,10 +123,30 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
           // Show confirmation bottom sheet for family member
           _showLinkConfirmationSheet(result);
         }
-      } else {
-        // Not found - safe to proceed as a new patient
+      } else if (_patient!.familyRelation == 'Diri Sendiri') {
+        // The account holder can go on: MEDINFRAS registers them from the
+        // account's own NIK on their first booking.
         _proceedToSummary();
+      } else {
+        // A relative who is not in MEDINFRAS cannot be registered from here.
+        // The API refuses it on purpose — guessing once created duplicate
+        // records for people who were already registered.
+        _showNotRegisteredSheet();
       }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork
+                ? 'Tidak dapat memeriksa data pasien. Periksa jaringan Anda, '
+                      'lalu coba lagi.'
+                : e.message,
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
@@ -134,6 +161,8 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
         patientNik: _patient!.nik,
         patientPhone: _patient!.phone,
         patientBirthDate: _patient!.birthDate,
+        patientGender: _patient!.gender,
+        patientFamilyId: _patient!.familyId,
         patientRelation: _patient!.familyRelation,
         paymentMethod: _paymentMethod,
         company: _company,
@@ -145,6 +174,95 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
     final updatedPatient = _patient!.copyWith(medicalRecordNumber: newMedicalNo);
     await ref.read(registeredPatientsProvider.notifier).addPatient(updatedPatient);
     setState(() => _patient = updatedPatient);
+  }
+
+  /// Explains that a relative has to be registered at the hospital first.
+  ///
+  /// Deliberately a dead end rather than a "continue anyway": the API will not
+  /// create a record for them, and letting the patient walk further into the
+  /// booking flow would only fail later with a less clear message.
+  void _showNotRegisteredSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xxl,
+          AppSpacing.lg,
+          AppSpacing.xxl,
+          AppSpacing.xl,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_search_rounded,
+                  size: 32,
+                  color: Color(0xFFD97706),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Pasien Belum Terdaftar',
+                textAlign: TextAlign.center,
+                style: AppTypography.headingSm.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${_patient?.name ?? 'Pasien ini'} belum memiliki rekam medis '
+                'di Ciputra Hospital Surabaya. Pendaftaran pasien baru harus '
+                'dilakukan langsung di rumah sakit.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySm.copyWith(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    backgroundColor: AppColors.accentSoft,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    'Mengerti',
+                    style: AppTypography.bodySm.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showAmbiguousDialog() {
@@ -334,8 +452,9 @@ class _BookingPatientScreenState extends ConsumerState<BookingPatientScreen> {
                   Row(
                     children: [
                       IconButton(
+                        tooltip: 'Kembali',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(

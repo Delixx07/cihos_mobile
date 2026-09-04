@@ -143,6 +143,7 @@ class _AvatarPositionScreenState extends State<AvatarPositionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Tutup',
           icon: const Icon(Icons.close, color: AppColors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),

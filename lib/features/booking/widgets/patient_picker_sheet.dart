@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../auth/application/auth_controller.dart';
 import '../data/patient_repository.dart';
+import 'add_patient_sheet.dart';
 import '../domain/booking.dart';
+import '../../patient_registration/domain/patient_draft.dart';
 
 /// Clean & modern searchable sheet for selecting or managing patients.
 /// Keyboard-safe with DraggableScrollableSheet and instant 1-tap selection.
@@ -32,8 +33,78 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
   }
 
   Future<void> _openAddPatient() async {
-    Navigator.of(context).pop();
-    context.push(AppRoutes.patientType);
+    // Goes to the sheet that verifies the NIK against MEDINFRAS, not the old
+    // /patient/type flow: that one invented a record number from a timestamp
+    // and never called the API, so every patient added through it carried a
+    // number the hospital had never issued.
+    final added = await AddPatientSheet.show(context);
+    if (added != null && mounted) {
+      setState(() => _selected = added);
+    }
+  }
+
+  /// Lets the patient correct a relation they set wrongly.
+  ///
+  /// Only the label changes — the person's medical record is untouched, so
+  /// this never needs to go back through the NIK lookup.
+  Future<void> _editRelation(BookingPatient patient) async {
+    final options = PatientOptions.familyRelations
+        .where((rel) => rel != 'Diri Sendiri')
+        .toList();
+
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xxl,
+          AppSpacing.lg,
+          AppSpacing.xxl,
+          AppSpacing.xl,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hubungan dengan ${patient.name}',
+                style: AppTypography.headingSm.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              for (final rel in options)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(rel, style: AppTypography.inputText),
+                  trailing: patient.familyRelation == rel
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.accentSoft,
+                          size: 20,
+                        )
+                      : null,
+                  onTap: () => Navigator.of(sheetContext).pop(rel),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (chosen == null || chosen == patient.familyRelation || !mounted) return;
+
+    await ref
+        .read(registeredPatientsProvider.notifier)
+        .updateRelation(patient, chosen);
   }
 
   Future<void> _confirmDeletePatient(BookingPatient patient) async {
@@ -123,6 +194,8 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final allPatients = ref.watch(registeredPatientsProvider);
+    final accountMedicalNo =
+        ref.watch(authControllerProvider).user?.medicalNo ?? '';
     final matches = allPatients.where((p) {
       final q = _query.toLowerCase().trim();
       if (q.isEmpty) return true;
@@ -211,6 +284,7 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                     ),
                     suffixIcon: _query.isNotEmpty
                         ? IconButton(
+                          tooltip: 'Tutup',
                             icon: const Icon(
                               Icons.close,
                               size: 18,
@@ -308,8 +382,16 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                               _selected?.name == patient.name;
 
                           final relation = patient.familyRelation ?? 'Pasien';
-                          final isSelf = relation.toLowerCase().contains('diri') ||
-                              relation.toLowerCase().contains('saya');
+                          // Only the row synced from the signed-in account is
+                          // truly "self", and that one always carries the
+                          // account's own record number. Matching on the
+                          // relation text alone stranded rows saved with a
+                          // wrong "Diri Sendiri" label: they could be neither
+                          // edited nor deleted.
+                          final isSelf =
+                              (relation.toLowerCase().contains('diri') ||
+                                  relation.toLowerCase().contains('saya')) &&
+                              patient.medicalRecordNumber == accountMedicalNo;
 
                           return Material(
                             color: Colors.transparent,
@@ -445,13 +527,29 @@ class _PatientPickerSheetState extends ConsumerState<PatientPickerSheet> {
                                         if (!isSelf)
                                           IconButton(
                                             icon: const Icon(
+                                              Icons.edit_outlined,
+                                              size: 19,
+                                              color: AppColors.accentSoft,
+                                            ),
+                                            tooltip: 'Ubah Hubungan',
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                              minWidth: 48,
+                                              minHeight: 48,
+                                            ),
+                                            onPressed: () =>
+                                                _editRelation(patient),
+                                          ),
+                                        if (!isSelf)
+                                          IconButton(
+                                            icon: const Icon(
                                               Icons.delete_outline_rounded,
                                               size: 19,
                                               color: AppColors.danger,
                                             ),
                                             tooltip: 'Hapus Pasien',
                                             padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
+                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                             onPressed: () =>
                                                 _confirmDeletePatient(patient),
                                           ),

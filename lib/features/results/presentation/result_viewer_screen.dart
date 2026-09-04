@@ -121,8 +121,9 @@ class ResultViewerScreen extends ConsumerWidget {
                   Row(
                     children: [
                       IconButton(
+                        tooltip: 'Kembali',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -149,8 +150,9 @@ class ResultViewerScreen extends ConsumerWidget {
                         ),
                       ),
                       IconButton(
+                        tooltip: 'Bagikan',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -406,8 +408,9 @@ class _TopAppBar extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
+              tooltip: 'Kembali',
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -740,6 +743,7 @@ class _FullscreenScanDialog extends StatelessWidget {
               top: 16,
               left: 16,
               child: IconButton(
+                tooltip: 'Tutup',
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

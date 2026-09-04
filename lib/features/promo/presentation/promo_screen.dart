@@ -231,7 +231,7 @@ class _PromoScreenState extends State<PromoScreen> {
                       IconButton(
                         tooltip: 'Kembali',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(

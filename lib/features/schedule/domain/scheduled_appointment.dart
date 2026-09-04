@@ -118,6 +118,7 @@ class ScheduledAppointment {
     Map<String, dynamic> json, {
     String? fallbackPatientName,
     Map<String, String>? mrnToNameMap,
+    String? accountMedicalNo,
   }) {
     final id = (json['id'] ??
             json['appointment_id'] ??
@@ -147,13 +148,6 @@ class ScheduledAppointment {
         .toString()
         .toLowerCase();
 
-    final isSelf = json['is_self'] == true ||
-        json['isSelf'] == true ||
-        relation == 'pribadi' ||
-        relation == 'diri sendiri' ||
-        relation.contains('self') ||
-        relation.isEmpty;
-
     final medicalNo = (json['medical_no'] ??
             json['medicalNo'] ??
             json['MedicalNo'] ??
@@ -162,6 +156,25 @@ class ScheduledAppointment {
             '')
         .toString()
         .trim();
+
+    // Whose appointment this is, decided by record number rather than by the
+    // relation text: `GET /app/appointments` sends no relation at all, so
+    // falling back to "empty means me" marked every family booking as the
+    // account holder's and left the "Orang Lain" filter permanently empty.
+    final bool isSelf;
+    if (json['is_self'] == true || json['isSelf'] == true) {
+      isSelf = true;
+    } else if (accountMedicalNo != null &&
+        accountMedicalNo.isNotEmpty &&
+        medicalNo.isNotEmpty) {
+      isSelf = medicalNo == accountMedicalNo;
+    } else {
+      // No record number to compare — fall back to the relation text.
+      isSelf = relation == 'pribadi' ||
+          relation == 'diri sendiri' ||
+          relation.contains('self') ||
+          relation.isEmpty;
+    }
 
     // 1. Resolve Patient Name thoroughly
     String patientName = '';

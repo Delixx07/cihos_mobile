@@ -47,6 +47,10 @@ class ScheduleRepository {
                 item.cast<String, dynamic>(),
                 fallbackPatientName: user?.fullName,
                 mrnToNameMap: mrnMap,
+                // Lets each appointment tell whose it is: the API returns the
+                // patient's medical_no, so anything not matching the account
+                // was booked for someone else.
+                accountMedicalNo: user?.medicalNo,
               );
               list.add(appt);
             } catch (e) {

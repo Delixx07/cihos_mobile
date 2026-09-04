@@ -209,6 +209,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           textInputAction: TextInputAction.next,
                           errorText: auth.errorFor('password'),
                           suffixIcon: IconButton(
+                            tooltip: 'Tampilkan kata sandi',
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),
@@ -318,6 +319,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _submit(),
                           suffixIcon: IconButton(
+                            tooltip: 'Tampilkan kata sandi',
                             onPressed: () => setState(
                               () => _obscureConfirmPassword =
                                   !_obscureConfirmPassword,

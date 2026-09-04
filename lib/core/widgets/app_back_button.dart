@@ -33,7 +33,7 @@ class AppBackButton extends StatelessWidget {
     return IconButton(
       tooltip: 'Kembali',
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
       onPressed: onPressed ??
           () {
             if (context.canPop()) {

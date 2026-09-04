@@ -113,6 +113,52 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
     );
   }
 
+  /// Confirms the chosen day without making the patient scroll for it.
+  Future<void> _showDaySheet(
+    DateTime date,
+    UpcomingScheduleDate? schedule,
+  ) async {
+    final unitCode =
+        (schedule?.unitCode.isNotEmpty == true ? schedule!.unitCode : null) ??
+        widget.booking.unitCode;
+
+    final proceed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DaySheet(
+        date: date,
+        timeLabel: schedule?.timeLabel ?? '',
+        doctorId: widget.booking.doctorId,
+        unitCode: unitCode,
+        onAvailability: (available) {
+          if (!mounted || _hasBookableSession == available) return;
+          setState(() => _hasBookableSession = available);
+        },
+      ),
+    );
+
+    if (proceed != true || !mounted) return;
+    _confirm(
+      upcomingList: ref
+          .read(
+            upcomingSchedulesProvider(
+              UpcomingScheduleQuery(
+                doctorId: widget.booking.doctorId!,
+                unitCode: widget.booking.unitCode,
+                days: 30,
+              ),
+            ),
+          )
+          .valueOrNull,
+      weeklySchedules:
+          ref
+              .read(doctorSchedulesProvider(widget.booking.doctorId!))
+              .valueOrNull ??
+          const [],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final doctor = widget.booking.doctorId != null 
@@ -174,24 +220,6 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
         : null;
     final weeklySchedules = weeklySchedulesAsync?.valueOrNull ?? const [];
 
-    // The slot lookup needs a unit code. Resolve it the same way _confirm
-    // does — the calendar entry first, then the weekly schedule for that
-    // weekday, then whatever the booking already carried.
-    final weeklyForDate = _date == null
-        ? null
-        : weeklySchedules.cast<PracticeSchedule?>().firstWhere(
-            (s) => s != null && s.dayNumber == _date!.weekday,
-            orElse: () => null,
-          );
-    final resolvedUnitCodeForSlots =
-        (selectedSchedule?.unitCode.isNotEmpty == true
-            ? selectedSchedule!.unitCode
-            : null) ??
-        (weeklyForDate?.unitCode.isNotEmpty == true
-            ? weeklyForDate!.unitCode
-            : null) ??
-        widget.booking.unitCode;
-
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
@@ -233,8 +261,9 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                   IconButton(
+                    tooltip: 'Kembali',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -433,6 +462,10 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                         // Availability is per date; re-checked for the new one.
                         _hasBookableSession = false;
                       });
+                      // The calendar fills the screen, so the summary below it
+                      // sits off-screen and the patient never sees what they
+                      // just picked. Bring it to them instead.
+                      _showDaySheet(value, matched);
                     },
                   ),
                   if (upcomingAsync != null &&
@@ -472,86 +505,70 @@ class _BookingScheduleScreenState extends ConsumerState<BookingScheduleScreen> {
                     )
                   else if (_date != null) ...[
                     const SizedBox(height: AppSpacing.md),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.mint.withValues(alpha: 0.15),
+                    // A compact echo of what the sheet confirmed, so the choice
+                    // stays visible after the sheet closes. Tapping reopens it.
+                    Material(
+                      color: AppColors.mint.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.accentSoft,
-                          width: 1.2,
+                        onTap: () =>
+                            _showDaySheet(_date!, selectedSchedule),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.accentSoft,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.event_available_rounded,
+                                color: AppColors.accentSoft,
+                                size: 20,
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      DateFormat(
+                                        'EEEE, d MMMM yyyy',
+                                        'id_ID',
+                                      ).format(_date!),
+                                      style: AppTypography.bodySm.copyWith(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    if (selectedSchedule != null &&
+                                        selectedSchedule.timeLabel.isNotEmpty)
+                                      Text(
+                                        'Jam Praktek: '
+                                        '${selectedSchedule.timeLabel}',
+                                        style: AppTypography.bodySm.copyWith(
+                                          fontSize: 12,
+                                          color: AppColors.link,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: AppColors.textSecondary,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.accentSoft.withValues(
-                                alpha: 0.15,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.calendar_today_rounded,
-                              color: AppColors.accentSoft,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Tanggal Dipilih:',
-                                  style: AppTypography.bodySm.copyWith(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                Text(
-                                  DateFormat(
-                                    'EEEE, d MMMM yyyy',
-                                    'id_ID',
-                                  ).format(_date!),
-                                  style: AppTypography.bodySm.copyWith(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                if (selectedSchedule != null &&
-                                    selectedSchedule.timeLabel.isNotEmpty)
-                                  Text(
-                                    'Jam Praktek: ${selectedSchedule.timeLabel}',
-                                    style: AppTypography.bodySm.copyWith(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.link,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    _SessionAvailability(
-                      doctorId: widget.booking.doctorId,
-                      unitCode: resolvedUnitCodeForSlots,
-                      date: _date!,
-                      onAvailability: (available) {
-                        if (_hasBookableSession == available) return;
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) {
-                            setState(() => _hasBookableSession = available);
-                          }
-                        });
-                      },
                     ),
                   ],
                   const SizedBox(height: AppSpacing.lg),
@@ -622,10 +639,21 @@ class _SessionAvailability extends ConsumerWidget {
   /// or block "Lanjutkan".
   final ValueChanged<bool> onAvailability;
 
+  /// Reports availability after the current frame.
+  ///
+  /// Every call site below sits inside `build`, and the parent answers by
+  /// calling setState — which Flutter rejects mid-build. Deferring by one
+  /// frame keeps the report without the rebuild-during-build error.
+  void _report(bool available) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      onAvailability(available);
+    });
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (doctorId == null || unitCode == null || unitCode!.isEmpty) {
-      onAvailability(false);
+      _report(false);
       return const _Notice(
         message: 'Klinik dokter belum diketahui, jadi jadwal tidak bisa '
             'dimuat. Silakan pilih ulang dokter.',
@@ -641,14 +669,14 @@ class _SessionAvailability extends ConsumerWidget {
 
     return slotsAsync.when(
       loading: () {
-        onAvailability(false);
+        _report(false);
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
           child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
         );
       },
       error: (_, _) {
-        onAvailability(false);
+        _report(false);
         return const _Notice(
           message: 'Gagal memuat jadwal. Periksa jaringan Anda, lalu pilih '
               'ulang tanggalnya.',
@@ -662,7 +690,7 @@ class _SessionAvailability extends ConsumerWidget {
             .where((s) => !s.hasEndedOn(date, now))
             .toList();
 
-        onAvailability(sessions.isNotEmpty);
+        _report(sessions.isNotEmpty);
 
         if (sessions.isEmpty) {
           return _Notice(
@@ -772,6 +800,170 @@ class _Notice extends StatelessWidget {
           fontSize: 13,
           height: 1.3,
           color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirms the chosen day, with the sessions still open on it.
+///
+/// Shown as a sheet because the calendar takes the whole screen: the same
+/// information rendered underneath it would sit below the fold, and patients
+/// would tap "Lanjutkan" without ever seeing which session they were getting.
+class _DaySheet extends StatelessWidget {
+  const _DaySheet({
+    required this.date,
+    required this.timeLabel,
+    required this.doctorId,
+    required this.unitCode,
+    required this.onAvailability,
+  });
+
+  final DateTime date;
+  final String timeLabel;
+  final String? doctorId;
+  final String? unitCode;
+  final ValueChanged<bool> onAvailability;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.md,
+        AppSpacing.xxl,
+        AppSpacing.xl,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentSoft.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.event_available_rounded,
+                      color: AppColors.accentSoft,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tanggal Dipilih',
+                          style: AppTypography.bodySm.copyWith(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          DateFormat(
+                            'EEEE, d MMMM yyyy',
+                            'id_ID',
+                          ).format(date),
+                          style: AppTypography.headingSm.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (timeLabel.isNotEmpty)
+                          Text(
+                            'Jam Praktek: $timeLabel',
+                            style: AppTypography.bodySm.copyWith(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.link,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _SessionAvailability(
+                doctorId: doctorId,
+                unitCode: unitCode,
+                date: date,
+                onAvailability: onAvailability,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        // Comfortably above the 48dp floor: many patients here
+                        // are elderly.
+                        minimumSize: const Size.fromHeight(52),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Ganti Tanggal',
+                        style: AppTypography.bodySm.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        backgroundColor: AppColors.accentSoft,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Lanjutkan',
+                        style: AppTypography.bodySm.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,8 +15,11 @@ import 'token_store.dart';
 /// [ApiException] so screens never have to reason about Dio types or HTTP
 /// status codes directly.
 class ApiClient {
-  ApiClient({required TokenStore tokenStore, Dio? dio})
-    : _tokenStore = tokenStore,
+  ApiClient({
+    required TokenStore tokenStore,
+    Dio? dio,
+    this.onUnauthenticated,
+  }) : _tokenStore = tokenStore,
       _dio =
           dio ??
           Dio(
@@ -69,6 +74,31 @@ class ApiClient {
 
   final Dio _dio;
   final TokenStore _tokenStore;
+
+  /// Called when the server rejects the stored token mid-session.
+  ///
+  /// The client cannot sign the patient out itself without depending on the
+  /// auth layer, so it reports upward and the controller decides. Without
+  /// this the patient is stranded on a screen where every request fails.
+  final Future<void> Function()? onUnauthenticated;
+
+  bool _signingOut = false;
+
+  /// Runs the sign-out callback once, swallowing anything it throws.
+  ///
+  /// This fires while another request is already failing; a second error
+  /// escaping here would replace the message the patient needs to see.
+  Future<void> _signOut() async {
+    if (_signingOut) return;
+    _signingOut = true;
+    try {
+      await onUnauthenticated?.call();
+    } catch (_) {
+      // Nothing useful to do: the session is gone either way.
+    } finally {
+      _signingOut = false;
+    }
+  }
 
   Future<Response<dynamic>> _send(
     String method,
@@ -150,12 +180,21 @@ class ApiClient {
         (map['msg'] as String?) ??
         'Terjadi kesalahan pada server (${response.statusCode}).';
 
-    throw ApiException(
+    final failure = ApiException(
       message: errorMessage,
       code: map['error']?.toString(),
       statusCode: response.statusCode,
       fieldErrors: _fieldErrors(map['errors'] ?? map['error']),
     );
+
+    // A rejected token means the session is over. Sign-in itself answers 401
+    // for a wrong password, so only calls that actually carried a token count.
+    if (failure.isUnauthenticated &&
+        response.requestOptions.headers.containsKey('Authorization')) {
+      unawaited(_signOut());
+    }
+
+    throw failure;
   }
 
   static Map<String, List<String>> _fieldErrors(Object? raw) {
@@ -185,10 +224,31 @@ class ApiClient {
   }) async => _unwrap(
     await _send('POST', path, body: body, authenticated: authenticated),
   );
+
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Object? body,
+    bool authenticated = false,
+  }) async => _unwrap(
+    await _send('DELETE', path, body: body, authenticated: authenticated),
+  );
 }
 
 final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
 
-final apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(tokenStore: ref.watch(tokenStoreProvider)),
-);
+/// Raised by [ApiClient] when the server rejects a token mid-session.
+///
+/// The auth layer listens to this instead of the client importing it, which
+/// would make the dependency circular.
+final sessionExpiredProvider = StateProvider<int>((ref) => 0);
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient(
+    tokenStore: ref.watch(tokenStoreProvider),
+    onUnauthenticated: () async {
+      // A counter, not a flag: two rejected calls in a row are still one
+      // session ending, and the listener only needs to know it happened.
+      ref.read(sessionExpiredProvider.notifier).state++;
+    },
+  );
+});

@@ -67,6 +67,7 @@ class HealthArticleDetailScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
+                  tooltip: 'Kembali',
                   icon: const Icon(
                     Icons.arrow_back_ios_new,
                     color: Colors.white,

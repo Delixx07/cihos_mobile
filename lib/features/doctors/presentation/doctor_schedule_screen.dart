@@ -238,11 +238,12 @@ class _DoctorSchedulePreviewCalendarState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
+                tooltip: 'Bulan sebelumnya',
                 icon: const Icon(Icons.chevron_left_rounded, size: 24),
                 color: AppColors.textPrimary,
                 onPressed: () => _shiftMonth(-1),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
               Text(
                 monthName,
@@ -253,11 +254,12 @@ class _DoctorSchedulePreviewCalendarState
                 ),
               ),
               IconButton(
+                tooltip: 'Bulan berikutnya',
                 icon: const Icon(Icons.chevron_right_rounded, size: 24),
                 color: AppColors.textPrimary,
                 onPressed: () => _shiftMonth(1),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
             ],
           ),

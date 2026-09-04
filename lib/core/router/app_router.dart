@@ -26,11 +26,6 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/mcu/presentation/mcu_packages_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
-import '../../features/patient_registration/domain/patient_draft.dart';
-import '../../features/patient_registration/presentation/existing_patient_screen.dart';
-import '../../features/patient_registration/presentation/new_patient_form_screen.dart';
-import '../../features/patient_registration/presentation/patient_review_screen.dart';
-import '../../features/patient_registration/presentation/patient_type_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/promo/presentation/promo_screen.dart';
 import '../../features/results/presentation/exam_results_screen.dart';
@@ -54,8 +49,18 @@ const _guardedRoutes = {
 };
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // `redirect` only runs when navigation happens, so a session that expires
+  // while the patient sits on a screen would leave them there. Nudging the
+  // router whenever sign-in state flips re-runs the guard and moves them out.
+  final authChanged = ValueNotifier<int>(0);
+  ref.listen(authControllerProvider.select((s) => s.isSignedIn), (_, _) {
+    authChanged.value++;
+  });
+  ref.onDispose(authChanged.dispose);
+
   return GoRouter(
     initialLocation: AppRoutes.welcome,
+    refreshListenable: authChanged,
     redirect: (context, state) {
       final isSignedIn = ref.read(authControllerProvider).isSignedIn;
 
@@ -271,30 +276,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Adding a patient, step by step.
-      GoRoute(
-        path: AppRoutes.patientType,
-        pageBuilder: (context, state) =>
-            _sharedAxis(state, const PatientTypeScreen()),
-      ),
-      GoRoute(
-        path: AppRoutes.registerExistingPatient,
-        pageBuilder: (context, state) =>
-            _sharedAxis(state, const ExistingPatientScreen()),
-      ),
-      GoRoute(
-        path: AppRoutes.registerNewPatient,
-        pageBuilder: (context, state) =>
-            _sharedAxis(state, const NewPatientFormScreen()),
-      ),
-      GoRoute(
-        path: AppRoutes.patientReview,
-        builder: (context, state) => PatientReviewScreen(
-          // The draft travels with the navigation rather than through global
-          // state, so a half-filled form cannot leak between attempts.
-          draft: state.extra as PatientDraft? ?? const PatientDraft(),
-        ),
-      ),
+      // The /patient/* registration flow was removed: it never called the API
+      // and minted its own record numbers from a timestamp (`RM-610877`),
+      // which the hospital had never issued. Patients are added through
+      // AddPatientSheet, which resolves a real MRN via /app/patients/check.
     ],
   );
 });

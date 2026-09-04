@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -34,7 +35,11 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
   final _rmController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String _relation = 'Diri Sendiri';
+  /// Deliberately unset: pre-filling "Diri Sendiri" made every relative the
+  /// patient added look like the account holder, and the booking flow treats
+  /// that relation as "this is me" — so an untouched dropdown could file an
+  /// appointment under the wrong person.
+  String? _relation;
   String _gender = 'Laki-laki';
   DateTime? _birthDate;
   bool _isSaving = false;
@@ -79,29 +84,56 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
 
     setState(() => _isSaving = true);
 
-    final patient = BookingPatient(
-      name: _nameController.text.trim(),
-      medicalRecordNumber: _rmController.text.trim(),
-      familyRelation: _relation,
-      gender: _gender,
-      birthDate: _birthDate,
-      phone: _phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim(),
-    );
-
     try {
-      final savedPatient =
-          await ref.read(registeredPatientsProvider.notifier).addPatient(patient);
+      // The server resolves the NIK against MEDINFRAS and only stores a
+      // confirmed match, so an unregistered relative is caught here rather
+      // than failing later at booking.
+      final savedPatient = await ref
+          .read(registeredPatientsProvider.notifier)
+          .addFamilyMember(
+            nik: _rmController.text.trim(),
+            name: _nameController.text.trim(),
+            dob: _birthDate,
+            phone: _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
+            relation: _relation,
+          );
 
       if (!mounted) return;
       setState(() => _isSaving = false);
+
+      if (savedPatient == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${_nameController.text.trim()} belum terdaftar di Ciputra '
+              'Hospital Surabaya. Pendaftaran pasien baru harus dilakukan '
+              'langsung di rumah sakit.',
+            ),
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
+
       Navigator.of(context).pop(savedPatient);
-    } catch (e) {
+    } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan pasien: $e')),
+        SnackBar(
+          content: Text(
+            e.isNetwork
+                ? 'Tidak dapat memeriksa data pasien. Periksa jaringan Anda, '
+                      'lalu coba lagi.'
+                : e.message,
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -189,6 +221,7 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Tutup',
                       icon: const Icon(Icons.close_rounded, size: 22),
                       color: AppColors.textSecondary,
                       onPressed: () => Navigator.of(context).pop(),
@@ -288,7 +321,22 @@ class _AddPatientSheetState extends ConsumerState<AddPatientSheet> {
                       ),
                     ),
                   ),
-                  items: PatientOptions.familyRelations.map((rel) {
+                  hint: Text(
+                    'Pilih hubungan dengan pasien',
+                    style: AppTypography.inputText.copyWith(
+                      color: AppColors.textTertiary,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Hubungan wajib dipilih'
+                      : null,
+                  // "Diri Sendiri" is not offered: the account holder is
+                  // already in the list automatically, and picking it here
+                  // would create a second entry for the same person.
+                  items: PatientOptions.familyRelations
+                      .where((rel) => rel != 'Diri Sendiri')
+                      .map((rel) {
                     return DropdownMenuItem(
                       value: rel,
                       child: Text(rel, style: AppTypography.inputText),
